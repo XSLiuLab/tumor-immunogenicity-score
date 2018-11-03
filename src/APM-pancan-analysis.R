@@ -1,7 +1,7 @@
 #--------------------------------------------------------------------
 # analysis for APM and TIGS in cancer type level
 #--------------------------------------------------------------------
-load(file = "results/curated_TCGA_APM_TMB_Clinical.RData")
+load(file = "data/curated_TCGA_APM_TMB_Clinical.RData")
 
 df_all = df_TMB %>% 
     mutate(nAPM = (APM - min(APM, na.rm = TRUE))/ (max(APM, na.rm = TRUE) - min(APM, na.rm = TRUE)),
