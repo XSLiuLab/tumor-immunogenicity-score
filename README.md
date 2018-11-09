@@ -28,4 +28,4 @@ Other resource are available as supplementary files/tables of paper.
 
 If you use results from this work, please cite it.
 
-*Antigen presentation and tumor immunogenicity in cancer immunotherapy response prediction* (**Under Review**)
+*Antigen presentation and tumor immunogenicity in cancer immunotherapy response prediction, __Cancer Immunology Research__* (**Under Review**)
