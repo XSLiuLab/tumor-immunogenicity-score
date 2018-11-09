@@ -23,3 +23,9 @@
 Other resource are available as supplementary files/tables of paper.
 
 >NOTE: The code are not tidy, which means you cannot run automatically to reproduce all results (include figures and tables) of paper. If you are really interested in reproducing such a result, please run code one by one, read comments carefully and check input of code required. If you have any question, please open an issue or email to us.
+
+## Reference 
+
+If you use results from this work, please cite it.
+
+*Antigen presentation and tumor immunogenicity in cancer immunotherapy response prediction* (**Under Review**)
