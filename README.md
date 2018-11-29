@@ -1,5 +1,11 @@
 # Available Resource and Workflow of Paper *Antigen presentation and tumor immunogenicity in cancer immunotherapy response prediction*
 
+This repository is to share analysis procedure, data and help readers or reviewers to know more detail of this work, reproduce or make use of results they are interested in.
+
+If you use data, results or conclusion from this work, please cite:
+
+*Antigen presentation and tumor immunogenicity in cancer immunotherapy response prediction, __Nature Communication__* (**Under Review**)
+
 
 ## Repository structure
 
@@ -10,13 +16,11 @@
 * __LICENSE__ file 
 * This __README.md__ file
 
-## How to use this repository
-
-### For reader
+## Usage
 
 For reader want to know more detail about methods, procedure and results in manuscript, you can download or clone this repository and open html file named **report_main.html** under report directory with your favorite browser.
  
-### For reproducing results
+For reproducing results
 
 TO DO.
 
@@ -45,14 +49,8 @@ Other resource are available as supplementary files/tables of paper.
 
 ## Acknowledgement
 
-We thank all the referees for providing valuable comments to promote the quality of this manuscript. We thank the authors and participating patients of immunotherapy publications for providing the data for this analysis. Thank TCGA project for making cancer genomics data available for analysis. Thank members of Liu lab for helpful discussion. This work was supported in part by the Shanghai Pujiang Program (16PJ1407400), The National Natural Science Foundation of China (31771373), and startup funding from ShanghaiTech University.
+We thank all the reviewers for providing valuable comments to promote the quality of this manuscript. We thank the authors and participating patients of immunotherapy publications for providing the data for this analysis. Thank TCGA project for making cancer genomics data available for analysis. Thank members of Liu lab for helpful discussion. This work was supported in part by the Shanghai Pujiang Program (16PJ1407400), The National Natural Science Foundation of China (31771373), and startup funding from ShanghaiTech University.
 
-
-## Citation
-
-If you use data, results or conclusion from this work, please cite:
-
-*Antigen presentation and tumor immunogenicity in cancer immunotherapy response prediction, __Nature Communication__* (**Under Review**)
 
 
 ## LICENSE
