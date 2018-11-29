@@ -1,0 +1,307 @@
+---
+title: "Data download and preprocessing"
+author: "Shixiang Wang"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    lightbox: false
+    toc_depth: 3
+---
+
+```{r pre-process-setup, include=FALSE}
+options(max.print="75")
+knitr::opts_chunk$set(echo = TRUE, comment = "#>", eval = TRUE, collapse = TRUE)
+knitr::opts_knit$set(width=75)
+```
+
+This part will clearly describe how to process raw data but not provide an easy script for re-running all preprocess steps just by a click due to the complexity of data preprocessing.
+
+## Dependencies
+
+The preprocessing step is dependent on R software, if you have not used R yet or R is not installed, please see <https://cran.r-project.org/>.
+
+R packages:
+
+* [UCSCXenaTools](https://github.com/ShixiangWang/UCSCXenaTools)
+* [tidyverse](https://www.tidyverse.org/)
+* [TCGAmutations](https://github.com/PoisonAlien/TCGAmutations)
+* [DT](https://cran.r-project.org/web/packages/DT/index.html)
+
+## TCGA Pan-cancer data download
+
+TCGA Pan-cancer data (Version 2017-10-13), including datasets of clinical informaiton, gene expression, are downloaded from [UCSC Xena](https://xenabrowser.net/datapages/) via R package [UCSCXenaTools](https://github.com/ShixiangWang/UCSCXenaTools).
+
+If you have not installed this package yet, please run following command in R.
+
+```{r install_ucscxenatools, eval=FALSE}
+install.packages("UCSCXenaTools")
+```
+
+Load the package with:
+
+```{r load_xenatools, message=FALSE}
+library(UCSCXenaTools)
+
+# also load dplyr package
+library(dplyr)
+```
+
+
+Obtain datasets information available at [TCGA data hubs of UCSC Xena](https://xenabrowser.net/datapages/?host=https%3A%2F%2Ftcga.xenahubs.net&removeHub=https%3A%2F%2Fxena.treehouse.gi.ucsc.edu%3A443):
+
+```{r}
+xe = XenaGenerate(subset = XenaHostNames == "TCGA")
+xe
+```
+
+
+Obtain clinical datasets of TCGA:
+
+```{r query_pan_cli}
+xe %>% XenaFilter(filterDatasets = "clinical") -> xe_clinical
+xe_clinical
+```
+
+Obtain gene expression datasets of TCGA:
+
+```{r query_pan_ge}
+xe %>% XenaFilter(filterDatasets = "HiSeqV2_PANCAN$") -> xe_rna_pancan
+xe_rna_pancan
+```
+
+Create data queries and download them:
+
+```{r download_xena_pancan, eval=FALSE}
+xe_clinical.query = XenaQuery(xe_clinical)
+xe_clinical.download = XenaDownload(xe_clinical.query, 
+                                    destdir = "UCSC_Xena/TCGA/Clinical")
+
+xe_rna_pancan.query = XenaQuery(xe_rna_pancan)
+xe_rna_pancan.download = XenaDownload(xe_rna_pancan.query, 
+                                      destdir = "UCSC_Xena/TCGA/RNAseq_Pancan")
+```
+
+```{r hide_download_pancan, include=FALSE}
+if (!dir.exists("UCSC_Xena")){
+    xe_clinical.query = XenaQuery(xe_clinical)
+    xe_clinical.download = XenaDownload(xe_clinical.query, 
+                                        destdir = "UCSC_Xena/TCGA/Clinical")
+    
+    xe_rna_pancan.query = XenaQuery(xe_rna_pancan)
+    xe_rna_pancan.download = XenaDownload(xe_rna_pancan.query, 
+                                          destdir = "UCSC_Xena/TCGA/RNAseq_Pancan")
+}
+```
+
+
+The RNASeq data we downloaded are pancan normalized. 
+
+> For comparing data within independent cohort (like TCGA-LUAD), we recommend to use the "gene expression RNAseq" dataset. For questions regarding the gene expression of this particular cohort in relation to other types tumors, you can use the pancan normalized version of the "gene expression RNAseq" data. For comparing with data outside TCGA, we recommend using the percentile version if the non-TCGA data is normalized by percentile ranking. For more information, please see our Data FAQ: [here](https://docs.google.com/document/d/1q-7Tkzd7pci4Rz-_IswASRMRzYrbgx1FTTfAWOyHbmk/edit?usp=sharing).
+
+These datasets are downloaded to local machine, we need to load them into R. However, whether filenames of datasets or contents in datasets all look messy, next we need to clean them before real analysis.
+
+## TCGA pan-cancer data clean
+
+### Clean filenames
+
+First, clean filenames.
+
+```{r clean_filenames}
+# set data directory where TCGA clinical and pancan RNAseq data stored
+TCGA_DIR = "UCSC_Xena/TCGA" 
+# obtain filenames of rna-seq data
+dir(paste0(TCGA_DIR,"/RNAseq_Pancan")) -> RNAseq_filelist
+# obtain tcga project code
+sub("TCGA\\.(.*)\\.sampleMap.*", "\\1", RNAseq_filelist) -> project_code
+# obtain filenames of clinical datasets
+dir(paste0(TCGA_DIR,"/Clinical")) -> Clinical_filelist
+```
+
+Check.
+
+```{r}
+head(RNAseq_filelist)
+
+head(project_code)
+
+head(Clinical_filelist)
+```
+
+Obtain TCGA project abbreviations from <https://gdc.cancer.gov/resources-tcga-users/tcga-code-tables/tcga-study-abbreviations> and read as a `data.frame` in R.
+
+```{r}
+library(readr)
+TCGA_Study = read_tsv("
+                      LAML	Acute Myeloid Leukemia
+                      ACC	Adrenocortical carcinoma
+                      BLCA	Bladder Urothelial Carcinoma
+                      LGG	Brain Lower Grade Glioma
+                      BRCA	Breast invasive carcinoma 
+                      CESC	Cervical squamous cell carcinoma and endocervical adenocarcinoma
+                      CHOL	Cholangiocarcinoma
+                      LCML	Chronic Myelogenous Leukemia
+                      COAD	Colon adenocarcinoma
+                      CNTL	Controls
+                      ESCA	Esophageal carcinoma
+                      FPPP	FFPE Pilot Phase II
+                      GBM	Glioblastoma multiforme
+                      HNSC	Head and Neck squamous cell carcinoma
+                      KICH	Kidney Chromophobe
+                      KIRC	Kidney renal clear cell carcinoma
+                      KIRP	Kidney renal papillary cell carcinoma
+                      LIHC	Liver hepatocellular carcinoma
+                      LUAD	Lung adenocarcinoma
+                      LUSC	Lung squamous cell carcinoma
+                      DLBC	Lymphoid Neoplasm Diffuse Large B-cell Lymphoma
+                      MESO	Mesothelioma
+                      MISC	Miscellaneous
+                      OV	Ovarian serous cystadenocarcinoma
+                      PAAD	Pancreatic adenocarcinoma
+                      PCPG	Pheochromocytoma and Paraganglioma
+                      PRAD	Prostate adenocarcinoma
+                      READ	Rectum adenocarcinoma
+                      SARC	Sarcoma
+                      SKCM	Skin Cutaneous Melanoma
+                      STAD	Stomach adenocarcinoma
+                      TGCT	Testicular Germ Cell Tumors
+                      THYM	Thymoma
+                      THCA	Thyroid carcinoma
+                      UCS	Uterine Carcinosarcoma
+                      UCEC	Uterine Corpus Endometrial Carcinoma
+                      UVM	Uveal Melanoma")
+colnames(TCGA_Study) = c("StudyAbbreviation", "StudyName")
+```
+
+Compare difference.
+
+```{r}
+intersect(project_code, TCGA_Study$StudyAbbreviation) -> project_code
+Clinical_filelist[rowSums(sapply(paste0("__",project_code,"_"), function(x) grepl(x, Clinical_filelist)))>0] -> Clinical_filelist2
+
+setdiff(Clinical_filelist, Clinical_filelist2)
+```
+
+Remove `TCGA.FPPP.sampleMap__FPPP_clinicalMatrix.gz` which has no RNAseq data. Remove other 3 datasets which merge more than one TCGA study, only keep individual study from TCGA.
+
+
+### Clean clinical datasets
+
+Now, we read TCGA clinical datasets and clean them.
+
+```{r clean_tcga_cli}
+library(tidyverse)
+# keep valuable columns of clinical datasets
+select_cols = c("sampleID", "OS", "OS.time", "OS.unit", "RFS", "RFS.time", "RFS.unit", 
+                "age_at_initial_pathologic_diagnosis", "gender", "tobacco_smoking_history",
+                "tobacco_smoking_history_indicator", "sample_type", "pathologic_M",
+                "pathologic_N", "pathologic_T", "pathologic_stage")
+
+# read clinical files
+Cli_DIR = paste0(TCGA_DIR,"/Clinical")
+
+#----------------------------------
+# Load and preprocess clinical data
+#----------------------------------
+Clinical_List = XenaPrepare(paste0(Cli_DIR,"/",Clinical_filelist2))
+names(Clinical_List)
+sub("TCGA\\.(.*)\\.sampleMap.*", "\\1", names(Clinical_List)) -> project_code
+
+TCGA_Clinical = tibble()
+# for loop
+for (i in 1:length(project_code)){
+    clinical = names(Clinical_List)[i]
+    project = project_code[i]
+    df = Clinical_List[[clinical]]
+    col_exist = select_cols %in% colnames(df)
+    res = tibble()
+    if(!all(col_exist)){
+        res = df[, select_cols[col_exist]]
+        res[, select_cols[!col_exist]] = NA
+    }else{
+        res = df[, select_cols]
+    }
+    res$Project = project
+    res %>% select(Project, select_cols) -> res
+    TCGA_Clinical = bind_rows(TCGA_Clinical, res)
+}
+
+rm(res, df, i, clinical, project, col_exist);gc() # remove temp variables
+```
+
+View the clinical data, check variables.
+
+```{r view_pan_cli, warning=FALSE}
+DT::datatable(TCGA_Clinical, 
+              options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE)
+```
+
+All unit are same in days, remove two column with redundant information.
+
+```{r}
+TCGA_Clinical = TCGA_Clinical %>% select(-c(OS.unit, RFS.unit))
+```
+
+
+Continue to tidy clinical datasets: rename variables, filter 14 samples with unusual sample types, rename variable value and . After cleanning, save the result object `TCGA_Clinical.tidy` for following analysis.
+
+```{r, eval=FALSE}
+# create a new tidy dataframe
+TCGA_Clinical.tidy = TCGA_Clinical %>%
+    rename(Age = age_at_initial_pathologic_diagnosis, Gender = gender, 
+                         Smoking_history = tobacco_smoking_history,
+                         Smoking_indicator = tobacco_smoking_history_indicator,
+                         Tumor_Sample_Barcode = sampleID) %>% 
+    filter(sample_type %in% c("Solid Tissue Normal", "Primary Tumor", "Metastatic", "Recurrent Tumor",
+                              "Primary Blood Derived Cancer - Peripheral Blood")) %>% # Additional - New Primary, Additional Metastatic, FFPE Scrolls total 14 sample removed
+    mutate(Gender = case_when(
+        Gender == "FEMALE" ~ "Female",
+        Gender == "MALE"   ~ "Male",
+        TRUE               ~ NA_character_
+    ), Tumor_stage = case_when(
+        pathologic_stage == "Stage 0" ~ "0",
+        pathologic_stage %in% c("Stage I", "Stage IA", "Stage IB") ~ "I",
+        pathologic_stage %in% c("Stage II", "Stage IIA", "Stage IIB", "Stage IIC") ~ "II",
+        pathologic_stage %in% c("Stage IIIA", "Stage IIIB", "Stage IIIC") ~ "III",
+        pathologic_stage %in% c("Stage IV", "Stage IVA", "Stage IVB", "Stage IVC") ~ "IV",
+        pathologic_stage == "Stage X" ~ "X",
+        TRUE ~ NA_character_)) %>% 
+    mutate(Gender = factor(Gender, levels = c("Male", "Female")), 
+           Tumor_stage = factor(Tumor_stage, levels = c("0", "I", "II", "III", "IV", "X"))) 
+
+if(!file.exists("results/TCGA_tidy_Clinical.RData")){
+    dir.create("results", showWarnings = FALSE)
+    save(TCGA_Clinical.tidy, file = "results/TCGA_tidy_Clinical.RData")
+}   
+```
+
+### Clean RNASeq datasets
+
+Now, we read TCGA pan-cancer RNASeq datasets and clean them.
+
+```{r clean_pan_rnaseq, eval=FALSE}
+dir(paste0(TCGA_DIR,"/RNAseq_Pancan")) -> RNAseq_filelist.Pancan
+RNAseq_filelist.Pancan[rowSums(sapply(paste0("TCGA.",project_code,".sampleMap"), function(x) grepl(x, RNAseq_filelist.Pancan)))>0] -> RNAseq_filelist.Pancan2
+
+RNASeqDIR.pancan = paste0(TCGA_DIR,"/RNAseq_Pancan")
+RNASeq_List.pancan = XenaPrepare(paste0(RNASeqDIR.pancan,"/",RNAseq_filelist.Pancan2))
+names(RNASeq_List.pancan)
+sapply(RNASeq_List.pancan, function(x)nrow(x))
+
+names(RNASeq_List.pancan) = sub("TCGA\\.(.*)\\.sampleMap.*", "\\1", names(RNASeq_List.pancan))
+
+RNASeq_pancan = purrr::reduce(RNASeq_List.pancan, full_join)
+if(!file.exists("results/TCGA_RNASeq_PanCancer.RData")){
+    save(RNASeq_pancan, file = "results/TCGA_RNASeq_PanCancer.RData")
+}
+
+
+#class(RNASeq_pancan)
+rm(RNASeq_List.pancan);gc()
+```
+
+The result object `RNASeq_pancan` is very huge, it needs about 1.5GB space to store. We will not view it as a table in html page.
+
+
+
+

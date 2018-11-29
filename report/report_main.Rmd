@@ -1,0 +1,38 @@
+---
+title: "Antigen presentation and tumor immunogenicity in cancer immunotherapy response prediction"
+author: "Shixiang Wang"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    toc_depth: 3
+    self_contained: false
+---
+
+
+```{r knitr_init, echo=FALSE}
+library(knitr)
+library(rmdformats)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(echo=TRUE,
+	           cache=TRUE,
+               tidy=TRUE,
+               comment="#>")
+opts_knit$set(width=75)
+```
+
+
+This document is compiled from an Rmarkdown file which contains all code or description necessary to reproduce the analysis for the accompanying project. Each section below describes a different component of the analysis and all numbers and figures are generated directly from the underlying data on compilation.
+
+# Data download and preprocessing
+
+```{r child = 'preprocessing.Rmd'}
+```
+
+# Methods
+
+# Results
+
+
