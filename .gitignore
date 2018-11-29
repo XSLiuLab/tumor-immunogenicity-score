@@ -3,3 +3,6 @@
 .RData
 .Ruserdata
 .DS_Store
+UCSC_Xena/
+results/
+report_main_files/
