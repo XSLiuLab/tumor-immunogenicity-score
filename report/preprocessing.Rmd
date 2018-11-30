@@ -7,6 +7,7 @@ output:
     highlight: kate
     lightbox: false
     toc_depth: 3
+    mathjax: true
 ---
 
 ```{r pre-process-setup, include=FALSE}
@@ -27,6 +28,7 @@ R packages:
 * [tidyverse](https://www.tidyverse.org/)
 * [TCGAmutations](https://github.com/PoisonAlien/TCGAmutations)
 * [DT](https://cran.r-project.org/web/packages/DT/index.html)
+* [GSVA](https://github.com/rcastelo/GSVA)
 
 ## TCGA Pan-cancer data download
 
@@ -302,6 +304,182 @@ rm(RNASeq_List.pancan);gc()
 
 The result object `RNASeq_pancan` is very huge, it needs about 1.5GB space to store. We will not view it as a table in html page.
 
+## Selection of APM genes and marker genes of immune cell type
+
+Marker genes for immune cell types were obtained from [Senbabaoglu, Y. et al](https://www.ncbi.nlm.nih.gov/pubmed/27855702), selection of genes involved in processing and presentation of antigen (APM) was also inspired by this paper and finally 18 genes were selected based on [literature review of APM](https://academic.oup.com/jnci/article-lookup/doi/10.1093/jnci/djt184) and some facts that mutations or deletions affecting genes encoding APM (HLA, beta2-microglobulin, TAP1/2 etc.) may lead to __reduced presentation of neoantigens__ by a cancer cell.
+
+```{r immune_genes, message=FALSE}
+APM_genes = read_csv("../data/APM.csv", skip = 1)
+
+immune_cellType = read_csv("../data/Immune_Cell_type_List.csv", skip=1)
+immune_cellType = immune_cellType %>% filter(inRNAseq == "YES")
+
+# merge two gene list
+merged_geneList = bind_rows(immune_cellType,
+          tibble(Cell_type="APM", Symbol=APM_genes$Gene_Name,
+                                 Name = APM_genes$Protein_Name, inRNAseq = "YES")) 
+
+# save data
+save(merged_geneList, file = "results/merged_geneList.RData")
+```
+
+View gene list.
+
+```{r view_merged_genelist}
+DT::datatable(merged_geneList, 
+              options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE)
+```
 
 
+Remove all variables.
+
+```{r}
+rm(list=ls());gc()
+```
+
+
+
+## Calculation of APS, TIS and IIS
+
+> The GSVA package allows one to perform a change in coordinate systems of molecular measurements, transforming the data from a gene by sample matrix to a gene-set by sample matrix, thereby allowing the evaluation of pathway enrichment for each sample. This new matrix of GSVA enrichment scores facilitates applying standard analytical methods like functional enrichment, survival analysis, clustering, CNV-pathway analysis or cross-tissue pathway analysis, in a pathway-centric manner. 
+
+APM score (APS) and score of each immune cell type are directly calculated from GSVA method. Aggregate TIS (T cell infiltration score) and IIS (Immune cell infiltration score) are calculated using following method, their effectiveness have been validated by many studies. 
+
+> The TIS was defined as the mean of the standardized values for the following T cell subsets: CD8 T, T helper, T, T central and effector memory, Th1, Th2, Th17, and Treg cells. The immune infiltration score (IIS) for a sample was defined as the mean of standardized values for macrophages, DC subsets (total, plasmacytoid, immature, activated), B cells, cytotoxic cells, eosinophils, mast cells, neutrophils, NK cell subsets (total, CD56 bright, CD56 dim), and all T cell subsets (CD8 T, T helper, T central and effector memory, Th1, Th2, Th17, and Treg cells). ([Senbabaoglu, Y. et al](https://www.ncbi.nlm.nih.gov/pubmed/27855702))
+
+Load function used to apply GSVA method.
+
+```{r}
+source("../code/functions.R")
+```
+
+Apply GSVA to TCGA data. __This step should run on a machine with big memory.__
+
+```{r, eval=FALSE} 
+# load data
+load("results/merged_geneList.RData")
+load("results/TCGA_RNASeq_PanCancer.RData")
+
+
+applyGSVA(merged_geneList, group_col = "Cell_type", gene_col = "Symbol", ExprMatList = list(RNASeq_pancan), method = "gsva") -> res_pancan.GSVA
+
+save(res_pancan.GSVA, file="results/res_pancan.GSVA.RData")
+```
+
+Calculate TIS and IIS.
+
+```{r calc_TIS_IIS}
+if (!exists("res_pancan.GSVA")) {
+    load("results/res_pancan.GSVA.RData")
+}
+
+res_pancan.GSVA = res_pancan.GSVA[[1]]
+
+calc_TisIIs = function(df){
+    df %>% 
+        mutate(TIS = (`CD8 T cells` + `T helper cells` + `T cells` + `Tcm cells` + `Tem cells` + `Th1 cells` + `Th2 cells` + `Th17 cells` + `Treg cells`) / 9,
+               IIS = (`CD8 T cells` + `T helper cells` + `T cells` + `Tcm cells` + `Tem cells` + `Th1 cells` + `Th2 cells` + `Th17 cells` + `Treg cells` + aDC + `B cells` + `Cytotoxic cells` + DC + Eosinophils + iDC + Macrophages + `Mast cells` + Neutrophils + `NK CD56bright cells` + `NK CD56dim cells` + `NK cells` + pDC) / 22) -> df
+}
+
+# tidy res_pancan.GSVA
+res_pancan.GSVA = rownames_to_column(res_pancan.GSVA, var = "tsb")
+
+# calculate TIS and IIS
+gsva.pac = calc_TisIIs(res_pancan.GSVA)
+```
+
+
+View this table (head 100 rows).
+
+```{r view_GSVA}
+DT::datatable(head(gsva.pac, 100), 
+              options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE)
+```
+
+
+save GSVA scores of APM and immune cell types, TIS and IIS.
+
+```{r}
+if (!file.exists("results/gsva_tcga_pancan.RData")){
+    save(gsva.pac, file ="results/gsva_tcga_pancan.RData")
+}
+
+rm(list = ls()); gc()
+```
+
+
+## TIMER data download and clean
+
+TIMER is a method that can accurately resolve relative fractions of diverse cell types based on gene expression profiles from complex tissues. We downloaded TIMER result for TCGA samples from [Li, B. et al.](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1028-7).
+
+Load TIMER result and clean it for use.
+
+```{r clean_timer_result, message=FALSE}
+timer = read_tsv("../data/TCGA_sixcell_population_TIMER.txt")
+timer$sample %>% length()
+timer$sample %>% unique() %>% length()
+timer$sample %>% substr(start=1, stop=12) %>% unique() %>% length()
+
+# keep only tumor samples
+timer %>% filter(as.numeric(substr(sample, 14, 15)) %in% seq(1,9)) %>% 
+    mutate(sample = substr(sample, 1, 15)) -> timer_clean
+timer_clean %>% arrange(desc(T_cell.CD8)) %>% distinct(sample, .keep_all = TRUE) -> timer_clean
+
+# save
+if (!file.exists("results/timer.RData")){
+    save(timer_clean, file = "results/timer.RData")
+}
+
+rm(list = ls()); gc()
+```
+
+
+## TCGA mutation download and clean
+
+We downloaded TCGA somatic mutations (data source: [TCGA MC3](https://gdc.cancer.gov/about-data/publications/mc3-2017)) via TCGAmutations package.
+
+> TCGAmutations is an R data package containing somatic mutations from TCGA cohorts. This is particularly useful for those working with mutation data from TCGA studies - where most of the time is spent on searching various databases, downloading, compiling and tidying up the data before even the actual analysis is started. This package tries to mitigate the issue by providing pre-compiled, curated somatic mutations from 33 TCGA cohorts along with relevant clinical information for all sequenced samples.
+
+Load mutations of TCGA studies and merge them into one.
+
+```{r load_tcga_mutations, eval=FALSE, warning=FALSE, message=FALSE}
+## install package please use following command
+# devtools::install_github(repo = "PoisonAlien/TCGAmutations")
+
+# load package
+require(TCGAmutations)
+
+
+study_list = tcga_available()$Study_Abbreviation[-34]
+cohorts = system.file('extdata', 'cohorts.txt', package = 'TCGAmutations')
+cohorts = data.table::fread(input = cohorts)
+
+# calculate TMB
+lapply(study_list, function(study){
+    require(maftools)
+        TCGAmutations::tcga_load(study)
+        maf = eval(as.symbol(tolower(paste0("TCGA_", study, "_mc3"))))
+        maf.silent <- maf@maf.silent
+        sample.silent <- maf.silent[,.N, .(Tumor_Sample_Barcode)]
+        sample.nonsilent <- getSampleSummary(maf)
+        res <- dplyr::full_join(sample.silent, sample.nonsilent, by="Tumor_Sample_Barcode")
+        res = res %>% dplyr::mutate(TMB_Total=ifelse(!is.na(N), N+total, total), 
+                              TMB_NonsynSNP=Missense_Mutation+Nonsense_Mutation,
+                              TMB_NonsynVariants=total) %>% 
+            dplyr::select(TMB_Total:TMB_NonsynVariants, Tumor_Sample_Barcode)   
+        res
+    
+}) -> tcga_tmb
+names(tcga_tmb) = study_list
+
+# 33 study available, merge them
+TCGA_TMB = purrr::reduce(tcga_tmb, bind_rows)
+
+if (!file.exists("results/TCGA_TMB.RData")){
+    save(TCGA_TMB, file = "results/TCGA_TMB.RData")
+}
+
+# rm(list = grep("tcga_*", ls(), value = TRUE))
+rm(list = ls()); gc()
+```
 

@@ -31,8 +31,7 @@ This document is compiled from an Rmarkdown file which contains all code or desc
 ```{r child = 'preprocessing.Rmd'}
 ```
 
-# Methods
 
-# Results
+# Analyses and Results
 
 
