@@ -1,0 +1,552 @@
+# from Senbabaoglu et al 2016; 6-Mar has been changed to MARCH6
+Cell_type,Symbol,Name,inRNAseq
+aDC,CCL1,chemokine (C-C motif) ligand 1,YES
+aDC,EBI3,Epstein-Barr virus induced gene 3,YES
+aDC,INDO,"indoleamine-pyrrole 2,3 dioxygenase",NO
+aDC,LAMP3,lysosomal-associated membrane protein 3,YES
+aDC,OAS3,"2'-5'-oligoadenylate synthetase 3, 100kDa",YES
+B cells,ABCB4,"ATP-binding cassette, sub-family B (MDR/TAP), member 4",YES
+B cells,BACH2,"BTB and CNC homology 1, basic leucine zipper transcription factor 2",YES
+B cells,BCL11A,B-cell CLL/lymphoma 11A (zinc finger protein),YES
+B cells,BLK,B lymphoid tyrosine kinase,YES
+B cells,BLNK,B-cell linker ,YES
+B cells,CCR9,chemokine (C-C motif) receptor 9,YES
+B cells,CD19,CD19 molecule,YES
+B cells,CD72,CD72 molecule ,YES
+B cells,COCH,"coagulation factor C homolog, cochlin (Limulus polyphemus)",YES
+B cells,CR2,complement component (3d/Epstein Barr virus) receptor 2 ,YES
+B cells,DTNB,"dystrobrevin, beta",YES
+B cells,FCRL2,Fc receptor-like 2 ,YES
+B cells,GLDC,glycine dehydrogenase (decarboxylating),YES
+B cells,GNG7,"guanine nucleotide binding protein (G protein), gamma 7 ",YES
+B cells,HLA-DOB,"major histocompatibility complex, class II, DO beta ",YES
+B cells,HLA-DQA1,"major histocompatibility complex, class II, DQ alpha 1 ",YES
+B cells,IGHA1,immunoglobulin heavy constant alpha 1,NO
+B cells,IGHG1,immunoglobulin heavy constant gamma 1 (G1m marker),NO
+B cells,IGHM,immunoglobulin heavy constant mu ,NO
+B cells,IGKC,immunoglobulin kappa constant,NO
+B cells,IGL,immunoglobulin lambda locus ,NO
+B cells,KIAA0125,"family with sequence similarity 30, member A",YES
+B cells,MEF2C,myocyte enhancer factor 2C,YES
+B cells,MICAL3,"microtubule associated monoxygenase, calponin and LIM domain containing 3",YES
+B cells,MS4A1,"membrane-spanning 4-domains, subfamily A, member 1 ",YES
+B cells,OSBPL10,oxysterol binding protein-like 10 ,YES
+B cells,PNOC,prepronociceptin,YES
+B cells,QRSL1,glutaminyl-tRNA synthase (glutamine-hydrolyzing)-like 1 ,YES
+B cells,SCN3A,"sodium channel, voltage-gated, type III, alpha subunit",YES
+B cells,SLC15A2,"solute carrier family 15 (H+/peptide transporter), member 2",YES
+B cells,SPIB,Spi-B transcription factor (Spi-1/PU.1 related) ,YES
+B cells,TCL1A,T-cell leukemia/lymphoma 1A,YES
+B cells,TNFRSF17,"tumor necrosis factor receptor superfamily, member 17 ",YES
+CD8 T cells,ABT1,activator of basal transcription 1,YES
+CD8 T cells,AES,amino-terminal enhancer of split,YES
+CD8 T cells,APBA2,"amyloid beta (A4) precursor protein-binding, family A, member 2 (X11-like)",YES
+CD8 T cells,ARHGAP8,Rho GTPase Activating Protein 8,YES
+CD8 T cells,C12orf47,chromosome 12 open reading frame 47,YES
+CD8 T cells,C19orf6,chromosome 19 open reading frame 6,YES
+CD8 T cells,C4orf15,chromosome 4 open reading frame 15,NO
+CD8 T cells,CAMLG,calcium modulating ligand,YES
+CD8 T cells,CD8A,CD8a molecule,YES
+CD8 T cells,CD8B,CD8b molecule,YES
+CD8 T cells,CDKN2AIP,CDKN2A interacting protein,YES
+CD8 T cells,DNAJB1,"DnaJ (Hsp40) homolog, subfamily B, member 1",YES
+CD8 T cells,FLT3LG,fms-related tyrosine kinase 3 ligand,YES
+CD8 T cells,GADD45A,"growth arrest and DNA-damage-inducible, alpha",YES
+CD8 T cells,GZMM,granzyme M (lymphocyte met-ase 1),YES
+CD8 T cells,KLF9,Kruppel-like factor 9,YES
+CD8 T cells,LEPROTL1,leptin receptor overlapping transcript-like 1,YES
+CD8 T cells,LIME1,Lck interacting transmembrane adaptor 1,YES
+CD8 T cells,MYST3,MYST histone acetyltransferase (monocytic leukemia) 3,YES
+CD8 T cells,PF4,platelet factor 4 (chemokine (C-X-C motif) ligand 4),YES
+CD8 T cells,PPP1R2,"protein phosphatase 1, regulatory (inhibitor) subunit 2",YES
+CD8 T cells,PRF1,perforin 1 (pore forming protein),YES
+CD8 T cells,PRR5,proline rich 5 (renal),YES
+CD8 T cells,RBM3,"RNA binding motif (RNP1, RRM) protein 3",YES
+CD8 T cells,SF1,splicing factor 1,YES
+CD8 T cells,SFRS7,"splicing factor, arginine/serine-rich 7, 35kDa",YES
+CD8 T cells,SLC16A7,"solute carrier family 16, member 7 (monocarboxylic acid transporter 2)",YES
+CD8 T cells,TBCC,tubulin folding cofactor C,YES
+CD8 T cells,THUMPD1,THUMP domain containing 1,YES
+CD8 T cells,TMC6,transmembrane channel-like 6,YES
+CD8 T cells,TSC22D3,"TSC22 domain family, member 3",YES
+CD8 T cells,VAMP2,vesicle-associated membrane protein 2 (synaptobrevin 2),YES
+CD8 T cells,ZEB1,zinc finger E-box binding homeobox 1,YES
+CD8 T cells,ZFP36L2,"zinc finger protein 36, C3H type-like 2",YES
+CD8 T cells,ZNF22,zinc finger protein 22 (KOX 15),YES
+CD8 T cells,ZNF609,zinc finger protein 609,YES
+CD8 T cells,ZNF91,zinc finger protein 91,YES
+Cytotoxic cells,APBA2,"amyloid beta (A4) precursor protein-binding, family A, member 2 (X11-like)",YES
+Cytotoxic cells,APOL3,"apolipoprotein L, 3",YES
+Cytotoxic cells,CTSW,cathepsin W,YES
+Cytotoxic cells,DUSP2,dual specificity phosphatase 2,YES
+Cytotoxic cells,GNLY,granulysin,YES
+Cytotoxic cells,GZMA,"granzyme A (granzyme 1, cytotoxic T-lymphocyte-associated serine esterase 3)",YES
+Cytotoxic cells,GZMH,"granzyme H (cathepsin G-like 2, protein h-CCPX)",YES
+Cytotoxic cells,KLRB1,"killer cell lectin-like receptor subfamily B, member 1",YES
+Cytotoxic cells,KLRD1,"killer cell lectin-like receptor subfamily D, member 1",YES
+Cytotoxic cells,KLRF1,"killer cell lectin-like receptor subfamily F, member 1",YES
+Cytotoxic cells,KLRK1,"killer cell lectin-like receptor subfamily K, member 1",YES
+Cytotoxic cells,NKG7,natural killer cell group 7 sequence,YES
+Cytotoxic cells,RORA,RAR-related orphan receptor A,YES
+Cytotoxic cells,RUNX3,runt-related transcription factor 3,YES
+Cytotoxic cells,SIGIRR,single immunoglobulin and toll-interleukin 1 receptor (TIR) domain,YES
+Cytotoxic cells,WHAMMP3,WAS protein homology region 2 domain containing 1-like 1,NO
+Cytotoxic cells,ZBTB16,zinc finger and BTB domain containing 16,YES
+DC,CCL13,chemokine (C-C motif) ligand 13,YES
+DC,CCL17,chemokine (C-C motif) ligand 17,YES
+DC,CCL22,chemokine (C-C motif) ligand 22,YES
+DC,CD209,CD209 molecule,YES
+DC,HSD11B1,hydroxysteroid (11-beta) dehydrogenase 1,YES
+DC,NPR1,natriuretic peptide receptor A/guanylate cyclase A (atrionatriuretic peptide receptor A),YES
+DC,PPFIBP2,"PTPRF interacting protein, binding protein 2 (liprin beta 2)",YES
+Eosinophils,ABHD2,abhydrolase domain containing 2,YES
+Eosinophils,ACACB,acetyl-Coenzyme A carboxylase beta,YES
+Eosinophils,C9orf156,chromosome 9 open reading frame 156,YES
+Eosinophils,CAT,catalase,YES
+Eosinophils,CCR3,chemokine (C-C motif) receptor 3,YES
+Eosinophils,CLC,Charcot-Leyden crystal protein,YES
+Eosinophils,CYSLTR2,cysteinyl leukotriene receptor 2,YES
+Eosinophils,EMR1,"egf-like module containing, mucin-like, hormone receptor-like 1",YES
+Eosinophils,EPN2,epsin 2,YES
+Eosinophils,GALC,galactosylceramidase,YES
+Eosinophils,GPR44,G protein-coupled receptor 44,YES
+Eosinophils,HES1,"hairy and enhancer of split 1, (Drosophila)",YES
+Eosinophils,HIST1H1C,"histone cluster 1, H1c",YES
+Eosinophils,HRH4,histamine receptor H4,YES
+Eosinophils,IGSF2,"immunoglobulin superfamily, member 2",NO
+Eosinophils,IL5RA,"interleukin 5 receptor, alpha",YES
+Eosinophils,KBTBD11,kelch repeat and BTB (POZ) domain containing 11,YES
+Eosinophils,KCNH2,"potassium voltage-gated channel, subfamily H (eag-related), member 2",YES
+Eosinophils,LRP5L,low density lipoprotein receptor-related protein 5-like,YES
+Eosinophils,MYO15B,myosin XVB pseudogene,YES
+Eosinophils,RCOR3,REST corepressor 3,YES
+Eosinophils,RNASE2,"ribonuclease, RNase A family, 2 (liver, eosinophil-derived neurotoxin)",YES
+Eosinophils,RRP12,ribosomal RNA processing 12 homolog (S. cerevisiae),YES
+Eosinophils,SIAH1,seven in absentia homolog 1 (Drosophila),YES
+Eosinophils,SMPD3,"sphingomyelin phosphodiesterase 3, neutral membrane (neutral sphingomyelinase II)",YES
+Eosinophils,SYNJ1,synaptojanin 1,YES
+Eosinophils,TGIF1,TGFB-induced factor homeobox 1,YES
+Eosinophils,THBS1,thrombospondin 1,YES
+Eosinophils,THBS4,thrombospondin 4,YES
+Eosinophils,TIPARP,TCDD-inducible poly(ADP-ribose) polymerase,YES
+Eosinophils,TKTL1,transketolase-like 1,YES
+iDC,ABCG2,"ATP-binding cassette, sub-family G (WHITE), member 2",YES
+iDC,BLVRB,biliverdin reductase B (flavin reductase (NADPH)),YES
+iDC,CARD9,"caspase recruitment domain family, member 9",YES
+iDC,CD1A,CD1a molecule,YES
+iDC,CD1B,CD1b molecule,YES
+iDC,CD1C,CD1c molecule,YES
+iDC,CD1E,CD1e molecule,YES
+iDC,CH25H,cholesterol 25-hydroxylase,YES
+iDC,CLEC10A,"C-type lectin domain family 10, member A",YES
+iDC,CSF1R,colony stimulating factor 1 receptor,YES
+iDC,CTNS,"cystinosis, nephropathic",YES
+iDC,F13A1,"coagulation factor XIII, A1 polypeptide",YES
+iDC,FABP4,"fatty acid binding protein 4, adipocyte",YES
+iDC,FZD2,frizzled homolog 2 (Drosophila),YES
+iDC,GSTT1,glutathione S-transferase theta 1,YES
+iDC,GUCA1A,guanylate cyclase activator 1A (retina),YES
+iDC,HS3ST2,heparan sulfate (glucosamine) 3-O-sulfotransferase 2,YES
+iDC,LMAN2L,"lectin, mannose-binding 2-like",YES
+iDC,MMP12,matrix metallopeptidase 12 (macrophage elastase),YES
+iDC,MS4A6A,"membrane-spanning 4-domains, subfamily A, member 6A",YES
+iDC,NUDT9,nudix (nucleoside diphosphate linked moiety X)-type motif 9,YES
+iDC,PDXK,"pyridoxal (pyridoxine, vitamin B6) kinase",YES
+iDC,PPARG,peroxisome proliferator-activated receptor gamma,YES
+iDC,PREP,prolyl endopeptidase,YES
+iDC,RAP1GAP,RAP1 GTPase activating protein,YES
+iDC,SLC26A6,"solute carrier family 26, member 6",YES
+iDC,SLC7A8,"solute carrier family 7 (cationic amino acid transporter, y+ system), member 8",YES
+iDC,SYT17,synaptotagmin XVII,YES
+iDC,TACSTD2,tumor-associated calcium signal transducer 2,YES
+iDC,TM7SF4,transmembrane 7 superfamily member 4,YES
+iDC,VASH1,vasohibin 1,YES
+Macrophages,APOE,apolipoprotein E,YES
+Macrophages,ATG7,ATG7 autophagy related 7 homolog (S. cerevisiae),YES
+Macrophages,BCAT1,"branched chain aminotransferase 1, cytosolic",YES
+Macrophages,CCL7,chemokine (C-C motif) ligand 7,YES
+Macrophages,CD163,CD163 molecule,YES
+Macrophages,CD68,CD68 molecule,YES
+Macrophages,CD84,CD84 molecule,YES
+Macrophages,CHI3L1,chitinase 3-like 1 (cartilage glycoprotein-39),YES
+Macrophages,CHIT1,chitinase 1 (chitotriosidase),YES
+Macrophages,CLEC5A,"C-type lectin domain family 5, member A",YES
+Macrophages,COL8A2,"collagen, type VIII, alpha 2",YES
+Macrophages,COLEC12,collectin sub-family member 12,YES
+Macrophages,CTSK,cathepsin K,YES
+Macrophages,CXCL5,chemokine (C-X-C motif) ligand 5,YES
+Macrophages,CYBB,"cytochrome b-245, beta polypeptide (chronic granulomatous disease)",YES
+Macrophages,DNASE2B,deoxyribonuclease II beta,YES
+Macrophages,EMP1,epithelial membrane protein 1,YES
+Macrophages,FDX1,ferredoxin 1,YES
+Macrophages,FN1,fibronectin 1,YES
+Macrophages,GM2A,GM2 ganglioside activator,YES
+Macrophages,GPC4,glypican 4,YES
+Macrophages,KAL1,Kallmann syndrome 1 sequence,YES
+Macrophages,MARCO,macrophage receptor with collagenous structure,YES
+Macrophages,ME1,"malic enzyme 1, NADP(+)-dependent, cytosolic",YES
+Macrophages,MS4A4A,"membrane-spanning 4-domains, subfamily A, member 4",YES
+Macrophages,MSR1,macrophage scavenger receptor 1,YES
+Macrophages,PCOLCE2,procollagen C-endopeptidase enhancer 2,YES
+Macrophages,PTGDS,prostaglandin D2 synthase 21kDa (brain),YES
+Macrophages,RAI14,retinoic acid induced 14,YES
+Macrophages,SCARB2,"scavenger receptor class B, member 2",YES
+Macrophages,SCG5,secretogranin V (7B2 protein),YES
+Macrophages,SGMS1,sphingomyelin synthase 1,YES
+Macrophages,SULT1C2,"sulfotransferase family, cytosolic, 1C, member 2",YES
+Mast cells,ABCC4,"ATP-binding cassette, sub-family C (CFTR/MRP), member 4",YES
+Mast cells,ADCYAP1,adenylate cyclase activating polypeptide 1 (pituitary),YES
+Mast cells,CALB2,"calbindin 2, 29kDa (calretinin)",YES
+Mast cells,CEACAM8,carcinoembryonic antigen-related cell adhesion molecule 8,YES
+Mast cells,CMA1,"chymase 1, mast cell",YES
+Mast cells,CPA3,carboxypeptidase A3 (mast cell),YES
+Mast cells,CTSG,cathepsin G,YES
+Mast cells,ELA2,"elastase 2, neutrophil",NO
+Mast cells,GATA2,GATA binding protein 2,YES
+Mast cells,HDC,histidine decarboxylase,YES
+Mast cells,HPGD,hydroxyprostaglandin dehydrogenase 15-(NAD),YES
+Mast cells,HPGDS,"prostaglandin D2 synthase, hematopoietic",YES
+Mast cells,KIT,v-kit Hardy-Zuckerman 4 feline sarcoma viral oncogene homolog,YES
+Mast cells,LINC01140,hypothetical protein LOC339524,NO
+Mast cells,MAOB,monoamine oxidase B,YES
+Mast cells,MLPH,melanophilin,YES
+Mast cells,MPO,myeloperoxidase,YES
+Mast cells,MS4A2,"membrane-spanning 4-domains, subfamily A, member 2 (Fc fragment of IgE, high affinity I, receptor for; beta polypeptide)",YES
+Mast cells,NR0B1,"nuclear receptor subfamily 0, group B, member 1",YES
+Mast cells,PPM1H,protein phosphatase 1H (PP2C domain containing),YES
+Mast cells,PRG2,"proteoglycan 2, bone marrow (natural killer cell activator, eosinophil granule major basic protein)",YES
+Mast cells,PTGS1,prostaglandin-endoperoxide synthase 1 (prostaglandin G/H synthase and cyclooxygenase),YES
+Mast cells,SCG2,secretogranin II (chromogranin C),YES
+Mast cells,SIGLEC6,sialic acid binding Ig-like lectin 6,YES
+Mast cells,SLC18A2,"solute carrier family 18 (vesicular monoamine), member 2",YES
+Mast cells,SLC24A3,"solute carrier family 24 (sodium/potassium/calcium exchanger), member 3",YES
+Mast cells,TAL1,T-cell acute lymphocytic leukemia 1,YES
+Mast cells,TPSAB1,tryptase alpha/beta 1,YES
+Mast cells,TPSB2,tryptase beta 2,YES
+Mast cells,VWA5A,von Willebrand factor A domain containing 5A,YES
+Neutrophils,ALPL,"alkaline phosphatase, liver/bone/kidney",YES
+Neutrophils,BST1,bone marrow stromal cell antigen 1,YES
+Neutrophils,CD93,CD93 molecule,YES
+Neutrophils,CEACAM3,carcinoembryonic antigen-related cell adhesion molecule 3,YES
+Neutrophils,CREB5,cAMP responsive element binding protein 5,YES
+Neutrophils,CRISPLD2,cysteine-rich secretory protein LCCL domain containing 2,YES
+Neutrophils,CSF3R,colony stimulating factor 3 receptor (granulocyte),YES
+Neutrophils,CYP4F3,"cytochrome P450, family 4, subfamily F, polypeptide 3",YES
+Neutrophils,DYSF,"dysferlin, limb girdle muscular dystrophy 2B (autosomal recessive)",YES
+Neutrophils,FCAR,"Fc fragment of IgA, receptor for",YES
+Neutrophils,FCGR3B,"Fc fragment of IgG, low affinity IIIb, receptor (CD16b)",YES
+Neutrophils,FLJ11151,hypothetical protein FLJ11151,NO
+Neutrophils,FPR1,formyl peptide receptor 1,YES
+Neutrophils,FPRL1,formyl peptide receptor-like 1,NO
+Neutrophils,G0S2,G0/G1switch 2,YES
+Neutrophils,HIST1H2BC,"histone cluster 1, H2bc",YES
+Neutrophils,HPSE,heparanase,YES
+Neutrophils,IL8RA,"interleukin 8 receptor, alpha",NO
+Neutrophils,IL8RB,"interleukin 8 receptor, beta",NO
+Neutrophils,KCNJ15,"potassium inwardly-rectifying channel, subfamily J, member 15",YES
+Neutrophils,LILRB2,"leukocyte immunoglobulin-like receptor, subfamily B (with TM and ITIM domains), member 2",YES
+Neutrophils,MGAM,maltase-glucoamylase (alpha-glucosidase),YES
+Neutrophils,MME,membrane metallo-endopeptidase,YES
+Neutrophils,PDE4B,"phosphodiesterase 4B, cAMP-specific (phosphodiesterase E4 dunce homolog, Drosophila)",YES
+Neutrophils,S100A12,S100 calcium binding protein A12,YES
+Neutrophils,SIGLEC5,sialic acid binding Ig-like lectin 5,YES
+Neutrophils,SLC22A4,"solute carrier family 22 (organic cation transporter), member 4",YES
+Neutrophils,SLC25A37,"solute carrier family 25, member 37",YES
+Neutrophils,TECPR2,KIAA0329,YES
+Neutrophils,TNFRSF10C,"tumor necrosis factor receptor superfamily, member 10c, decoy without an intracellular domain",YES
+Neutrophils,VNN3,vanin 3,YES
+NK CD56bright cells,DUSP4,dual specificity phosphatase 4,YES
+NK CD56bright cells,FOXJ1,forkhead box J1,YES
+NK CD56bright cells,LPCAT4,"1-acylglycerol-3-phosphate O-acyltransferase 7 (lysophosphatidic acid acyltransferase, eta)",YES
+NK CD56bright cells,MADD,MAP-kinase activating death domain,YES
+NK CD56bright cells,MARCH6,"membrane-associated ring finger (C3HC4) 6, E3 ubiquitin protein ligase",YES
+NK CD56bright cells,MPPED1,metallophosphoesterase domain containing 1,YES
+NK CD56bright cells,MUC3B,"mucin 3B, cell surface associated",NO
+NK CD56bright cells,NIBP,NIK and IKK{beta} binding protein,NO
+NK CD56bright cells,PLA2G6,"phospholipase A2, group VI (cytosolic, calcium-independent)",YES
+NK CD56bright cells,RRAD,Ras-related associated with diabetes,YES
+NK CD56bright cells,XCL1,chemokine (C motif) ligand 1,YES
+NK CD56dim cells,EDG8,"endothelial differentiation, sphingolipid G-protein-coupled receptor, 8",NO
+NK CD56dim cells,FLJ20699,hypothetical protein FLJ20699,NO
+NK CD56dim cells,GTF3C1,"general transcription factor IIIC, polypeptide 1, alpha 220kDa",YES
+NK CD56dim cells,GZMB,"granzyme B (granzyme 2, cytotoxic T-lymphocyte-associated serine esterase 1)",YES
+NK CD56dim cells,IL21R,interleukin 21 receptor,YES
+NK CD56dim cells,KIR2DL3,"killer cell immunoglobulin-like receptor, two domains, long cytoplasmic tail, 3",YES
+NK CD56dim cells,KIR2DS1,"killer cell immunoglobulin-like receptor, two domains, short cytoplasmic tail, 1",NO
+NK CD56dim cells,KIR2DS2,"killer cell immunoglobulin-like receptor, two domains, short cytoplasmic tail, 2",NO
+NK CD56dim cells,KIR2DS5,"killer cell immunoglobulin-like receptor, two domains, short cytoplasmic tail, 5",NO
+NK CD56dim cells,KIR3DL1,"killer cell immunoglobulin-like receptor, three domains, long cytoplasmic tail, 1",YES
+NK CD56dim cells,KIR3DL2,"killer cell immunoglobulin-like receptor, three domains, long cytoplasmic tail, 2",YES
+NK CD56dim cells,KIR3DL3,"killer cell immunoglobulin-like receptor, three domains, long cytoplasmic tail, 3",YES
+NK CD56dim cells,KIR3DS1,"killer cell immunoglobulin-like receptor, three domains, short cytoplasmic tail, 1",NO
+NK CD56dim cells,SPON2,"spondin 2, extracellular matrix protein",YES
+NK CD56dim cells,TMEPAI,"transmembrane, prostate androgen induced RNA",NO
+NK cells,ADARB1,"adenosine deaminase, RNA-specific, B1 (RED1 homolog rat)",YES
+NK cells,AF107846,GNAS complex locus,NO
+NK cells,ALDH1B1,"aldehyde dehydrogenase 1 family, member B1",YES
+NK cells,APBB2,"amyloid beta (A4) precursor protein-binding, family B, member 2",YES
+NK cells,ATL2,ADP-ribosylation factor-like 6 interacting protein 2,YES
+NK cells,BCL2,B-cell CLL/lymphoma 2,YES
+NK cells,CDC5L,CDC5 cell division cycle 5-like (S. pombe),YES
+NK cells,FGF18,fibroblast growth factor 18,YES
+NK cells,FUT5,"fucosyltransferase 5 (alpha (1,3) fucosyltransferase)",YES
+NK cells,FZR1,fizzy/cell division cycle 20 related 1 (Drosophila),YES
+NK cells,GAGE2A,G antigen 2,YES
+NK cells,IGFBP5,insulin-like growth factor binding protein 5,YES
+NK cells,KANK2,ankyrin repeat domain 25,YES
+NK cells,LDB3,LIM domain binding 3,YES
+NK cells,MAPRE3,"microtubule-associated protein, RP/EB family, member 3",YES
+NK cells,MCM3AP,minichromosome maintenance complex component 3 associated protein,YES
+NK cells,MRC2,"mannose receptor, C type 2",YES
+NK cells,NCR1,natural cytotoxicity triggering receptor 1,YES
+NK cells,PDLIM4,PDZ and LIM domain 4,YES
+NK cells,PRX,periaxin,YES
+NK cells,PSMD4,"proteasome (prosome, macropain) 26S subunit, non-ATPase, 4",YES
+NK cells,RP5-886K2.1,neuronal thread protein AD7c-NTP,NO
+NK cells,SGMS1,sphingomyelin synthase 1,YES
+NK cells,SLC30A5,"solute carrier family 30 (zinc transporter), member 5",YES
+NK cells,SMEK1,"SMEK homolog 1, suppressor of mek1 (Dictyostelium)",YES
+NK cells,SPN,"sialophorin (leukosialin, CD43)",YES
+NK cells,TBXA2R,thromboxane A2 receptor,YES
+NK cells,TCTN2,tectonic family member 2,YES
+NK cells,TINAGL1,tubulointerstitial nephritis antigen-like 1,YES
+NK cells,TRPV6,"transient receptor potential cation channel, subfamily V, member 6",YES
+NK cells,XCL1,chemokine (C motif) ligand 1,YES
+NK cells,XCL2,chemokine (C motif) ligand 2,YES
+NK cells,ZNF205,zinc finger protein 205,YES
+NK cells,ZNF528,zinc finger protein 528,YES
+NK cells,ZNF747,zinc finger protein 747,YES
+pDC,IL3RA,"interleukin 3 receptor, alpha (low affinity)",YES
+T cells,BCL11B,B-cell CLL/lymphoma 11B (zinc finger protein),YES
+T cells,CD2,CD2 molecule ,YES
+T cells,CD28,CD28 molecule,YES
+T cells,CD3D,"CD3d molecule, delta (CD3-TCR complex)",YES
+T cells,CD3E,"CD3e molecule, epsilon (CD3-TCR complex) ",YES
+T cells,CD3G,"CD3g molecule, gamma (CD3-TCR complex) ",YES
+T cells,CD6,CD6 molecule,YES
+T cells,CD96,CD96 molecule,YES
+T cells,GIMAP5,"GTPase, IMAP family member 5 ",YES
+T cells,ITM2A,integral membrane protein 2A,YES
+T cells,LCK,lymphocyte-specific protein tyrosine kinase ,YES
+T cells,NCALD,neurocalcin delta,YES
+T cells,PRKCQ,"protein kinase C, theta",YES
+T cells,SH2D1A,"SH2 domain protein 1A, Duncan's disease (lymphoproliferative syndrome) ",YES
+T cells,SKAP1,src kinase associated phosphoprotein 1,YES
+T cells,TRA,T cell receptor alpha locus,NO
+T cells,TRAC,T cell receptor alpha constant ,NO
+T cells,TRAT1,T cell receptor associated transmembrane adaptor 1,YES
+T cells,TRBC1,T cell receptor beta constant 1 ,NO
+T helper cells,ANP32B,"acidic (leucine-rich) nuclear phosphoprotein 32 family, member B ",YES
+T helper cells,ASF1A,ASF1 anti-silencing function 1 homolog A (S. cerevisiae),YES
+T helper cells,ATF2,activating transcription factor 2,YES
+T helper cells,BATF,"basic leucine zipper transcription factor, ATF-like",YES
+T helper cells,C13orf34,chromosome 13 open reading frame 34 ,YES
+T helper cells,CD28,CD28 molecule,YES
+T helper cells,DDX50,DEAD (Asp-Glu-Ala-Asp) box polypeptide 50,YES
+T helper cells,FAM111A,"family with sequence similarity 111, member A",YES
+T helper cells,FRYL,FRY-like ,YES
+T helper cells,GOLGA8A,"golgi autoantigen, golgin subfamily a, 8A",YES
+T helper cells,ICOS,inducible T-cell co-stimulator,YES
+T helper cells,ITM2A,integral membrane protein 2A ,YES
+T helper cells,LRBA,"LPS-responsive vesicle trafficking, beach and anchor containing",YES
+T helper cells,NAP1L4,nucleosome assembly protein 1-like 4,YES
+T helper cells,NUP107,nucleoporin 107kDa,YES
+T helper cells,PHF10,PHD finger protein 10 ,YES
+T helper cells,PPP2R5C,"protein phosphatase 2, regulatory subunit B, gamma isoform",YES
+T helper cells,RPA1,"replication protein A1, 70kDa",YES
+T helper cells,SEC24C,"SEC24 related gene family, member C (S. cerevisiae) ",YES
+T helper cells,SLC25A12,"solute carrier family 25 (mitochondrial carrier, Aralar), member 12 ",YES
+T helper cells,SRSF10,FUS interacting protein (serine/arginine-rich) 1,NO
+T helper cells,TRA,T cell receptor alpha locus,NO
+T helper cells,UBE2L3,ubiquitin-conjugating enzyme E2L 3,YES
+T helper cells,YME1L1,YME1-like 1 (S. cerevisiae) ,YES
+Tcm cells,AQP3,aquaporin 3 (Gill blood group) ,YES
+Tcm cells,ATF7IP,activating transcription factor 7 interacting protein,YES
+Tcm cells,ATM,ataxia telangiectasia mutated,YES
+Tcm cells,CASP8,"caspase 8, apoptosis-related cysteine peptidase",YES
+Tcm cells,CDC14A,CDC14 cell division cycle 14 homolog A (S. cerevisiae),YES
+Tcm cells,CEP68,centrosomal protein 68kDa,YES
+Tcm cells,CLUAP1,clusterin associated protein 1,YES
+Tcm cells,CREBZF,CREB/ATF bZIP transcription factor ,YES
+Tcm cells,CYLD,cylindromatosis (turban tumor syndrome),YES
+Tcm cells,DOCK9,dedicator of cytokinesis 9 ,YES
+Tcm cells,FAM153B,hypothetical protein LOC202134,YES
+Tcm cells,FOXP1,forkhead box P1,YES
+Tcm cells,FYB,FYN binding protein (FYB-120/130) ,YES
+Tcm cells,HNRPH1,heterogeneous nuclear ribonucleoprotein H1 (H),NO
+Tcm cells,INPP4B,"inositol polyphosphate-4-phosphatase, type II, 105kDa",YES
+Tcm cells,KLF12,Kruppel-like factor 12 ,YES
+Tcm cells,LOC441155,zinc finger CCCH-type domain-containing pseudogene,NO
+Tcm cells,MAP3K1,mitogen-activated protein kinase kinase kinase 1,YES
+Tcm cells,MLL,"myeloid/lymphoid or mixed-lineage leukemia (trithorax homolog, Drosophila) ",YES
+Tcm cells,N4BP2L2-IT2,hypothetical gene CG030,NO
+Tcm cells,NEFL,"neurofilament, light polypeptide 68kDa ",YES
+Tcm cells,NFATC3,"nuclear factor of activated T-cells, cytoplasmic, calcineurin-dependent 3 ",YES
+Tcm cells,PCM1,pericentriolar material 1,YES
+Tcm cells,PCNX,pecanex homolog (Drosophila),YES
+Tcm cells,PDXDC2,pyridoxal-dependent decarboxylase domain containing 2 ,YES
+Tcm cells,PHC3,polyhomeotic homolog 3 (Drosophila),YES
+Tcm cells,POLR2J2,DNA directed RNA polymerase II polypeptide J-related,YES
+Tcm cells,PSPC1,paraspeckle component 1,YES
+Tcm cells,REPS1,RALBP1 associated Eps domain containing 1 ,YES
+Tcm cells,RPP38,N-myristoyltransferase 2 ,YES
+Tcm cells,SLC7A6,"solute carrier family 7 (cationic amino acid transporter, y+ system), member 6",YES
+Tcm cells,SNRPN,small nuclear ribonucleoprotein polypeptide N ,YES
+Tcm cells,ST3GAL1,"ST3 beta-galactoside alpha-2,3-sialyltransferase 1",YES
+Tcm cells,STX16,syntaxin 16 ,YES
+Tcm cells,TIMM8A,translocase of inner mitochondrial membrane 8 homolog A (yeast) ,YES
+Tcm cells,TRAF3IP3,TRAF3 interacting protein 3,YES
+Tcm cells,TXK,TXK tyrosine kinase ,YES
+Tcm cells,TXLNGY,chromosome Y open reading frame 15B,NO
+Tcm cells,USP9Y,"ubiquitin specific peptidase 9, Y-linked (fat facets-like, Drosophila)",YES
+Tem cells,AKT3,"v-akt murine thymoma viral oncogene homolog 3 (protein kinase B, gamma) ",YES
+Tem cells,C7orf54,chromosome 7 open reading frame 54 ,YES
+Tem cells,CCR2,chemokine (C-C motif) receptor 2 ,YES
+Tem cells,DDX17,DEAD (Asp-Glu-Ala-Asp) box polypeptide 17,YES
+Tem cells,EWSR1,Ewing sarcoma breakpoint region 1,YES
+Tem cells,FLI1,Friend leukemia virus integration 1,YES
+Tem cells,GDPD5,glycerophosphodiester phosphodiesterase domain containing 5,YES
+Tem cells,LTK,leukocyte tyrosine kinase,YES
+Tem cells,MEFV,Mediterranean fever,YES
+Tem cells,NFATC4,"nuclear factor of activated T-cells, cytoplasmic, calcineurin-dependent 4 ",YES
+Tem cells,PRKY,"protein kinase, Y-linked",YES
+Tem cells,TBC1D5,"TBC1 domain family, member 5 ",YES
+Tem cells,TBCD,tubulin folding cofactor D ,YES
+Tem cells,TRA,T cell receptor alpha locus,NO
+Tem cells,VIL2,villin 2 (ezrin) ,NO
+Tfh cells,B3GAT1,"beta-1,3-glucuronyltransferase 1 (glucuronosyltransferase P)",YES
+Tfh cells,BLR1,"Burkitt lymphoma receptor 1, GTP binding protein (chemokine (C-X-C motif) receptor 5)",NO
+Tfh cells,C18orf1,chromosome 18 open reading frame 1,YES
+Tfh cells,CDK5R1,"cyclin-dependent kinase 5, regulatory subunit 1 (p35)",YES
+Tfh cells,CHGB,chromogranin B (secretogranin 1),YES
+Tfh cells,CHI3L2,chitinase 3-like 2,YES
+Tfh cells,CXCL13,chemokine (C-X-C motif) ligand 13 (B-cell chemoattractant),YES
+Tfh cells,HEY1,hairy/enhancer-of-split related with YRPW motif 1,YES
+Tfh cells,HIST1H4K,"histone cluster 1, H4k",YES
+Tfh cells,ICA1,"islet cell autoantigen 1, 69kDa",YES
+Tfh cells,KCNK5,"potassium channel, subfamily K, member 5",YES
+Tfh cells,KIAA1324,KIAA1324,YES
+Tfh cells,MAF,v-maf musculoaponeurotic fibrosarcoma oncogene homolog (avian),YES
+Tfh cells,MAGEH1,"melanoma antigen family H, 1",YES
+Tfh cells,MKL2,MKL/myocardin-like 2,YES
+Tfh cells,MYO6,myosin VI,YES
+Tfh cells,MYO7A,myosin VIIA,YES
+Tfh cells,PASK,PAS domain containing serine/threonine kinase,YES
+Tfh cells,PDCD1,programmed cell death 1,YES
+Tfh cells,POMT1,protein-O-mannosyltransferase 1,YES
+Tfh cells,PTPN13,"protein tyrosine phosphatase, non-receptor type 13 (APO-1/CD95 (Fas)-associated phosphatase)",YES
+Tfh cells,PVALB,parvalbumin,YES
+Tfh cells,SH3TC1,SH3 domain and tetratricopeptide repeats 1,YES
+Tfh cells,SIRPG,signal-regulatory protein gamma,YES
+Tfh cells,SLC7A10,"solute carrier family 7, (neutral amino acid transporter, y+ system) member 10",YES
+Tfh cells,SMAD1,SMAD family member 1,YES
+Tfh cells,ST8SIA1,"ST8 alpha-N-acetyl-neuraminide alpha-2,8-sialyltransferase 1",YES
+Tfh cells,STK39,"serine threonine kinase 39 (STE20/SPS1 homolog, yeast)",YES
+Tfh cells,THADA,thyroid adenoma associated,YES
+Tfh cells,TOX,thymocyte selection-associated high mobility group box,YES
+Tfh cells,TSHR,thyroid stimulating hormone receptor,YES
+Tfh cells,ZNF764,zinc finger protein 764,YES
+Tgd cells,C1orf61,chromosome 1 open reading frame 61,YES
+Tgd cells,CD160,CD160 molecule,YES
+Tgd cells,FEZ1,fasciculation and elongation protein zeta 1 (zygin I),YES
+Tgd cells,TARP,TCR gamma alternate reading frame protein,YES
+Tgd cells,TRD,T cell receptor delta locus,NO
+Tgd cells,TRGV9,T cell receptor gamma variable 9,NO
+Th1 cells,APBB2,"amyloid beta (A4) precursor protein-binding, family B, member 2 (Fe65-like) ",YES
+Th1 cells,APOD,apolipoprotein D ,YES
+Th1 cells,ATP9A,"ATPase, Class II, type 9A ",YES
+Th1 cells,BST2,bone marrow stromal cell antigen 2 ,YES
+Th1 cells,BTG3,"BTG family, member 3",YES
+Th1 cells,CCL4,chemokine (C-C motif) ligand 4,YES
+Th1 cells,CD38,CD38 molecule ,YES
+Th1 cells,CD70,CD70 molecule,YES
+Th1 cells,CMAH,cytidine monophosphate-N-acetylneuraminic acid hydroxylase (CMP-N-acetylneuraminate monooxygenase) ,YES
+Th1 cells,CSF2,colony stimulating factor 2 (granulocyte-macrophage),YES
+Th1 cells,CTLA4,cytotoxic T-lymphocyte-associated protein 4 ,YES
+Th1 cells,DGKI,"diacylglycerol kinase, iota ",YES
+Th1 cells,DOK5,docking protein 5,YES
+Th1 cells,DPP4,"dipeptidyl-peptidase 4 (CD26, adenosine deaminase complexing protein 2) ",YES
+Th1 cells,DUSP5,dual specificity phosphatase 5,YES
+Th1 cells,EGFL6,"EGF-like-domain, multiple 6",YES
+Th1 cells,GGT1,gamma-glutamyltransferase 1,YES
+Th1 cells,HBEGF,heparin-binding EGF-like growth factor,YES
+Th1 cells,IFNG,"interferon, gamma",YES
+Th1 cells,IL12RB2,"interleukin 12 receptor, beta 2 ",YES
+Th1 cells,IL22,interleukin 22,YES
+Th1 cells,LRP8,"low density lipoprotein receptor-related protein 8, apolipoprotein e receptor ",YES
+Th1 cells,LRRN3,leucine rich repeat neuronal 3 ,YES
+Th1 cells,LTA,"lymphotoxin alpha (TNF superfamily, member 1)",YES
+Th1 cells,SGCB,"sarcoglycan, beta (43kDa dystrophin-associated glycoprotein)",YES
+Th1 cells,SYNGR3,synaptogyrin 3,YES
+Th1 cells,ZBTB32,zinc finger and BTB domain containing 32,YES
+Th17 cells,IL17A,interleukin 17A,YES
+Th17 cells,IL17RA,interleukin 17 receptor A,YES
+Th17 cells,RORC,RAR-related orphan receptor C,YES
+Th2 cells,ADCY1,adenylate cyclase 1 (brain) ,YES
+Th2 cells,AHI1,Abelson helper integration site 1 ,YES
+Th2 cells,ANK1,"ankyrin 1, erythrocytic",YES
+Th2 cells,BIRC5,baculoviral IAP repeat-containing 5 (survivin),YES
+Th2 cells,CDC25C,cell division cycle 25 homolog C (S. pombe) ,YES
+Th2 cells,CDC7,cell division cycle 7 homolog (S. cerevisiae),YES
+Th2 cells,CENPF,"centromere protein F, 350/400ka (mitosin) ",YES
+Th2 cells,CXCR6,chemokine (C-X-C motif) receptor 6,YES
+Th2 cells,DHFR,dihydrofolate reductase ,YES
+Th2 cells,EVI5,ecotropic viral integration site 5 ,YES
+Th2 cells,GATA3,GATA binding protein 3,YES
+Th2 cells,GSTA4,glutathione S-transferase A4,YES
+Th2 cells,HELLS,"helicase, lymphoid-specific ",YES
+Th2 cells,IL26,interleukin 26 ,YES
+Th2 cells,LAIR2,leukocyte-associated immunoglobulin-like receptor 2 ,YES
+Th2 cells,LIMA1,LIM domain and actin binding 1,YES
+Th2 cells,MB,myoglobin,YES
+Th2 cells,MICAL2,"microtubule associated monoxygenase, calponin and LIM dom",YES
+Th2 cells,NEIL3,nei endonuclease VIII-like 3 (E. coli) ,YES
+Th2 cells,PHEX,"phosphate regulating endopeptidase homolog, X-linked (hyp",YES
+Th2 cells,PMCH,pro-melanin-concentrating hormone,YES
+Th2 cells,PTGIS,prostaglandin I2 (prostacyclin) synthase,YES
+Th2 cells,SLC39A14,"solute carrier family 39 (zinc transporter), member 14",YES
+Th2 cells,SMAD2,SMAD family member 2,YES
+Th2 cells,SNRPD1,small nuclear ribonucleoprotein D1 polypeptide 16kDa,YES
+Th2 cells,WDHD1,WD repeat and HMG-box DNA binding protein 1 ,YES
+Treg cells,FOXP3,forkhead box P3,YES
+Angiogenesis,CDH5," cadherin 5, type 2 (vascular endothelium)",YES
+Angiogenesis,ELTD1," EGF, latrophilin and seven transmembrane domain containing 1",YES
+Angiogenesis,CLEC14A," C-type lectin domain family 14, member A",YES
+Angiogenesis,LDB2, LIM domain binding 2,YES
+Angiogenesis,ECSCR, endothelial cell surface expressed chemotaxis and apoptosis regulator,YES
+Angiogenesis,MYCT1, myc target 1,YES
+Angiogenesis,RHOJ, ras homolog family member J,YES
+Angiogenesis,VWF, von Willebrand factor,YES
+Angiogenesis,TIE1, tyrosine kinase with immunoglobulin-like and EGF-like domains 1,YES
+Angiogenesis,KDR, kinase insert domain receptor (a type III receptor tyrosine kinase),YES
+Angiogenesis,ESAM, endothelial cell adhesion molecule,YES
+Angiogenesis,PTPRB," protein tyrosine phosphatase, receptor type, B",YES
+Angiogenesis,GPR116, G protein-coupled receptor 116,YES
+Angiogenesis,SPARCL1, SPARC-like 1 (hevin),YES
+Angiogenesis,EMCN, endomucin,YES
+Angiogenesis,ROBO4," roundabout, axon guidance receptor, homolog 4 (Drosophila)",YES
+Angiogenesis,ENG, endoglin,YES
+Angiogenesis,TEK," TEK tyrosine kinase, endothelial",YES
+Angiogenesis,S1PR1, sphingosine-1-phosphate receptor 1,YES
+Angiogenesis,A2M, alpha-2-macroglobulin,YES
+Angiogenesis,JAM2, junctional adhesion molecule 2,YES
+Angiogenesis,COL15A1," collagen, type XV, alpha 1",YES
+Angiogenesis,PECAM1, platelet/endothelial cell adhesion molecule 1,YES
+Angiogenesis,CALCRL, calcitonin receptor-like,YES
+Angiogenesis,CLEC3B," C-type lectin domain family 3, member B",YES
+Angiogenesis,PLVAP, plasmalemma vesicle associated protein,YES
+Angiogenesis,RGS5, regulator of G-protein signaling 5,YES
+Angiogenesis,LRRC32, leucine rich repeat containing 32,YES
+Angiogenesis,EBF1, early B-cell factor 1,YES
+Angiogenesis,ADCY4, adenylate cyclase 4,YES
+Angiogenesis,ACVRL1, activin A receptor type II-like 1,YES
+Angiogenesis,GPR124, G protein-coupled receptor 124,YES
+Angiogenesis,APLNR, apelin receptor,YES
+Angiogenesis,TM4SF18, transmembrane 4 L six family member 18,YES
+Angiogenesis,GNG11," guanine nucleotide binding protein (G protein), gamma 11",YES
+Angiogenesis,CNRIP1, cannabinoid receptor interacting protein 1,YES
+Angiogenesis,ZNF423, zinc finger protein 423,YES
+Angiogenesis,GIMAP8," GTPase, IMAP family member 8",YES
+Angiogenesis,PDGFD, platelet derived growth factor D,YES
+Angiogenesis,ITGA9," integrin, alpha 9",YES
+Angiogenesis,EDNRB, endothelin receptor type B,YES
