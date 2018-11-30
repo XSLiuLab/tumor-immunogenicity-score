@@ -1,9 +1,9 @@
+.RData
 .Rproj.user
 .Rhistory
-.RData
 .Ruserdata
 .DS_Store
 UCSC_Xena/
-results/
+#results/
 report_main_files/
 TCGA_RNASeq_PanCancer.RData
