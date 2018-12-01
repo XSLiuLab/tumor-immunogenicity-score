@@ -320,7 +320,9 @@ merged_geneList = bind_rows(immune_cellType,
                                  Name = APM_genes$Protein_Name, inRNAseq = "YES")) 
 
 # save data
-save(merged_geneList, file = "results/merged_geneList.RData")
+if (!file.exists("results/merged_geneList.RData")) {
+  save(merged_geneList, file = "results/merged_geneList.RData")
+}
 ```
 
 View gene list.
@@ -483,26 +485,26 @@ if (!file.exists("results/TCGA_TMB.RData")){
 rm(list = ls()); gc()
 ```
 
-## Immunotherapy clinical studies search and immunotherapy genomics datasets collection
+## GEO datasets download and processing
 
-__Tumor Mutational Burden and Response Rate to PD-1 inhibition.__
+We also tried our best to collect gene expression data to extend APM score (APS), IIS etc. calculation for more cancer types by searching NCBI GEO databases. We only focus on looking for cancer types which showed in list of our immunotherapy clinical studies and not showed in TCGA studies. Finally, we found 5 GEO datasets which can extract gene expression data of Merkel Cell Carcinoma, Small Cell Lung Cancer and Cutaneous Squamous Carcinoma. Download of these datasets need R package [GEOquery](https://www.bioconductor.org/packages/release/bioc/html/GEOquery.html) is installed. Following code showed how we download and carefully processed them.
 
-```{r}
+
+```{r download_and_clean_GEOdatasets, eval=FALSE}
 #----------------------------------------------------------------
-# Author: Shixiang Wang <wangshx@shanghaitech.edu.cn>
-#
 # Purpose:
 # Add APM data from GEO for some tumor types
 # Include Merkel Cell Carcinoma and Small Cell Lung Cancer
 #         and Cutaneous Squamous Carcinoma
 #----------------------------------------------------------------
 library(GEOquery)
+library(tidyverse)
 
-if(!dir.exists("data/GEOdata")){
-    dir.create("data/GEOdata")
+if(!dir.exists("../data/GEOdata")){
+    dir.create("../data/GEOdata")
 }
 
-geo_dir = "data/GEOdata"
+geo_dir = "../data/GEOdata"
 
 GSE_39612 = getGEO("GSE39612", GSEMatrix = TRUE, AnnotGPL = TRUE, destdir = geo_dir)
 GSE_22396 = getGEO("GSE22396", GSEMatrix = TRUE, AnnotGPL = TRUE, destdir = geo_dir)
@@ -567,9 +569,9 @@ sclc_data = list(gset4_sclc, gset5_sclc)
 
 #--------------------
 # apply GSVA method
-load("~/biodata/Own/immune_cellType.RData")
+load("results/merged_geneList.RData")
 
-# transform exprset 2 tibble
+# transform exprset to tibble
 genTibbleList = function(gsetList){
     stopifnot(is.list(gsetList), require("Biobase"), require("tidyverse"), class(gsetList[[1]]) == "ExpressionSet")
     
@@ -667,17 +669,17 @@ applyGSVA = function(group_df, group_col, gene_col, ExprMatList,
 
 ## scc
 tibble.scc = genTibbleList(scc_data)
-gsva.scc = applyGSVA(immune_cellType, group_col = "Cell_type", 
+gsva.scc = applyGSVA(merged_geneList, group_col = "Cell_type", 
                      gene_col = "Symbol", ExprMatList = tibble.scc, method = "gsva")
 ## sclc
 tibble.sclc = genTibbleList(sclc_data)
-gsva.sclc = applyGSVA(immune_cellType, group_col = "Cell_type", 
+gsva.sclc = applyGSVA(merged_geneList, group_col = "Cell_type", 
                       gene_col = "Symbol", ExprMatList = tibble.sclc, method = "gsva")
 
 ## merkel1
 tibble.merkel = genTibbleList(merkel_data)
 
-gsva.merkel = applyGSVA(immune_cellType, group_col = "Cell_type",
+gsva.merkel = applyGSVA(merged_geneList, group_col = "Cell_type",
                                          gene_col = "Symbol", ExprMatList = tibble.merkel, method = "gsva")
 
 save(gsva.scc, gsva.sclc, gsva.merkel, file = "results/Add_gsva_scc_sclc_merkel.RData")
@@ -686,8 +688,19 @@ save(gsva.scc, gsva.sclc, gsva.merkel, file = "results/Add_gsva_scc_sclc_merkel.
 
 
 
+## Immunotherapy clinical studies and genomics datasets
 
-To evaluate the predictive power of TIGS in ICI clinical response prediction, we searched PubMed for ICI clinical studies with available individual patient’s TMB and gene transcriptome information. In total three datasets are identified after this search. Van Allen et al 2015 dataset was downloaded from supplementary files of reference27. This dataset studied CTLA-4 blockade in metastatic melanoma, and “clinical benefit” was defined using a composite end point of complete response or partial response to CTLA-4 blockade by RECIST criteria or stable disease by RECIST criteria with overall survival greater than 1 year, “no clinical benefit” was defined as progressive disease by RECIST criteria or stable disease with overall survival less than 1 year27. Hugo et al 2016 dataset was downloaded from supplementary files of reference28. This dataset studied Anti-PD-1therapy in metastatic melanoma, responding tumors were derived from patients who have complete or partial responses or stable disease in response to anti-PD-1 therapy, non-responding tumors were derived from patients who had progressive disease28. Snyder et al dataset29 was downloaded from https://github.com/hammerlab/multi-omic-urothelial-anti-pdl1. This dataset studied PD-L1 blockade in urothelial cancer, and durable clinical benefit was defined as progression-free survival >6 months29. RNA-Seq data was used to calculate the APS for each patient. Only patients with both APS and TMB value were used to calculate the TIGS. Median of TMB or TIGS was used as the threshold to separate TMB High/Low group or TIGS High/Low group in Kaplan-Meier overall survival curve analysis. 
+
+### Immunotherapy clinical studies 
+
+Collecting response rate of immunotherapy clinical studies was inspired by the paper _Tumor Mutational Burden and Response Rate to PD-1 inhibition_ which published on journal NEJM, this paper showed data from about 50 stuides. However, detail values of response rate the authors collected were not published. We followed their search strategy and tried our best to find all clinical studies which recorded response rate. Totally, we reviewed abstract of over 100 clinical studies, collected response rate values, then carefully filtered them based on standard we set, selected the most respresenting data (from about 60 studies) for downstream analysis. More detail of this procedure please see **Method section** of our manuscript. The data we collected for analysi are double checked and open to readers as a supplementary table.
+
+
+### Immunotherapy genomics datasets
+
+To evaluate the predictive power of TIGS in ICI clinical response prediction, we searched PubMed for ICI clinical studies with available individual patient’s TMB and gene transcriptome information. In total three datasets are identified after this search. __Van Allen et al 2015 dataset__ was downloaded from supplementary files of reference. This dataset studied CTLA-4 blockade in metastatic melanoma, and “clinical benefit” was defined using a composite end point of complete response or partial response to CTLA-4 blockade by RECIST criteria or stable disease by RECIST criteria with overall survival greater than 1 year, “no clinical benefit” was defined as progressive disease by RECIST criteria or stable disease with overall survival less than 1 year. __Hugo et al 2016 dataset__ was downloaded from supplementary files of reference. This dataset studied Anti-PD-1therapy in metastatic melanoma, responding tumors were derived from patients who have complete or partial responses or stable disease in response to anti-PD-1 therapy, non-responding tumors were derived from patients who had progressive disease. __Snyder et al dataset__ was downloaded from https://github.com/hammerlab/multi-omic-urothelial-anti-pdl1. This dataset studied PD-L1 blockade in urothelial cancer, and durable clinical benefit was defined as progression-free survival >6 months. RNA-Seq data was used to calculate the APS for each patient. Only patients with both APS and TMB value were used to calculate the TIGS. Median of TMB or TIGS was used as the threshold to separate TMB High/Low group or TIGS High/Low group in Kaplan-Meier overall survival curve analysis.
+
+Detail of how to process these 3 datasets will be described at analysis part.
 
 
 
