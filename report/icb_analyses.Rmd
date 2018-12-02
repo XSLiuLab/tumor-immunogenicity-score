@@ -1,0 +1,17 @@
+---
+title: "Immunotherapy datasets analyses "
+author: "Shixiang Wang"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    lightbox: false
+    toc_depth: 3
+    mathjax: true
+---
+
+```{r pre-process-setup, include=FALSE}
+options(max.print="75")
+knitr::opts_chunk$set(echo = TRUE, comment = "#>", eval = TRUE, collapse = TRUE)
+knitr::opts_knit$set(width=75)
+```
