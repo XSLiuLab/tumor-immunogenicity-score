@@ -487,7 +487,7 @@ rm(list = ls()); gc()
 
 ## GEO datasets download and processing
 
-We also tried our best to collect gene expression data to extend APM score (APS), IIS etc. calculation for more cancer types by searching NCBI GEO databases. We only focus on looking for cancer types which showed in list of our immunotherapy clinical studies and not showed in TCGA studies. Finally, we found 5 GEO datasets which can extract gene expression data of Merkel Cell Carcinoma, Small Cell Lung Cancer and Cutaneous Squamous Carcinoma. Download of these datasets need R package [GEOquery](https://www.bioconductor.org/packages/release/bioc/html/GEOquery.html) is installed. Following code showed how we download and carefully processed them.
+We also tried our best to collect gene expression data to extend APM score (APS), IIS etc. calculation for more cancer types by searching NCBI GEO databases. We only focus on looking for cancer types which showed in list of our immunotherapy clinical studies and not showed in TCGA studies. Finally, we found 5 GEO datasets which can extract gene expression data of Merkel Cell Carcinoma, Small Cell Lung Cancer and Cutaneous Squamous Carcinoma. Download of these datasets need R package [GEOquery](https://www.bioconductor.org/packages/release/bioc/html/GEOquery.html) is installed. Following code showed how we downloaded and carefully processed them.
 
 
 ```{r download_and_clean_GEOdatasets, eval=FALSE}

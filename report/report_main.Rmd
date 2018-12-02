@@ -32,6 +32,13 @@ This document is compiled from an Rmarkdown file which contains all code or desc
 ```
 
 
-# Analyses and Results
+# TCGA Pan-cancer analyses 
 
+```{r child = 'tcga_pancan_analyses.Rmd'}
+```
+
+# Immunotherapy datasets analyses 
+
+```{r child = 'icb_analyses.Rmd'}
+```
 

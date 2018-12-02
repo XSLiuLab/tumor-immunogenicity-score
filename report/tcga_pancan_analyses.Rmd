@@ -1,0 +1,166 @@
+---
+title: "TCGA Pan-cancer analyses"
+author: "Shixiang Wang"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+    lightbox: false
+    toc_depth: 3
+    mathjax: true
+---
+
+```{r pre-process-setup, include=FALSE}
+options(max.print="75")
+knitr::opts_chunk$set(echo = TRUE, comment = "#>", eval = TRUE, collapse = TRUE)
+knitr::opts_knit$set(width=75)
+```
+
+This part will clearly describe how to analyze TCGA Pan-cancer data. Raw data used for TCGA pancan analyses have been preprocessed, detail please read preprocessing part of this analysis report.
+
+## Clean and combine data
+
+Although data have been preprocessed in preprocessing part, they are still necessary to do some clean before really analyzing them according to our purpose.
+
+```{r, library_pkgs_load_data, message=FALSE}
+library(tidyverse)
+
+load("results/gsva_tcga_pancan.RData")
+load("results/TCGA_tidy_Clinical.RData")
+
+df.gsva = full_join(TCGA_Clinical.tidy, gsva.pac, by=c("Tumor_Sample_Barcode"="tsb"))
+```
+
+Only keep tumor samples, and filter sample which sample type is "0" or "X". Number of samples with these two sample type are very few.
+
+```{r keep_tumors}
+# df.gsva$Smoking_indicator = factor(df.gsva$Smoking_indicator,
+#                                    levels = c("Lifelong Non-smoker", "Current reformed smoker for < or = 15 years", "Current reformed smoker for > 15 years", "Current smoker"), labels = c("Non-smoker", "Reformed-smoker <=15 years", "Reformed-smoker >15 years", "Current-smoker"))
+
+df.gsva.tumor = df.gsva %>% 
+    filter(sample_type == "Primary Tumor", !Tumor_stage%in%c("0", "X")) %>%
+    mutate(Tumor_stage = factor(Tumor_stage, levels = c("I", "II", "III", "IV")))
+```
+
+Totally, 9095 tumor samples have APS value.
+
+## Strong association between APS and immune cell infiltration level
+
+### Association between GSVA scores
+
+We know that genes used for APS calculation does not overlap with genes of immune cell type, but we don't know if there are association between APS and them. Besides, we also don't know if there are association between APS and two aggregate scores: TIS and IIS.
+
+The first step we want to do is show the relationships between scores using a heatmap. The correlation calculation is based on __spearman__ method.
+
+```{r relationship_APS_others}
+df.gsva.heat = df.gsva.tumor %>% 
+    select(-c(Tumor_Sample_Barcode:Tumor_stage)) %>% 
+    filter(!is.na(APM)) %>% select(Project, APM, everything())
+heat_mat = sapply(unique(df.gsva.heat$Project), function(x){
+    mat = filter(df.gsva.heat, Project == x)
+    mat = mat[, -1]
+    cor_mat = cor(mat, method = "spearman")
+    cor_mat[,1]
+    })
+heat_mat = heat_mat[-1, ]
+
+## If you dont want plot TIS and IIS here, please uncomment following code
+#heat_mat = heat_mat[!rownames(heat_mat) %in% c("TIS", "IIS"), ]
+
+
+library(pheatmap)
+breaksList = seq(-1, 1, by = 0.01)
+
+clust = pheatmap(heat_mat, 
+                 color = colorRampPalette(c("blue", "white", "red"))(length(breaksList)),
+                 breaks = breaksList)
+annotation_col = data.frame(
+    ProjectGroup = factor(paste0('ColCluster',cutree(clust$tree_col,3)))
+)
+annotation_row = data.frame(
+    ImmuneCellGroup = factor(paste0('RowCluster',cutree(clust$tree_row,2)))
+)
+rownames(annotation_col) = colnames(heat_mat)
+rownames(annotation_row) = rownames(heat_mat)
+pheatmap(heat_mat, color = colorRampPalette(c("blue", "white", "red"))(length(breaksList)),
+         breaks = breaksList,
+         annotation_row = annotation_row,
+         annotation_names_row = FALSE, 
+         fontsize_row = 8, fontsize_col = 6,
+         cellheight = 10, cellwidth = 10)
+
+```
+
+The two heatmaps show that there is strong positive/consistent relationship between APM and immune/T cell infiltration level across TCGA cancer types. These spearman correlation coefficient are showed as a table.
+
+```{r vis_spearman_coef}
+DT::datatable(heat_mat, 
+              options = list(scrollX = TRUE, keys = TRUE), rownames = TRUE)
+```
+
+### IIS is a good representation of immune cell infiltration
+
+Immune/T cell infiltration is a good indicator for ICB response. Here we have seen that APS have strong association with both TIS and IIS. In indivial level, i.e. 9095 samples, we also observe that TIS and IIS are basically same because their correlation coeficient is about 0.91!
+
+
+```{r}
+df.gsva.tumor %>% filter(!is.na(IIS)) %>% 
+    summarise(corr = cor(TIS, IIS, method = "spearman"))
+```
+
+
+Therefore, we should choose one of them for downstream analysis. Finally, we choose IIS not only because it is more comprehensive, but also it is well validated.
+
+* __In vitro validation__ with multiplex immunofluorescence, __in silico validation__ using simulated mixing proportions and comparison between __CIBERSORT and IIS__ have been previously described (__Senbabaoglu, Y. et al__). 
+
+
+__TIMER__ is another method that can accurately resolve relative fractions of diverse cell types based on gene expression profiles from complex tissues. __To further validate the calculated IIS, we perform TIMER analysis and find that the result of TIMER is highly correlated with the calculated IIS__. 
+
+```{r cmp_timer}
+load("results/timer.RData")
+
+df = dplyr::select(df.gsva.tumor, Project, APM, TIS, IIS, Gender, Age, Tumor_stage, OS.time, OS, Tumor_Sample_Barcode)
+
+df_timer = dplyr::left_join(x = df, y = timer_clean, by = c("Tumor_Sample_Barcode"="sample"))
+```
+
+
+```{r cmp_timer_IIS, warning=FALSE, message=FALSE}
+library(corrplot)
+
+mat_timer_IIS = df_timer %>% 
+    select(-c(APM, TIS, Gender:Tumor_Sample_Barcode)) %>% 
+    filter(!is.na(IIS) & !is.na(T_cell.CD8)) %>% 
+    filter(T_cell.CD8 != 0)
+mat_timer_IIS.heat = sapply(unique(mat_timer_IIS$Project), function(x){
+    mat = filter(mat_timer_IIS, Project == x)
+    mat = mat[, -1]
+    cor_mat = cor(mat, method = "spearman")
+    cor_mat[,1]
+})
+
+mat_timer_IIS.heat = mat_timer_IIS.heat[-1, -22]
+
+p.mat = sapply(unique(mat_timer_IIS$Project), function(x){
+    mat = filter(mat_timer_IIS, Project == x)
+    mat = mat[, -1]
+    tryCatch(expr = {
+        p_mat = cor.mtest(mat, method = "spearman", conf.level = .95)
+        p_mat[[1]][,1]
+    }, error = function(e){
+        rep(NA, 7)
+    })
+    
+})
+
+p.mat = p.mat[-1, -22]
+col = colorRampPalette(c("blue", "white", "red"))(200)
+
+corrplot(mat_timer_IIS.heat, method = "color", tl.col="black", tl.srt = 45,
+         col = col, p.mat = p.mat, sig.level = 0.05)
+```
+
+The color bar in figure shows correlation coefficient values. The "X" marks relationship does not pass significant test (i.e. p>=0.05).
+
+## Exploration of APS, TMB, IIS at pan-cancer level
+
