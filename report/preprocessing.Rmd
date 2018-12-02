@@ -228,7 +228,7 @@ for (i in 1:length(project_code)){
     TCGA_Clinical = bind_rows(TCGA_Clinical, res)
 }
 
-rm(res, df, i, clinical, project, col_exist);gc() # remove temp variables
+rm(res, df, i, clinical, project, col_exist) # remove temp variables
 ```
 
 View the clinical data, check variables.
@@ -299,7 +299,7 @@ if(!file.exists("results/TCGA_RNASeq_PanCancer.RData")){
 
 
 #class(RNASeq_pancan)
-rm(RNASeq_List.pancan);gc()
+rm(RNASeq_List.pancan)
 ```
 
 The result object `RNASeq_pancan` is very huge, it needs about 1.5GB space to store. We will not view it as a table in html page.
@@ -336,7 +336,7 @@ DT::datatable(merged_geneList,
 Remove all variables.
 
 ```{r}
-rm(list=ls());gc()
+rm(list=ls())
 ```
 
 
@@ -406,7 +406,7 @@ if (!file.exists("results/gsva_tcga_pancan.RData")){
     save(gsva.pac, file ="results/gsva_tcga_pancan.RData")
 }
 
-rm(list = ls()); gc()
+rm(list = ls())
 ```
 
 
@@ -432,7 +432,7 @@ if (!file.exists("results/timer.RData")){
     save(timer_clean, file = "results/timer.RData")
 }
 
-rm(list = ls()); gc()
+rm(list = ls())
 ```
 
 
@@ -482,7 +482,7 @@ if (!file.exists("results/TCGA_TMB.RData")){
 }
 
 # rm(list = grep("tcga_*", ls(), value = TRUE))
-rm(list = ls()); gc()
+rm(list = ls())
 ```
 
 ## GEO datasets download and processing
