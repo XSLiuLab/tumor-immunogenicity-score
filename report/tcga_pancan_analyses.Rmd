@@ -34,9 +34,6 @@ df.gsva = full_join(TCGA_Clinical.tidy, gsva.pac, by=c("Tumor_Sample_Barcode"="t
 Only keep tumor samples, and filter sample which sample type is "0" or "X". Number of samples with these two sample type are very few.
 
 ```{r keep_tumors}
-# df.gsva$Smoking_indicator = factor(df.gsva$Smoking_indicator,
-#                                    levels = c("Lifelong Non-smoker", "Current reformed smoker for < or = 15 years", "Current reformed smoker for > 15 years", "Current smoker"), labels = c("Non-smoker", "Reformed-smoker <=15 years", "Reformed-smoker >15 years", "Current-smoker"))
-
 df.gsva.tumor = df.gsva %>% 
     filter(sample_type == "Primary Tumor", !Tumor_stage%in%c("0", "X")) %>%
     mutate(Tumor_stage = factor(Tumor_stage, levels = c("I", "II", "III", "IV")))
@@ -158,9 +155,631 @@ col = colorRampPalette(c("blue", "white", "red"))(200)
 
 corrplot(mat_timer_IIS.heat, method = "color", tl.col="black", tl.srt = 45,
          col = col, p.mat = p.mat, sig.level = 0.05)
+
 ```
 
 The color bar in figure shows correlation coefficient values. The "X" marks relationship does not pass significant test (i.e. p>=0.05).
 
-## Exploration of APS, TMB, IIS at pan-cancer level
+## Exploration of APS, TMB, TIGS at pan-cancer level
+
+Load TCGA TMB data and merge all necessary datasets.
+
+```{r}
+load("results/TCGA_TMB.RData")
+
+df2 = df %>% mutate(Tumor_Sample_Barcode = substr(Tumor_Sample_Barcode, 1, 12)) %>% 
+    arrange(APM) %>% distinct(Tumor_Sample_Barcode, .keep_all = TRUE)
+tcga_all = full_join(df2, TCGA_TMB, by="Tumor_Sample_Barcode")
+
+if(!file.exists("results/TCGA_ALL.RData")) {
+    save(tcga_all, file = "results/TCGA_ALL.RData")
+}
+
+rm(list = ls())
+```
+
+Tumor mutation burden (TMB) is defined as __the number of non-synonymous alterations per megabase (Mb) of genome examined__. As reported previously, here we use 38 Mb as the estimate of the exome size. For studies reporting mutation number from whole exome sequencing, the normalized TMB = (whole exome non-synonymous mutation)/(38 Mb). 
+
+Original APM scores (APS) from GSVA are in the range of -1 to 1. To calculate tumor immunogenicity score (TIGS), original APM score from GSVA implementation is rescaled by minimal and maximal APM score from TCGA Pan-cancer analysis. 
+
+We calculate tumor immunogenicity score (TIGS) as following: 
+
+$$
+TIGS = APS_{normalized} \times log(TMB + 1)
+$$
+
+> Natural logarithm is applied here. Of note, some tumors have TMB level below 1 mutation/ Mb, to avoid minus number in quantifying “tumor antigenicity”, we add number 1 to all normalized TMB.
+
+How we generate this TIGS formula will be described at an individual part. __Here we focus on association of APS, TMB and TIGS and their effects.__
+
+```{r}
+load("results/TCGA_ALL.RData")
+
+tcga_all = tcga_all %>% 
+    mutate(nAPM = (APM - min(APM, na.rm = TRUE))/ (max(APM, na.rm = TRUE) - min(APM, na.rm = TRUE)),
+           nTMB = TMB_NonsynVariants / 38, 
+           TIGS = log(nTMB+1) * nAPM) %>% 
+    rename(Event = OS, Time = OS.time)
+
+
+# keep samples with survival information
+df_os = tcga_all %>% 
+    filter(!is.na(Time), !is.na(Event))
+
+
+df_os %>% filter(!is.na(nAPM)) %>% 
+    group_by(Project) %>% summarise(N=n()) %>% arrange(N)
+
+df_os %>% filter(!is.na(TIGS)) %>% 
+    group_by(Project) %>% summarise(N=n()) %>% arrange(N)
+```
+
+
+### Distribution of APS, TMB and IIS across TCGA studies
+
+Calculate median values to sort distribution.
+
+```{r calc_median}
+#------------ TIGS, TMB, APM pancan, sort by value
+df_summary = df_os %>% 
+    group_by(Project) %>% 
+    summarise(medianAPM = median(APM, na.rm = TRUE),
+              medianTMB = median(TMB_NonsynVariants, na.rm = TRUE),
+              medianTIGS = median(TIGS, na.rm = TRUE),
+              medianAPMn = median(nAPM, na.rm = TRUE),
+              medianTMBn = log(median(nTMB, na.rm = TRUE) +1 ))
+
+```
+
+
+Distribution of APM score (APS) across TCGA studies.
+
+```{r dist_of_APS, message=FALSE, warning=FALSE}
+library(scales)
+library(ggpubr)
+
+df_os %>% filter(!is.na(Project), !is.na(APM)) %>% 
+    ggboxplot(x="Project", y="APM",  color="Project", add="jitter", xlab = "TCGA Projects", 
+              ylab = "APM Score", add.params = list(size=0.6),
+              legend = "none") + 
+    rotate_x_text(angle = 45) + 
+    geom_hline(yintercept = mean(df_os$APM, na.rm=TRUE), linetype=2) +
+    scale_x_discrete(limits = arrange(df_summary, medianAPM) %>% .$Project) -> p_apm
+p_apm
+```
+
+
+Distribution of TMB across TCGA studies.
+
+```{r dist_of_TMB}
+df_os %>% filter(!is.na(Project), !is.na(TMB_NonsynVariants)) %>% 
+    ggboxplot(x="Project", y="TMB_NonsynVariants",  color="Project", add="jitter", xlab = "TCGA Projects", 
+              ylab = "No. of Coding Somatic Nonsynonymous Mutation", add.params = list(size=0.6),
+              legend = "none") + 
+    rotate_x_text(angle = 45) + 
+    geom_hline(yintercept = mean(df_os$TMB_NonsynVariants, na.rm=TRUE), linetype=2) + 
+    scale_y_log10(breaks= 10^(-1:4), labels = trans_format("log10", math_format(10^.x))) +
+    scale_x_discrete(limits = arrange(df_summary, medianTMB) %>% .$Project) -> p_tmb
+p_tmb
+```
+
+Distribution of TIGS across TCGA studies.
+
+```{r dist_of_TIGS}
+df_os %>% filter(!is.na(Project), !is.na(TIGS)) %>% 
+    ggboxplot(x="Project", y="TIGS",  color="Project", add="jitter", xlab = "TCGA Projects", 
+              ylab = "TIGS", add.params = list(size=0.6),
+              legend = "none") + 
+    rotate_x_text(angle = 45) + 
+    geom_hline(yintercept = mean(df_os$TIGS, na.rm=TRUE), linetype=2) +
+    scale_x_discrete(limits = arrange(df_summary, medianTIGS) %>% .$Project) -> p_tigs
+p_tigs
+```
+
+### Correlation between TMB and IIS 
+
+```{r}
+df_TMB = tcga_all %>% filter(!is.na(IIS), !is.na(TMB_NonsynVariants)) %>% 
+    mutate(logTMB = log(nTMB + 1))
+
+ggstatsplot::ggscatterstats(
+    data = df_TMB, 
+    x = nTMB, 
+    y = IIS,
+    xlab = "No. of Coding Somatic Nonsynonymous Mutation",
+    ylab = "IIS Score",
+    # title = "Correlation between APM and IIS score in pancancer",
+    messages = FALSE, type = "spearman"
+) 
+
+
+ggstatsplot::ggscatterstats(
+    data = df_TMB, 
+    x = logTMB, 
+    y = IIS,
+    xlab = "No. of Coding Somatic Nonsynonymous Mutation (log)",
+    ylab = "IIS Score",
+    # title = "Correlation between APM and IIS score in pancancer",
+    messages = FALSE, type = "spearman"
+) 
+
+plot_scatter = function(data, x, y, xlab = "Median APM", ylab = "Median IIS", conf.int=TRUE, method="spearman", label.x=-0.5, label.y=0.2, label="Project", ...){
+    ggscatter(data, x=x, y=y,
+              xlab = xlab, ylab = ylab,
+              shape = 21, size = 3, color = "black",
+              add = "reg.line", add.params = list(color = "blue", fill = "lightgray"),
+              conf.int = conf.int,
+              cor.coef = TRUE,
+              cor.coeff.args = list(method = method, label.x = label.x, label.y=label.y, label.sep = "\n"),
+              label=label, repel = TRUE, ...)
+}
+
+df_project = df_TMB %>%
+    group_by(Project) %>% 
+    summarise(TMB_median = median(nTMB, na.rm = TRUE), 
+              IIS_median = median(IIS, na.rm = TRUE))
+
+mean(df_TMB$nTMB)
+plot_scatter(df_project, x="TMB_median", y="IIS_median",
+                         xlab = "Median TMB", ylab = "Median IIS", label.x = 0.2) + 
+    geom_hline(yintercept = 0, linetype=2) + geom_vline(xintercept = 4.35, linetype = 2)
+
+
+```
+
+
+### Significant correlation between APM score and IIS
+
+
+```{r}
+ggstatsplot::ggscatterstats(
+    data = tcga_all %>% filter(!is.na(APM)), 
+    x = APM, 
+    y = IIS,
+    xlab = "APM Score",
+    ylab = "IIS Score",
+    # title = "Correlation between APM and IIS score in pancancer",
+    messages = FALSE, type = "spearman"
+) 
+
+df_project2 = tcga_all %>%
+    filter(!is.na(APM)) %>% 
+    group_by(Project) %>% 
+    summarise(APM_median = median(APM), 
+              IIS_median = median(IIS))
+
+plot_scatter(df_project2, x="APM_median", y="IIS_median",
+             xlab = "Median APM", ylab = "Median IIS") + 
+    geom_hline(yintercept = 0, linetype=2) + geom_vline(xintercept = 0, linetype = 2)
+```
+
+### Survival analysis
+
+We access survival effects of APS, TMB and TIGS across TCGA studies using unvariable cox model.
+
+Firstly, we implement cox model and then obtain key result values from fit, i.e. p value and corresponding 95% confident interval.
+
+```{r}
+library(survival)
+# calculate APM cox model by project
+model_APM = df_os %>% 
+    filter(!is.na(nAPM)) %>% 
+    group_by(Project) %>% 
+    dplyr::do(coxfit = coxph(Surv(time = Time, event = Event) ~ nAPM, data = .)) %>% 
+    summarise(Project = Project,
+              Coef = summary(coxfit)$conf.int[1],
+              Lower = summary(coxfit)$conf.int[3],
+              Upper = summary(coxfit)$conf.int[4],
+              Pvalue = summary(coxfit)$logtest[3])
+
+# use nTMB or log(nTMB)
+model_TMB = df_os %>% 
+    filter(!is.na(nTMB)) %>% 
+    group_by(Project) %>% 
+    dplyr::do(coxfit = coxph(Surv(time = Time, event = Event) ~ log(nTMB), data = .)) %>% 
+    summarise(Project = Project,
+              Coef = summary(coxfit)$conf.int[1],
+              Lower = summary(coxfit)$conf.int[3],
+              Upper = summary(coxfit)$conf.int[4],
+              Pvalue = summary(coxfit)$logtest[3])
+
+model_TIGS = df_os %>% 
+    filter(!is.na(TIGS)) %>% 
+    group_by(Project) %>% 
+    dplyr::do(coxfit = coxph(Surv(time = Time, event = Event) ~ TIGS, data = .)) %>% 
+    summarise(Project = Project,
+              Coef = summary(coxfit)$conf.int[1],
+              Lower = summary(coxfit)$conf.int[3],
+              Upper = summary(coxfit)$conf.int[4],
+              Pvalue = summary(coxfit)$logtest[3])
+
+N_APM = df_os %>% filter(!is.na(nAPM)) %>% 
+    group_by(Project) %>% summarise(N=n()) 
+
+N_TMB = df_os %>% filter(!is.na(nTMB)) %>% 
+    group_by(Project) %>% summarise(N=n()) 
+
+N_TIGS = df_os %>% filter(!is.na(TIGS)) %>% 
+    group_by(Project) %>% summarise(N=n()) 
+
+
+cox_APM = full_join(model_APM, N_APM)
+cox_TMB = full_join(model_TMB, N_TMB)
+cox_TIGS = full_join(model_TIGS, N_TIGS)
+```
+
+Secondly, we generate forest plot.
+
+```{r, fig.width=10, fig.height=10}
+library(forestplot)
+
+########### Forest plot
+
+#------ APM
+options(digits = 2)
+forest_APM = rbind(c("Project", NA, NA, NA, "p.value", "No."),
+                       cox_APM) %>% as.data.frame()
+forest_APM$HR = c("HR", format(as.numeric(forest_APM$Coef[-1]), digits = 2))
+forest_APM$Pvalue = c("p.value", format(as.numeric(forest_APM$Pvalue[-1]), digits = 2))
+
+forestplot(fn.ci_norm = fpDrawCircleCI,
+           forest_APM[,c("Project", "N", "HR", "Pvalue")],
+               mean = c(NA, log(cox_APM$Coef)), lower = c(NA, log(cox_APM$Lower)), upper = c(NA, log(cox_APM$Upper)),
+               is.summary = c(TRUE, rep(FALSE, 32)),
+               clip = c(-4, 4), zero = 0,
+           col=fpColors(box="royalblue",line="black", summary="royalblue", hrz_lines = "black"),
+           vertices = TRUE,
+           xticks = c(-4, -2, -1, 0, 1, 2, 4),
+           hrzl_lines = list("2" = gpar(lty=1, col = "black")),
+           boxsize = 0.5,
+           # graph.pos = 3,
+           xlab = "log Hazard Ratio")
+
+
+#----- TMB
+forest_TMB = rbind(c("Project", NA, NA, NA, "p.value", "No."),
+                    cox_TMB) %>% as.data.frame()
+forest_TMB$HR = c("HR", format(as.numeric(forest_TMB$Coef[-1]), digits = 2))
+forest_TMB$Pvalue = c("p.value", format(as.numeric(forest_TMB$Pvalue[-1]), digits = 2))
+
+
+forestplot(fn.ci_norm = fpDrawCircleCI,
+           forest_TMB[,c("Project", "N", "HR", "Pvalue")],
+           mean = c(NA, log(cox_TMB$Coef)), lower = c(NA, log(cox_TMB$Lower)), upper = c(NA, log(cox_TMB$Upper)),
+           is.summary = c(TRUE, rep(FALSE, 32)),
+           clip = c(-4, 4), zero = 0,
+           col=fpColors(box="royalblue",line="black", summary="royalblue", hrz_lines = "black"),
+           vertices = TRUE,
+           xticks = c(-4, -2, -1, 0, 1, 2, 4),
+           hrzl_lines = list("2" = gpar(lty=1, col = "black")),
+           boxsize = 0.5,
+           # graph.pos = 3,
+           xlab = "log Hazard Ratio")
+
+
+#---------- TIGS
+forest_TIGS = rbind(c("Project", NA, NA, NA, "p.value", "No."),
+                   cox_TIGS) %>% as.data.frame()
+forest_TIGS$HR = c("HR", format(as.numeric(forest_TIGS$Coef[-1]), digits = 2))
+forest_TIGS$Pvalue = c("p.value", format(as.numeric(forest_TIGS$Pvalue[-1]), digits = 2))
+
+
+forestplot(fn.ci_norm = fpDrawCircleCI,
+           forest_TIGS[,c("Project", "N", "HR", "Pvalue")],
+           mean = c(NA, log(cox_TIGS$Coef)), lower = c(NA, log(cox_TIGS$Lower)), upper = c(NA, log(cox_TIGS$Upper)),
+           is.summary = c(TRUE, rep(FALSE, 32)),
+           clip = c(-4, 4), zero = 0,
+           col=fpColors(box="royalblue",line="black", summary="royalblue", hrz_lines = "black"),
+           vertices = TRUE,
+           xticks = c(-4, -2, -1, 0, 1, 2, 4),
+           hrzl_lines = list("2" = gpar(lty=1, col = "black")),
+           boxsize = 0.5,
+           # graph.pos = 3,
+           xlab = "log Hazard Ratio")
+
+```
+
+## Gene sets enriched in patients with high APM score
+
+To identify the __specific gene sets/pathway__ associated with high APS, we firstly run differential gene expression analysis for each TCGA cancer type based on APS status. Patients with APS of first quartile was defined as “APS-High”, patients with APS of the forth quartile was defined as “APS-Low”. Genes with p value <0.01 and FDR <0.05 were ranked by logFC from top to bottom and then inputted into GSEA function of R package [__clusterProfiler__](https://www.bioconductor.org/packages/release/bioc/vignettes/clusterProfiler/inst/doc/clusterProfiler.html) with custom gene sets download from [__Molecular Signature Database v6.2__](http://software.broadinstitute.org/gsea/downloads.jsp).  Normalized enrichment score (NES) was used to rank the differentially enriched gene sets. In results from hallmark gene sets, several gene signatures (especially interferon alpha/gamma response) were found to be enriched in most TCGA cancer types with high APS, suggesting high APS are strongly associated with interferon alpha/gamma signaling pathway. 
+
+The code below is runned on linux server (need much time), thus if reader wanna reproduce it, you may need to download gene sets from [__Molecular Signature Database v6.2__](http://software.broadinstitute.org/gsea/downloads.jsp) and modify some file path.
+
+```{r eval=FALSE}
+#----------------------------------------
+# APM DEG and Pathway Enrichment Analysis
+#----------------------------------------
+library(tidyverse)
+
+load("results/TCGA_RNASeq_PanCancer.RData")
+load("results/gsva_tcga_pancan.RData")
+load("results/TCGA_tidy_Clinical.RData")
+
+df.gsva = full_join(TCGA_Clinical.tidy, gsva.pac, by=c("Tumor_Sample_Barcode"="tsb"))
+
+tcga_info = df.gsva
+rm(df.gsea, df.gsva); gc()
+
+tcga_info = tcga_info %>% 
+    select(Project:OS.time, Age, Gender, sample_type, Tumor_stage, APM) %>% 
+    filter(!is.na(APM))
+
+projects = unique(tcga_info[, "Project"])
+samples = colnames(RNASeq_pancan)[-1]
+
+#-----------------------------------
+# Build a workflow to calculate DEGs
+#-----------------------------------
+findDEGs = function(info_df=NULL, expr_df=NULL, col_sample="Tumor_Sample_Barcode", col_group="APM", 
+                    col_subset = "Project", method="limma", threshold = 0.25, 
+                    save=FALSE, filename=NULL){
+    
+    # method=c("DESeq2", "limma", "edgeR", "voom")
+    stopifnot(!is.null(info_df), !is.null(expr_df))
+    stopifnot(threshold >=0 & threshold <=1)
+    
+    if(!require(data.table)){
+        install.packages("data.table", dependencies = TRUE)
+    }
+    
+    info_df =  setDT(info_df[, c(col_sample, col_group, col_subset)])
+    colnames(info_df) = c("sample", "groupV", "subset")
+    info_df = info_df[sample %in% colnames(expr_df)]
+    info_df = info_df[!is.na(subset)]
+    all_sets = unique(info_df[, subset])
+    
+    
+    if('DEGroup' %in% colnames(info_df)){
+        stop('DEGroup column exists, please rename and re-run.')
+    }
+    
+    # set threshold
+    th1 = threshold
+    th2 = 1 - th1
+    
+    info_df[, DEGroup:=ifelse(groupV<quantile(groupV, th1), "Low",
+                              ifelse(groupV>quantile(groupV, th2), "High", NA)), by=subset]
+    info_df = info_df[!is.na(DEGroup)]
+    sets = unique(info_df[, subset])
+    may_del = setdiff(all_sets, sets)
+    if(length(may_del)!=0) {
+        message("Following groups has been filtered out because of threshold setting, you better check")
+        print(may_del)
+    }
+    
+    info_list = lapply(sets, function(x) info_df[subset == x])
+    names(info_list) = sets
+    
+    col1 = colnames(expr_df)[1]
+    
+    
+    options(digits = 4)
+    
+    doDEG = function(input, method=NULL){
+        #-- prepare
+        exprSet = expr_df[, c(col1, input$sample)]
+        exprSet = as.data.frame(exprSet)
+        exprSet = na.omit(exprSet)
+        input = as.data.frame(input)
+        rownames(exprSet) = exprSet[,1]
+        exprSet = exprSet[, -1]
+        
+        
+        sample_tb = table(input$DEGroup)
+        
+        #--- make sure have some samples
+        if(!length(sample_tb) < 2  & all(sample_tb >= 5)){
+            group_list = input$DEGroup
+            
+        #-- make sure packages are installed
+        if(!all(require("DESeq2"), require("limma"), require("edgeR"))){
+            source("https://bioconductor.org/biocLite.R")
+            if(!require("DESeq2")) biocLite("DESeq2", dependencies = TRUE)
+            if(!require("limma"))  biocLite("limma", dependencies = TRUE)
+            if(!require("edgeR"))  biocLite("edgeR", dependencies = TRUE)
+        }
+            
+        if("limma" %in% method){
+            suppressMessages(library(limma))    
+            design=model.matrix(~0+factor(group_list))
+            colnames(design) = c('High', 'Low')
+            cont.matrix=makeContrasts('High-Low',levels = design)
+            
+            fit=lmFit(exprSet,design)
+            fit2=contrasts.fit(fit,cont.matrix)
+            fit2=eBayes(fit2)
+            topTable(fit2, number = Inf, adjust.method ='BH')
+        }}
+        
+    }
+    
+    res = lapply(info_list, doDEG, method = method)
+    names(res) = sets
+    return(res)
+}
+
+DEG_pancan2 = findDEGs(info_df = tcga_info, expr_df = RNASeq_pancan)
+save(DEG_pancan2, file = "results/DEG_pancan.RData")
+
+#----------------------------------------------------
+# Pathway enrichment analysis using clusterProfiler
+#--------------------------------------------------
+load(file="results/DEG_pancan.RData")
+library(clusterProfiler)
+library(tidyverse)
+library(openxlsx)
+
+#---------------
+
+##- setting
+pvalue = 0.01
+adj.pvalue = 0.05
+
+##- process
+
+#------- Reading GSEA genesets files
+hallmark = read.gmt("~/biodata/MsigDB/h.all.v6.2.symbols.gmt")
+c1 = read.gmt("~/biodata/MsigDB/c1.all.v6.2.symbols.gmt")
+c2_kegg = read.gmt("~/biodata/MsigDB/c2.cp.kegg.v6.2.symbols.gmt")
+c2_reactome = read.gmt("~/biodata/MsigDB/c2.cp.reactome.v6.2.symbols.gmt")
+c3 = read.gmt("~/biodata/MsigDB/c3.all.v6.2.symbols.gmt")
+c4 = read.gmt("~/biodata/MsigDB/c4.all.v6.2.symbols.gmt")
+c5_mf = read.gmt("~/biodata/MsigDB/c5.mf.v6.2.symbols.gmt")
+c5_bp = read.gmt("~/biodata/MsigDB/c5.bp.v6.2.symbols.gmt")
+c6 = read.gmt("~/biodata/MsigDB/c6.all.v6.2.symbols.gmt")
+c7 = read.gmt("~/biodata/MsigDB/c7.all.v6.2.symbols.gmt")
+#-=---------
+
+goGSEA = function(DEG, prefix=NULL, pvalue=0.01, adj.pvalue=0.05, destdir="~/projects/APM/results/GSEA_results"){
+    library(clusterProfiler)
+    library(openxlsx)
+    library(tidyverse)
+    
+    filterDEG = subset(DEG, subset = P.Value < pvalue & adj.P.Val < adj.pvalue)
+    filterDEG$SYMBOL = rownames(filterDEG)
+    filterDEG = filterDEG %>% 
+        arrange(desc(logFC),adj.P.Val)
+    geneList = filterDEG$logFC
+    names(geneList) = filterDEG$SYMBOL
+    
+    res = list()
+    if (base::exists("hallmark")) res$hallmark = GSEA(geneList, TERM2GENE=hallmark, verbose=FALSE)
+    #if (base::exists("c1")) res$c1 = GSEA(geneList, TERM2GENE=c1, verbose=FALSE)
+    if (base::exists("c2_kegg")) res$c2_kegg = GSEA(geneList, TERM2GENE=c2_kegg, verbose=FALSE)
+    if (base::exists("c2_reactome")) res$c2_reactome = GSEA(geneList, TERM2GENE=c2_reactome, verbose=FALSE)
+    #if (base::exists("c3")) res$c3 = GSEA(geneList, TERM2GENE=c3, verbose=FALSE)
+    #if (base::exists("c4")) res$c4 = GSEA(geneList, TERM2GENE=c4, verbose=FALSE)
+    if (base::exists("c5_mf")) res$c5_mf = GSEA(geneList, TERM2GENE=c5_mf, verbose=FALSE)
+    if (base::exists("c5_bp")) res$c5_bp = GSEA(geneList, TERM2GENE=c5_bp, verbose=FALSE)
+    if (base::exists("c6")) res$c6 = GSEA(geneList, TERM2GENE=c6, verbose=FALSE)
+    if (base::exists("c7")) res$c7 = GSEA(geneList, TERM2GENE=c7, verbose=FALSE)
+    
+    getResultList = lapply(res, function(x) x@result)
+    if(!dir.exists(destdir)) dir.create(destdir)
+    outpath = file.path(destdir, prefix)
+    write.xlsx(x = getResultList, file = paste0(outpath,".xlsx"))
+    return(res)
+}
+
+
+# remove STAD, CHOL, KICH and DLBC
+DEG_pancan2 = DEG_pancan2[setdiff(names(DEG_pancan2),c("STAD", "CHOL", "KICH", "DLBC"))]
+GSEA_list = Map(goGSEA, DEG_pancan2, names(DEG_pancan2))
+save(GSEA_list, file = "results/GSEA_results_rm_notEnriched.RData")
+
+#------- GSEA example plot
+# load("results/GSEA_results.RData")
+load("results/GSEA_results_rm_notEnriched.RData")
+library(clusterProfiler)
+
+gseaplot(GSEA_list$SKCM$hallmark, geneSetID = "HALLMARK_INTERFERON_GAMMA_RESPONSE")
+
+# gseaplot(egmt2, geneSetID = "INTEGRAL_TO_PLASMA_MEMBRANE")
+# gseaplot(res$hallmark, geneSetID = "HALLMARK_INTERFERON_GAMMA_RESPONSE")
+
+#------ get main result cloumn
+gsea_results = lapply(GSEA_list, function(x) {
+    #x@result %>% select()
+    lapply(x, function(gsea) {
+        gsea@result %>% dplyr::select(ID, setSize, enrichmentScore, NES, pvalue, qvalues)
+    })
+})
+
+save(gsea_results, file = "results/GSEA_results_notEnriched_small.RData")
+rm(GSEA_list); gc()
+
+#----- plot
+summariseGSEA = function(pathway = NULL){
+    purrr::reduce(Map(function(x, y, pathway){
+        if(nrow(x[[pathway]]) == 0){
+            res = NULL
+        }else{
+            res = x[[pathway]]
+            res$Project = y
+        } 
+        res
+    }, gsea_results, names(gsea_results), pathway), rbind)
+}
+
+gsea_summary = list()
+gsea_summary$hallmark = summariseGSEA(pathway = "hallmark")
+gsea_summary$c2_kegg = summariseGSEA(pathway = "c2_kegg")
+gsea_summary$c2_reactome = summariseGSEA(pathway = "c2_reactome")
+gsea_summary$c5_mf = summariseGSEA(pathway = "c5_mf")
+gsea_summary$c5_bp = summariseGSEA(pathway = "c5_bp")
+gsea_summary$c6 = summariseGSEA(pathway = "c6")
+gsea_summary$c7 = summariseGSEA(pathway = "c7")
+
+save(gsea_summary, file ="results/GSEA_summary_notEnriched.RData")
+
+## plot really
+load("data/df_combine_gsva_clinical.RData")
+
+df.gsva %>% 
+    filter(!is.na(APM)) %>% 
+    group_by(Project) %>% 
+    summarize(MedianAPM = median(APM), N=n()) %>% 
+    arrange(MedianAPM) -> sortAPM
+sortAPM %>% filter(Project != "DLBC") -> sortAPM
+
+library(scales)
+gsea_summary$hallmark %>% 
+    ggplot(mapping = aes(x = Project, y = ID)) +
+    geom_tile(aes(fill = NES)) + 
+    scale_fill_gradient2(low = "blue", mid = "white", high = "red") +
+    scale_x_discrete(limits = sortAPM$Project) +  theme_classic() + 
+    theme(axis.text.x = element_text(angle = 30, hjust = 1, vjust = 1)) 
+
+# df_wide = reshape2::dcast(gsea_summary$hallmark, ID ~ Project, value.var="NES", fill = 0)
+
+library(pheatmap)
+
+plotPathway = function(df, save=FALSE, path=NULL, silent=FALSE){
+    df_wide = reshape2::dcast(df, ID ~ Project, value.var="NES", fill = 0)
+    
+    breaksList = seq(-max(df_wide[,-1], na.rm = TRUE), max(df_wide[, -1], na.rm = TRUE), by = 0.01)
+    pheatmap(df_wide %>% column_to_rownames(var = "ID"), 
+             color = colorRampPalette(c("blue", "white", "red"))(length(breaksList)),
+             breaks = breaksList,
+             #annotation_col = annotation_col,
+             fontsize_row = 8, fontsize_col = 8, silent = silent,
+             cellheight = 10, cellwidth = 10, filename = ifelse(save==FALSE, NA, path))
+}
+
+gg = plotPathway(gsea_summary$hallmark, silent = F, path = "results/GSEA_results_plot/Hallmark_Enriched.pdf", save = TRUE)
+gg = plotPathway(gsea_summary$c2_kegg, silent = F, path = "results/GSEA_results_plot/KEGG_Enriched.pdf", save = TRUE)
+gg = plotPathway(gsea_summary$c2_reactome, silent = F, path = "results/GSEA_results_plot/Reactome_Enriched.pdf", save = TRUE)
+gg = plotPathway(gsea_summary$c5_mf, silent = F, path = "results/GSEA_results_plot/GO_MolecuFunction_Enriched.pdf", save = TRUE)
+gg = plotPathway(gsea_summary$c5_bp, silent = F, path = "results/GSEA_results_plot/GO_BiologicalProcess_Enriched.pdf", save = TRUE)
+gg = plotPathway(gsea_summary$c6, silent = F, path = "results/GSEA_results_plot/C6_oncogenicsignatures_Enriched.pdf", save = TRUE)
+gg = plotPathway(gsea_summary$c7, silent = F, path = "results/GSEA_results_plot/C7_immunologicsignatures_Enriched.pdf", save = TRUE)
+
+gg
+
+
+#_-------- rank pheatmap by NES value
+plotPathway2 = function(df, save=FALSE, path=NULL, silent=FALSE){
+    df_wide = reshape2::dcast(df, ID ~ Project, value.var="NES", fill = 0)
+    df_wide = df_wide[order(rowMeans(df_wide[,-1]), decreasing = TRUE),]
+    rownames(df_wide) = NULL
+    
+    breaksList = seq(-max(df_wide[,-1], na.rm = TRUE), max(df_wide[, -1], na.rm = TRUE), by = 0.01)
+    
+    pheatmap(df_wide %>% column_to_rownames(var = "ID"), 
+             color = colorRampPalette(c("blue", "white", "red"))(length(breaksList)),
+             breaks = breaksList, cluster_rows = FALSE,
+             #annotation_col = annotation_col,
+             fontsize_row = 8, fontsize_col = 8, silent = silent,
+             cellheight = 10, cellwidth = 10, filename = ifelse(save==FALSE, NA, path))
+}
+
+gg = plotPathway2(gsea_summary$c2_reactome, silent = F, path = "results/GSEA_results_plot/Reactome_Enriched2.pdf", save = TRUE)
+```
+
+
+## Session Info
+
+```{r sessionInfo}
+sessionInfo()
+```
 
