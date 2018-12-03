@@ -42,7 +42,7 @@ R packages:
 * pROC - ROC analysis and visualization
 * [TCGAmutations](https://github.com/PoisonAlien/TCGAmutations) - download TCGA mutation data
 * [DT](https://cran.r-project.org/web/packages/DT/index.html) - show data table as a table in html
-* [GSVA](https://github.com/rcastelo/GSVA) - GSVA algorithm implementation
+* [GSVA](https://github.com/rcastelo/GSVA) [v1.28.0](https://www.bioconductor.org/packages/3.7/bioc/html/GSVA.html) - GSVA algorithm implementation
 * [ggstatsplot](https://github.com/IndrajeetPatil/ggstatsplot) - plot scatter with linear fit
 * [corrplot](https://cran.r-project.org/web/packages/corrplot/) - plot correlation 
 * knitr, rmdformats - used to compile this file
