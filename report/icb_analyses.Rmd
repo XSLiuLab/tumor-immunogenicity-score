@@ -12,6 +12,731 @@ output:
 
 ```{r pre-process-setup, include=FALSE}
 options(max.print="75")
-knitr::opts_chunk$set(echo = TRUE, comment = "#>", eval = TRUE, collapse = TRUE)
+knitr::opts_chunk$set(echo = TRUE, comment = "#>", eval = TRUE, collapse = TRUE, cache = TRUE)
 knitr::opts_knit$set(width=75)
 ```
+
+This part will clearly describe how to analyze APS, TMB and TIGS in immunotherapy datasets, including cancer type level and individual level. Raw data used for these analyses have been preprocessed, detail please read preprocessing part or TCGA pan-cancer analyses of this analysis report.
+
+## TIGS and pan-cancer objective response rate to PD-1 inhibition
+
+Previous study has shown that TMB could predict pan-cancer ICI objective response rates (ORR). Here we will evaluate and compare the predictive power of APS, TIGS with TMB in pan-cancer ICI objective response rates prediction. The ORR for anti–PD-1 or anti–PD-L1 therapy will be plotted against the corresponding median APS, TIGS, TMB across multiple cancer types. 
+
+Through an extensive literature search, we identified 26 tumor types or subtypes for which data regarding the ORR are available. For each tumor type, we pooled the response data from the largest published studies that evaluated the ORR. We included only studies of anti–PD-1 or anti–PD-L1 monotherapy that enrolled at least 10 patients who were not selected for PD-L1 tumor expression (Identified individual studies and references are available in the manuscript Supplementary Table 3). The median tumor mutational burden for each tumor type was obtained from a validated comprehensive genomic profiling assay performed and provided by Foundation Medicine. The APS information for 23 tumor types were calculated based on TCGA datasets, and the APS for merkel cell carcinoma, cutaneous squamous cell carcinoma and small-cell lung cancer were calculated based on GEO microarray datasets. 
+
+### Combination of datasets
+
+In code implementation, we firstly combine APM score, TIGS score from TCGA studies and GEO datasets.
+
+```{r}
+library(tidyverse)
+## retrieve APM score 
+load("results/Add_gsva_scc_sclc_merkel.RData")
+
+buildDF = function(x, tumor_type = NULL){
+    stopifnot(!is.null(tumor_type))
+    APM = x$APM
+    res = data.frame(Project = tumor_type, APM = APM, stringsAsFactors = FALSE)
+    res
+}
+
+lapply(gsva.merkel, FUN = buildDF, tumor_type = "Merkel Cell Carcinoma") %>% purrr::reduce(rbind) -> df_merkel
+lapply(gsva.scc, FUN = buildDF, tumor_type = "Cutaneous Squamous Cell Carcinoma") %>% purrr::reduce(rbind) -> df_scc
+lapply(gsva.sclc, FUN = buildDF, tumor_type = "Small-Cell Lung Cancer") %>% purrr::reduce(rbind) -> df_sclc
+```
+
+```{r}
+## combine datasets
+load("results/TCGA_ALL.RData")
+df_list = list(tcga_all %>% filter(!is.na(APM)), df_merkel, df_scc, df_sclc)
+purrr::reduce(df_list, bind_rows) -> df_all
+
+if (!file.exists("results/df_all.RData")) {
+    save(df_all, file = "results/df_all.RData")
+}
+
+```
+
+Using the combined dataset `df_all`, we can normalize APM score to [0, 1] region, then we calculate median APM score for each tumor type.
+
+```{r}
+df_all %>%
+    mutate(N.APM = (APM - min(APM)) / (max(APM) - min(APM))) %>% 
+    group_by(Project) %>% 
+    summarise(MedianAPM = median(N.APM), NumberOfPatient = n()) -> sm_APM
+
+sm_APM
+```
+
+Lastly, we merge this data to 26 tumor types or subtypes for which data regarding the ORR, TMB are available __by hand__ using Excel. This process has been double checked. With the merged data, we can explore association of ORR and APM score, ORR and TMB etc. in immunotherapy datasets.
+
+### Significant correlation between APS, TMB and the ORR
+
+We plot ORR against APS, TMB respectively, and fit their relationship with linear model. We observe that significant correlation between APS, TMB and the ORR.
+
+Load pan-cancer ORR data and show it as a table.
+
+```{r}
+sm_data = read_csv("../data/summary_data_new_20180906.csv")
+
+DT::datatable(sm_data, 
+              options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE)
+```
+
+Focus on cancer type with APS, fit data with linear model.
+
+```{r}
+sm_data = sm_data %>% filter(!is.na(Pool_APM))
+
+lm(Pool_ORR ~ Pool_APM, data = sm_data) -> fit1
+
+lm(Pool_ORR ~ log(Pool_TMB), data = sm_data)  -> fit2
+
+summary(fit1)
+
+summary(fit2)
+```
+
+> Of note, here we use `log(TMB)` will not change the relationshipe between ORR and TMB.
+
+We observe that 28% variance of ORR can be explained by APS, and 44% variance of ORR can be explained by TMB. The result of TMB is similar to NEJM paper _Tumor Mutational Burden and Response Rate to PD-1 inhibition_. __This result show that TMB and APS are biomarker that predicting ORR of immunotherapy, TMB is better than APS__.
+
+Next we plot the linear model.
+
+```{r}
+require(ggrepel)
+require(scales)
+
+ggplot(sm_data, aes(x=Pool_APM, y=Pool_ORR)) + 
+    geom_point(aes(color=Patients_APM, size=Patients_ORR)) + 
+    geom_smooth(method="lm", se=T)  + 
+    geom_text_repel(aes(label=Cancer_Type), size=3)  +
+    labs(x="Median Normalized APM Score ", y="Objective Response Rate (%)",
+         size="Objective Response Rate\n(no. of patients evaluated)", 
+         color = "APM Score\n(no. of tumor analyzed)") +
+    scale_size_continuous(breaks = c(50, 100, 500, 1000)) +
+    scale_color_gradientn(colours = RColorBrewer::brewer.pal(5, name="OrRd")[-1],
+                          breaks = c(50, 200, 500, 1000)) +
+    theme_bw() 
+
+
+ggplot(sm_data, aes(x=Pool_TMB, y=Pool_ORR)) + 
+    geom_point(aes(color=Patients_TMB, size=Patients_ORR)) + 
+    geom_smooth(method="lm", se=T)  + 
+    geom_text_repel(aes(label=Cancer_Type), size=3)  +
+    labs(x="Median No. of Coding Somatic Mutation per MB", y="Objective Response Rate (%)",
+         color = "Tumor Mutational Burden\n(no. of tumor analyzed)",
+         size="Objective Response Rate\n(no. of patients evaluated)") +
+    scale_x_continuous(trans = log_trans(),
+                       breaks = c(2, 10, 20, 30, 40, 50),
+                       labels = c(2, 10, 20, 30, 40, 50)) +
+    scale_size_continuous(breaks = c(50, 100, 500, 1000)) +
+    scale_color_gradientn(colours = RColorBrewer::brewer.pal(5, name="OrRd")[-1],
+                          breaks = c(100, 1000, 5000, 10000)) +
+    theme_bw()
+```
+
+
+### TIGS definition and performance 
+
+From the aspect of biological process, TMB release is independent from processing and presentation of tumor antigens. Now that we have found TMB and APM are biomarkers which can predict object reponse rate of cancer type in immunotherapy, these two factors are independent, and are both required for tumor immunogenicity determination, __why not integrate them as a new biomarker which should be better than TMB?__
+
+Therefore, theoretically, tumor immunogenicity can be represented as 
+
+$$
+[“Tumor \quad antigenicity”] \times [“Antigen \quad processing \quad and \quad presenting \quad status”].
+$$
+
+We use `log(TMB)` here because `log(TMB)` has been proved to have a linear relationship with ORR. So the formula can be written as
+
+$$
+TIGS = APS_{normalized} \times log(TMB) 
+$$
+
+However, some tumors have TMB level below 1 mutation/ Mb, to avoid minus number in quantifying “tumor antigenicity”, we add number 1 to all normalized TMB. So in this case, the TIGS formula is
+
+$$
+TIGS = APS_{normalized} \times log(TMB + 1) 
+$$
+
+
+> When TMB < 1 mutation/Mb, the `log(TMB)` would less than 0, if APS is very big, we would get a big minus number in this case, which against common sense. 
+
+Now we construct a linear model by integrate TMB and APM.
+
+```{r}
+lm(Pool_ORR ~ log(Pool_TMB +1):Pool_APM, data = sm_data)  -> fit3
+
+summary(fit3)
+```
+
+We observe that 66% variance of ORR can be explained by TIGS, this result is indeed bettern than TMB.
+
+
+```{r}
+sm_data$tigs = sm_data$Pool_APM * log(sm_data$Pool_TMB + 1)
+
+ggplot(sm_data, aes(x=tigs, y=Pool_ORR)) + 
+    geom_point(aes(size=Patients_ORR)) + 
+    geom_smooth(method="lm", se=T)  + 
+    geom_text_repel(aes(label=Cancer_Type), size=3)  +
+    labs(x="Tumor Immunogenicity Score ", y="Objective Response Rate (%)",
+         size="Objective Response Rate\n(no. of patients evaluated)") +
+    scale_size_continuous(breaks = c(50, 100, 500, 1000)) +
+    theme_bw() 
+```
+
+
+### More exploration of TIGS formula
+
+**Would other combination of TMB and APS be better?**
+
+As mentioned above, we constructed the formula of `TIGS` according to our understanding of “tumor antigenicity”. Is there a better combination of these two factors?
+
+There are three basic models we take into consideration.
+
+* Model 1: $ORR = d \times (a \times APS + b\times log(TMB)) + c$, i.e. $TIGS = a \times APS + b \times log(TMB)$
+* Model 2: $ORR = a \times (APS \times log(TMB)) + b$, i.e. $TIGS = APS \times log(TMB)$ (This is the model we used above)
+* Model 3: $ORR = e \times (a \times APS + b\times log(TMB) + c\times APS \times log(TMB)) + d$, i.e. $TIGS = a \times APS + b\times log(TMB) + c\times APS \times log(TMB)$
+
+a, b, c, d and e here are coefficients. In R, we don't need to write them in models, it will take care of them. 
+
+
+Now, let's observe the results.
+
+```{r}
+# Model 1
+lm(Pool_ORR ~ log(Pool_TMB)+Pool_APM, data = sm_data)  %>% summary() 
+# Model 2
+lm(Pool_ORR ~ log(Pool_TMB):Pool_APM, data = sm_data)  %>% summary() 
+# Model 3
+lm(Pool_ORR ~ log(Pool_TMB)*Pool_APM, data = sm_data)  %>% summary() 
+```
+
+The model 1 is the worst one. Model 3 is a little better than model 2, however model 2 is much simpler (model 2 is included in model 3!).  Following __Occam's razor__, we choose model 2 when compare it with model 3. We also choose model 2 when compare it with model 1 because it is better and consist with the fact APM and TMB are relatively independent but not absolutely independent. To summary, model 2 is the best option.
+
+
+**Any promotion of formula $TIGS = APS \times log(TMB + 1)$?**
+
+We still have a question about TIGS formula. The TMB in formula is calculated as 
+
+$$ 
+TMB = ln(\frac{whole \quad exome  \quad mutation \quad number}{38} + 1 )
+$$
+
+> We choose nonsynonymous mutations because they have functional effects. Only functional effects on protein will generate neo-antigen (peptide).
+
+We use 38 here because 38 MB is the estimated length of exome, so we can normalize TMB to per MB. However, in math model, there may be a better value "a" than 38. We don't know yet, so we need to explore this "a" value.
+
+We simulate “a” value from 0.1 to 10000 with step size 0.1 in the following formula, the resulted TIGS is then used to fit a linear model for pan-cancer ICI ORR prediction. We calculate differnt R Square value under each "a" and see how it changes.
+
+$$
+TIGS = APS_{normalized} \times ln(\frac{whole \quad exome \quad mutation \quad number}{a} + 1)
+$$
+
+Implementation:
+
+```{r}
+df = sm_data
+df$APS = df$Pool_APM
+df$TMB = df$Pool_TMB * 38 # transform back to whole exome nonsynonymous mutation number
+df$ORR = df$Pool_ORR
+
+df = dplyr::select(df, APS, TMB, ORR) 
+
+
+calcTrends = function(df, a){
+    sapply(a, function(x, data){
+        summary(lm(ORR ~ APS : log((TMB/x + 1)), data = df) )$r.squared
+    }, data = df)
+}
+
+```
+
+```{r}
+a = seq(0.1,10000,0.1)
+res = calcTrends(df, a)
+
+res_df = data.frame(a = a, Rsquare = res)
+```
+
+Plot the simulation result.
+
+```{r, fig.width=10}
+opar = par(no.readonly = TRUE)
+par(mfrow=c(1,2))
+plot(res_df, las = 1, xlab = "a", ylab = "R Square", type = "l")
+plot(res_df[1:1000,], las = 1, xlab = "a", ylab = "R Square", type = "l")
+abline(v = 38, lty = 2, col = "red")
+par(opar)
+```
+
+We can find that R squares of linear model have a maximum value when “a” is around 40. Therefore, “a=38” is optimized to rescale the raw whole exome mutation counts and balance the contribution for APM and TMB in TIGS formula. 
+
+```{r include=FALSE}
+rm(list = ls())
+```
+
+
+## Biomarker comparison of ICI immunotherapy clinical response prediction
+
+Description of datasets please see preprocessing part or "Method Section" of manuscript. 
+
+### Preprocessing of immunotherapy datasets
+
+
+```{r}
+#-----------------------------------------------------------
+# preprocess data with both TMB and RNAseq/expression data
+#----------------------------------------------------------
+# There are nonsync mutation in common across three datasets
+# We use it as mutation load
+
+# get min and max APM value based on TCGA data
+load("results/df_all.RData")
+min_APM = min(df_all$APM)
+max_APM = max(df_all$APM)
+rm(df_all); gc()
+
+library(GEOquery)
+library(readxl)
+library(tidyverse)
+
+load("~/biodata/Own/immune_cellType.RData")
+
+##-----
+## Ref1: Genomic and Transcriptomic Features of Response to Anti-PD-1 Therapy in Metastatic Melanoma. Cell 2016 Mar 24;165(1):35-44. PMID: 26997480
+
+geo_dir = "data/GEOdata"
+
+gse = "GSE78220"
+GSE_78220 = getGEO(gse, GSEMatrix = TRUE, AnnotGPL = TRUE, destdir = geo_dir)
+GSE_78220 = GSE_78220$GSE78220_series_matrix.txt.gz
+
+# download.file(url = "https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE78220&format=file&file=GSE78220%5FPatientFPKM%2Exlsx", destfile = "data/GSE78220_FPKM.xlsx")
+
+GSE78220_FPKM = read_xlsx("data/GSE78220_FPKM.xlsx")
+GSE78220_FPKM = GSE78220_FPKM %>% 
+    as.data.frame() %>% 
+    mutate(mean_expr = rowMeans(.[, -1], na.rm = TRUE)) %>% 
+    arrange(Gene, desc(mean_expr)) %>%
+    distinct(Gene, .keep_all = TRUE) %>% 
+    dplyr::select(-mean_expr) %>% 
+    as.tibble()
+
+# pData(GSE_78220) %>% View()
+
+# applyGSVA(immune_cellType, group_col = "Cell_type", 
+#           gene_col = "Symbol", ExprMatList = list(GSE78220_FPKM), method = "gsva", kcdf = "Poisson") -> gsva.gse78220
+# 
+# APM1_1 = (gsva.gse78220[[1]]$APM)
+
+GSE78220_Norm = GSE78220_FPKM
+GSE78220_Norm[,-1] = log2(GSE78220_Norm[,-1] + 1)
+applyGSVA(immune_cellType, group_col = "Cell_type", 
+          gene_col = "Symbol", ExprMatList = list(GSE78220_Norm), method = "gsva") -> gsva.gse78220_2
+
+APM1_2 = gsva.gse78220_2[[1]]$APM
+APM1_2 = (APM1_2 - min_APM) / (max_APM - min_APM) 
+
+names(APM1_2) = colnames(GSE78220_Norm)[-1]
+APM1_2
+names(APM1_2) = sub(pattern = "(Pt.*)\\.baseline", "\\1", names(APM1_2))
+# keep biggest value
+APM1_2 = APM1_2[-21]
+names(APM1_2)[c(14, 20)] = c("Pt16", "Pt27")
+
+ge.GSE78220 = tibble(PatientID = names(APM1_2), APM=APM1_2)
+
+# read clincal and tmb data
+GSE_78220.TMB = read_csv("data/Cell2016.csv")
+GSE_78220.TMB$nTMB = GSE_78220.TMB$TotalNonSyn / 38
+#GSE_78220.TMB$nTMB = log(GSE_78220.TMB$TotalNonSyn+1)
+
+Cell2016 = full_join(GSE_78220.TMB, ge.GSE78220, by = "PatientID")
+Cell2016 = Cell2016[,c(1:5, 14,15, 6:13)]
+
+Cell2016 %>% filter(!is.na(APM)) %>% 
+    summarise(MedianAPM = median(APM, na.rm=TRUE), MedianTMB = median(nTMB, na.rm = TRUE), 
+              ORR = sum(Response=="R")/n(), N = n())
+
+# calculate TIGS score
+Cell2016$TIGS = log(Cell2016$nTMB + 1) * Cell2016$APM 
+#Cell2016$TIGS = Cell2016$nTMB * Cell2016$APM 
+
+# save(Cell2016, file = "data/Cell2016.RData")
+write_csv(Cell2016, "results/Cell2016_results2.csv")
+
+#-------------------------------------
+# Cell 2017 : Tumor and Microenvironment Evolution during Immunotherapy with Nivolumab
+# BMS038
+
+BMS038_Clinical = read_csv("data/bms038_clinical_data.csv")
+BMS038_TMB = read_csv("data/pre_therapy_nonsynonmous_mutations.csv")
+
+BMS038_GE = read.delim("data/CountData.BMS038.txt")
+
+BMS038_GE= BMS038_GE %>% 
+    as.data.frame() %>% 
+    mutate(mean_expr = rowMeans(.[, -119], na.rm = TRUE)) %>% 
+    arrange(HUGO, desc(mean_expr)) %>%
+    distinct(HUGO, .keep_all = TRUE) %>% 
+    dplyr::select(-mean_expr) %>% 
+    as.tibble() %>% 
+    dplyr::select(HUGO, everything())
+
+BMS038_GE.pre = BMS038_GE %>% 
+    dplyr::select(HUGO, ends_with("Pre"))
+
+BMS038_GE.on = BMS038_GE %>%
+    dplyr::select(HUGO, ends_with("On"))
+
+# normalize the data
+BMS038_GE.pre.n = BMS038_GE.pre
+BMS038_GE.pre.n[, -1] = log2(BMS038_GE.pre.n[, -1] + 1)
+
+BMS038_GE.on.n = BMS038_GE.on
+BMS038_GE.on.n[, -1] = log2(BMS038_GE.on.n[, -1] + 1)
+
+BMS038_GE.pre.n = BMS038_GE.pre.n %>% filter(!is.na(HUGO))
+BMS038_GE.on.n = BMS038_GE.on.n %>% filter(!is.na(HUGO))
+
+applyGSVA(immune_cellType, group_col = "Cell_type", 
+          gene_col = "Symbol", ExprMatList = list(BMS038_GE.pre.n), method = "gsva") -> gsva.bms038.pre
+applyGSVA(immune_cellType, group_col = "Cell_type", 
+          gene_col = "Symbol", ExprMatList = list(BMS038_GE.on.n), method = "gsva") -> gsva.bms038.on
+
+boxplot(gsva.bms038.pre[[1]]$APM)
+boxplot(gsva.bms038.on[[1]]$APM)
+wilcox.test(gsva.bms038.pre[[1]]$APM, gsva.bms038.on[[1]]$APM)
+median(gsva.bms038.pre[[1]]$APM)
+median(gsva.bms038.on[[1]]$APM)
+
+# we use pre treatment data to predict ORR
+BMS038_APM.pre = gsva.bms038.pre[[1]]$APM
+colnames(BMS038_GE.pre.n) = sub("_Pre", "", colnames(BMS038_GE.pre.n))
+names(BMS038_APM.pre) = colnames(BMS038_GE.pre.n)[-1]
+
+BMS038_APM.on = gsva.bms038.on[[1]]$APM
+colnames(BMS038_GE.on.n) = sub("_On", "", colnames(BMS038_GE.on.n))
+names(BMS038_APM.on) = colnames(BMS038_GE.on.n)[-1]
+
+identical(names(BMS038_APM.pre), names(BMS038_APM.on))
+
+BMS038_APM = tibble(PatientID = names(BMS038_APM.pre), APM = BMS038_APM.pre, APM_on = BMS038_APM.on[names(BMS038_APM.pre)])
+
+# normlized to [0, 1]
+BMS038_APM$APM = (BMS038_APM$APM - min_APM) / (max_APM - min_APM)
+BMS038_APM$APM_on = (BMS038_APM$APM_on - min_APM) / (max_APM - min_APM)
+# summary BMS038 TMB data
+BMS038_TMB.summary = BMS038_TMB %>% 
+    group_by(Patient) %>% 
+    summarise(TotalNonSyn = n(), nTMB = TotalNonSyn / 38)
+
+# join them
+BMS038 = full_join(full_join(BMS038_Clinical, BMS038_APM, by="PatientID"), BMS038_TMB.summary, by = c("PatientID" = "Patient"))
+
+BMS038$TIGS = BMS038$APM * log(BMS038$nTMB +1)
+
+# summary 
+BMS038_summary = BMS038 %>% 
+    filter(!is.na(APM), !is.na(TotalNonSyn)) %>% 
+    summarise(N=n(), R=sum(BOR %in% c("CR", "PR")), MedianAPM = median(APM), MedianTMB = median(nTMB))
+BMS038_summary
+
+median(BMS038_TMB.summary$nTMB)
+BMS038_Clinical %>% summarise(N=n(), R = sum(BOR %in% c("CR", "PR")))
+
+write_csv(x = BMS038, path = "results/BMS038_results2.csv")
+
+#----------------------------------------------------------
+# Science 2015: Genomic correlates of response to CTLA4 blockade in metastatic melanoma
+#--------------------------
+library(readxl)
+science2015_TMB = read_xlsx("data/Science2015_TMB_List_AllPatients.xlsx")
+science2015_cli1 = read_xlsx("data/Science2015_Clinical.xlsx", sheet = 1)
+science2015_cli2 = read_xlsx("data/Science2015_Clinical.xlsx", sheet = 2)
+science2015_rna = read_tsv("data/MEL-IPI-Share.rpkm.gct")
+# science2015_rna_raw = read_tsv("data/MEL-IPI-Share.reads.gct")
+
+#---- Preprocess
+vc.nonSilent = c("Frame_Shift_Del", "Frame_Shift_Ins", "Splice_Site", "Translation_Start_Site",
+                 "Nonsense_Mutation", "Nonstop_Mutation", "In_Frame_Del",
+                 "In_Frame_Ins", "Missense_Mutation")
+
+science2015_TMB %>% group_by(patient) %>% 
+    summarise(TotalMutation=n(), 
+              TotalNonSyn=sum(Variant_Classification %in% vc.nonSilent), 
+             nTMB = TotalNonSyn / 38) -> science2015_TMB_summary
+
+# science2015_TMB = filter(science2015_TMB, Variant_Classification %in% vc.nonSilent)
+# 
+# science2015_TMB_summary = science2015_TMB %>% group_by(patient) %>% 
+#     summarize(TotalMutation=n(), nTMB=TotalMutation/38)
+# summary(science2015_TMB_summary)
+
+#---- remove duplicate symbols of rna data
+science2015_rna %>% mutate(symbol = sub("(.*)\\..*$", "\\1", Description)) %>% 
+    dplyr::select(-Name, -Description) %>% 
+    dplyr::select(symbol, everything()) %>% 
+    as.data.frame() %>% 
+    mutate(mean_expr = rowMeans(.[, -1], na.rm = TRUE)) %>% 
+    arrange(symbol, desc(mean_expr)) %>%
+    distinct(symbol, .keep_all = TRUE) %>% 
+    dplyr::select(-mean_expr) %>% 
+    as.tibble() -> science2015_ge
+
+length(intersect(science2015_ge$symbol, GSE78220_Norm$Gene))
+# the gene number of science paper is bigger than other two paper
+# maybe miRNA and some other RNA included
+# keep them almost equal\
+science2015_ge = science2015_ge %>% 
+    filter(symbol %in% GSE78220_Norm$Gene)
+
+science2015_ge[, -1] = log2(science2015_ge[, -1] + 1)
+
+applyGSVA(immune_cellType, group_col = "Cell_type", 
+          gene_col = "Symbol", ExprMatList = list(science2015_ge), method = "gsva") -> gsva.science2015
+
+science2015_APM = gsva.science2015[[1]]$APM
+names(science2015_APM) = colnames(science2015_ge)[-1]
+science2015_APM = (science2015_APM - min_APM) / (max_APM - min_APM)
+
+science2015_APM_df = tibble(patient = names(science2015_APM), APM = science2015_APM)
+science2015_APM_df = science2015_APM_df %>% 
+    mutate(patient = sub("^MEL.IPI_(.*)\\.Tumor.*$", "\\1", patient))
+
+science2015_cli = bind_rows(
+    dplyr::select(science2015_cli1, patient, age_start, RECIST, overall_survival, progression_free, primary, group, 
+           histology, stage, gender, dead, progression, neos50),
+    dplyr::select(science2015_cli2, patient, age_start, RECIST, overall_survival, progression_free, primary,
+           group, histology, stage, gender, dead, progression) %>% filter(patient %in% c("Pat20", "Pat91"))
+)
+# combine three datasets
+science2015 = full_join(full_join(science2015_cli, science2015_APM_df, by = "patient"), 
+                         science2015_TMB_summary, by="patient")
+
+science2015$TIGS = science2015$APM * log(science2015$nTMB +1)
+write_csv(x = science2015, path = "results/science2015_results2.csv")
+
+
+#----------------------------------------------------------------
+# Contribution of systemic and somatic factors to clinical response and resistance in urothelial cancer: an exploratory multi-omic analysis
+#---------------------------------------------------------------
+# Data Source: https://github.com/XSLiuLab/multi-omic-urothelial-anti-pdl1
+
+library(tidyverse)
+
+uro_cli = read_csv("~/biodata/Own/multi-omic-urothelial-anti-pdl1/data_clinical.csv")
+uro_counts = read_csv("~/biodata/Own/multi-omic-urothelial-anti-pdl1/data_counts.csv")
+uro_variants = read_csv("~/biodata/Own/multi-omic-urothelial-anti-pdl1/data_variants.csv",
+                        col_types = "c??????")
+uro_rna = read_csv("~/biodata/Own/multi-omic-urothelial-anti-pdl1/data_kallisto.csv")
+
+uro_rna_wide = reshape2::dcast(uro_rna, gene_name ~ patient_id, value.var = "est_counts")
+
+# try remove duplicated genes
+uro_rna_wide %>% 
+    as.data.frame() %>% 
+    mutate(mean_expr = rowMeans(.[, -1], na.rm = TRUE)) %>% 
+    arrange(gene_name, desc(mean_expr)) %>%
+    distinct(gene_name, .keep_all = TRUE) %>% 
+    dplyr::select(-mean_expr) %>% 
+    as.tibble() -> uro_rna_ge
+
+length(intersect(uro_rna_ge$gene_name, GSE78220_FPKM$Gene))
+uro_rna_ge = dplyr::filter(uro_rna_ge, gene_name %in% GSE78220_FPKM$Gene)
+uro_rna_ge_Norm = uro_rna_ge
+uro_rna_ge_Norm[, -1] = log2(uro_rna_ge_Norm[,-1]+1)
+applyGSVA(immune_cellType, group_col = "Cell_type", 
+          gene_col = "Symbol", ExprMatList = list(uro_rna_ge_Norm), method = "gsva") -> gsva.uro
+APM.uro = gsva.uro[[1]]$APM
+APM.uro = (APM.uro - min_APM) / (max_APM - min_APM)
+
+APM.uro = tibble(patient_id = colnames(uro_rna_ge_Norm)[-1], APM = APM.uro)
+uro_cli_2 = uro_cli %>% 
+    dplyr::select(patient_id, Age, Sex, is_benefit, is_benefit_os, os, `Alive Status`) %>% 
+    mutate(event = ifelse(`Alive Status` == 'Y', 0, 1))
+
+uro_tmb = uro_variants %>% 
+    group_by(patient_id) %>% 
+    summarise(TMB = n(), Nonsyn = sum(!is.na(gene_name)), nTMB = TMB/38) %>% #/38 
+    mutate(patient_id = as.character(patient_id))
+
+uro2017 = dplyr::full_join(uro_cli_2, dplyr::full_join(uro_tmb, APM.uro))
+uro2017$TIGS = uro2017$APM * log(uro2017$nTMB +1)
+uro2017$TIGS2 = uro2017$APM * log(uro2017$nTMB)
+ 
+
+write_csv(x = uro2017, path = "results/urothelial2017_results2.csv")
+
+```
+
+### Compare ROC and survival curves
+
+```{r}
+#------------------------------------
+# Plot ROC for data analysis results
+#------------------------------------
+library(pROC)
+library(tidyverse)
+theme_set(theme_bw())
+
+cell2016 = read_csv("results/Cell2016_results.csv")
+cell2017 = read_csv("results/BMS038_results.csv")
+science2015 = read_csv("results/science2015_results2.csv") # to avoid TIGS <0, TIGS = log(TMB +1) *APM for this dataset
+
+
+
+#------------------------------------------
+# cell 2016
+cell2016_roc1 = roc(cell2016$Response, cell2016$nTMB)
+cell2016_roc2 = roc(cell2016$Response, cell2016$APM)
+cell2016_roc3 = roc(cell2016$Response, cell2016$TIGS)
+
+ggroc(list(TMB=cell2016_roc1, TIGS=cell2016_roc3), legacy.axes = TRUE) + 
+    labs(color = "Predictor") + ggpubr::theme_classic2(base_size = 12, base_family = "Arial")
+
+auc(cell2016_roc1)
+auc(cell2016_roc2)
+auc(cell2016_roc3)
+
+#-------------------
+# cell 2017
+# cell2017_2 = cell2017 %>% 
+#     mutate(Response = case_when(
+#         BOR %in% c("CR", "PR") ~ "R",
+#         BOR == "PD" ~"NR",
+#         TRUE ~ NA_character_
+#     ),
+#     TIGS = log(nTMB) * APM) %>% filter(!is.na(Response))
+# 
+# cell2017_roc1 = roc(cell2017_2$Response, cell2017_2$nTMB)
+# cell2017_roc2 = roc(cell2017_2$Response, cell2017_2$APM)
+# cell2017_roc3 = roc(cell2017_2$Response, cell2017_2$TIGS)
+# 
+# ggroc(list(TMB=cell2017_roc1, TIGS=cell2017_roc3), legacy.axes = TRUE) + labs(color = "Predictor")
+# 
+# auc(cell2017_roc1)
+# auc(cell2017_roc2)
+# auc(cell2017_roc3)
+
+#---------------------------
+# Science 2015
+# science2015_2 = science2015 %>% 
+#     mutate(Response = case_when(
+#         RECIST %in% c("CR", "PR") ~ "R",
+#         RECIST == "PD" ~"NR",
+#         TRUE ~ NA_character_
+#     ),
+#     TIGS = log(nTMB) * APM) %>% filter(!is.na(Response))
+
+science2015_2 = science2015 %>%
+    mutate(Response = case_when(
+        group == "response" ~ "R",
+        group == "nonresponse" ~"NR",
+        TRUE ~ NA_character_
+    )) %>% filter(!is.na(Response)) # ,TIGS = log(nTMB) * APM 
+
+
+science2015_roc1 = roc(science2015_2$Response, science2015_2$nTMB)
+science2015_roc2 = roc(science2015_2$Response, science2015_2$APM)
+science2015_roc3 = roc(science2015_2$Response, science2015_2$TIGS)
+
+ggroc(list(TMB=science2015_roc1, TIGS=science2015_roc3), legacy.axes = TRUE) + labs(color = "Predictor") + 
+    ggpubr::theme_classic2(base_size = 12, base_family = "Arial")
+
+auc(science2015_roc1)
+auc(science2015_roc2)
+auc(science2015_roc3)
+
+#---------------------------------------
+# plos medicine 2017
+urothelial2017 = read_csv("results/urothelial2017_results.csv")
+urothelial2017$TIGS = log(urothelial2017$nTMB) * urothelial2017$APM
+#urothelial2017$TIGS = urothelial2017$nTMB * urothelial2017$APM
+urothelial2017 = filter(urothelial2017, !is.na(APM), !is.na(nTMB))
+
+urothelial2017_roc1 = roc(urothelial2017$is_benefit, urothelial2017$nTMB)
+urothelial2017_roc2 = roc(urothelial2017$is_benefit, urothelial2017$APM)
+urothelial2017_roc3 = roc(urothelial2017$is_benefit, urothelial2017$TIGS)
+# urothelial2017_roc4 = roc(urothelial2017$is_benefit, urothelial2017$TIGS2)
+
+
+ggroc(list(TMB=urothelial2017_roc1, TIGS=urothelial2017_roc3), legacy.axes = TRUE) + 
+    labs(color = "Predictor") + ggpubr::theme_classic2(base_size = 12, base_family = "Arial")
+
+auc(urothelial2017_roc1)
+auc(urothelial2017_roc2)
+auc(urothelial2017_roc3)
+auc(urothelial2017_roc4)
+
+# cox
+library(survival)
+library(survminer)
+
+#----------------------
+# Cell 2016
+cell2016_os = read_csv("data/cell2016_OS.csv")
+cell2016 = full_join(cell2016, cell2016_os, by="PatientID")
+
+coxph(Surv(OverallSurvival, VitalStatus == "Dead") ~ nTMB, data = cell2016)
+coxph(Surv(OverallSurvival, VitalStatus == "Dead") ~ TIGS, data = cell2016)
+coxph(Surv(OverallSurvival, VitalStatus == "Dead") ~ APM, data = cell2016)
+
+cell2016 %>% mutate(
+    TMB_Status = ifelse(nTMB>median(nTMB), "High", "Low"),
+    TIGS_Status = ifelse(TIGS>median(TIGS, na.rm = TRUE), "High",
+                         ifelse(is.na(TIGS), NA, "Low"))) -> cell2016
+
+fit1 = survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ TMB_Status, data = cell2016)
+ggsurvplot(fit1, data = cell2016, pval = TRUE, fun = "pct", 
+           xlab = "Time (in days)")
+
+fit2 = survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ TIGS_Status, data = cell2016)
+ggsurvplot(fit2, data = cell2016, pval = TRUE, fun="pct", xlab = "Time (in days)")
+
+
+# cell 2017
+cell2017 %>% 
+    filter(Cohort == "NIV3-NAIVE") %>% 
+    mutate(TIGS = log(nTMB) * APM,
+    TMB_Status = ifelse(nTMB>median(nTMB, na.rm = TRUE), "High",
+                        ifelse(is.na(nTMB), NA, "Low")),
+    TIGS_Status = ifelse(TIGS>median(TIGS, na.rm = TRUE), "High",
+                         ifelse(is.na(TIGS), NA, "Low"))) -> cell2017
+
+fit1 = survfit(Surv(OS, OS_SOR) ~ TMB_Status, data = cell2017)
+ggsurvplot(fit1, data = cell2017, pval = TRUE )
+
+fit2  = survfit(Surv(OS, OS_SOR) ~ TIGS_Status, data = cell2017)
+ggsurvplot(fit2, data = cell2017, pval = TRUE )
+
+# science 2015
+science2015 %>% mutate(TIGS = log(nTMB) * APM,
+                    TMB_Status = ifelse(nTMB>median(nTMB, na.rm = TRUE), "High",
+                                        ifelse(is.na(nTMB), NA, "Low")),
+                    TIGS_Status = ifelse(TIGS>median(TIGS, na.rm = TRUE), "High",
+                                         ifelse(is.na(TIGS), NA, "Low")))  %>% 
+    filter(group != "long-survival") -> science2015
+
+fit1 = survfit(Surv(overall_survival, dead== 1) ~ TMB_Status, data = science2015)
+ggsurvplot(fit1, data = science2015, pval = TRUE, fun="pct", xlab = "Time (in days)")
+
+fit2 = survfit(Surv(overall_survival, dead== 1) ~ TIGS_Status, data = science2015)
+ggsurvplot(fit2, data = science2015, pval = TRUE, fun="pct", xlab = "Time (in days)")
+
+#--- plos medicine 2017
+urothelial2017 %>% mutate(TMB_Status = ifelse(nTMB>median(nTMB, na.rm = TRUE), "High",
+                                           ifelse(is.na(nTMB), NA, "Low")),
+                       TIGS_Status = ifelse(TIGS>median(TIGS, na.rm = TRUE), "High",
+                                            ifelse(is.na(TIGS), NA, "Low")))  -> urothelial2017
+
+fit1 = survfit(Surv(os, event) ~ TMB_Status, data = urothelial2017)
+ggsurvplot(fit1, data = urothelial2017, pval = TRUE, fun="pct", xlab = "Time (in days)")
+
+fit2 = survfit(Surv(os, event) ~ TIGS_Status, data = urothelial2017)
+ggsurvplot(fit2, data = urothelial2017, pval = TRUE, fun="pct", xlab = "Time (in days)")
+
+```
+
