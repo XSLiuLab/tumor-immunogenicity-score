@@ -10,7 +10,7 @@ output:
     mathjax: true
 ---
 
-```{r pre-process-setup, include=FALSE}
+```{r include=FALSE}
 options(max.print="75")
 knitr::opts_chunk$set(echo = TRUE, comment = "#>", eval = TRUE, collapse = TRUE)
 knitr::opts_knit$set(width=75)
@@ -22,7 +22,7 @@ This part will clearly describe how to analyze TCGA Pan-cancer data. Raw data us
 
 Although data have been preprocessed in preprocessing part, they are still necessary to do some clean before really analyzing them according to our purpose.
 
-```{r, library_pkgs_load_data, message=FALSE}
+```{r library_pkgs_load_data, message=FALSE}
 library(tidyverse)
 
 load("results/gsva_tcga_pancan.RData")

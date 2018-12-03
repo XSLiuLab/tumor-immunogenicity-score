@@ -18,18 +18,6 @@ knitr::opts_knit$set(width=75)
 
 This part will clearly describe how to process raw data but not provide an easy script for re-running all preprocess steps just by a click due to the complexity of data preprocessing.
 
-## Dependencies
-
-The preprocessing step is dependent on R software, if you have not used R yet or R is not installed, please see <https://cran.r-project.org/>.
-
-R packages:
-
-* [UCSCXenaTools](https://github.com/ShixiangWang/UCSCXenaTools)
-* [tidyverse](https://www.tidyverse.org/)
-* [TCGAmutations](https://github.com/PoisonAlien/TCGAmutations)
-* [DT](https://cran.r-project.org/web/packages/DT/index.html)
-* [GSVA](https://github.com/rcastelo/GSVA)
-
 ## TCGA Pan-cancer data download
 
 TCGA Pan-cancer data (Version 2017-10-13), including datasets of clinical informaiton, gene expression, are downloaded from [UCSC Xena](https://xenabrowser.net/datapages/) via R package [UCSCXenaTools](https://github.com/ShixiangWang/UCSCXenaTools).
