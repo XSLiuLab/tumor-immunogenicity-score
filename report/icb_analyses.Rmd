@@ -10,7 +10,7 @@ output:
     mathjax: true
 ---
 
-```{r pre-process-setup, include=FALSE}
+```{r include=FALSE}
 options(max.print="75")
 knitr::opts_chunk$set(echo = TRUE, comment = "#>", eval = TRUE, collapse = TRUE, cache = TRUE)
 knitr::opts_knit$set(width=75)
@@ -273,19 +273,20 @@ par(opar)
 
 We can find that R squares of linear model have a maximum value when “a” is around 40. Therefore, “a=38” is optimized to rescale the raw whole exome mutation counts and balance the contribution for APM and TMB in TIGS formula. 
 
+
 ```{r include=FALSE}
 rm(list = ls())
 ```
 
 
-## Biomarker comparison of ICI immunotherapy clinical response prediction
+## Biomarker comparison about immunotherapy clinical response prediction
 
 Description of datasets please see preprocessing part or "Method Section" of manuscript. 
 
 ### Preprocessing of immunotherapy datasets
 
 
-```{r}
+```{r, eval=FALSE}
 #-----------------------------------------------------------
 # preprocess data with both TMB and RNAseq/expression data
 #----------------------------------------------------------
@@ -574,7 +575,7 @@ write_csv(x = uro2017, path = "results/urothelial2017_results2.csv")
 
 ### Compare ROC and survival curves
 
-```{r}
+```{r eval=FALSE}
 #------------------------------------
 # Plot ROC for data analysis results
 #------------------------------------
