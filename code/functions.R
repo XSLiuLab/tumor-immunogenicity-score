@@ -9,6 +9,8 @@ applyGSVA = function(group_df, group_col, gene_col, ExprMatList,
         stop("GSVA package need to be installed!")
     }
     
+    library(parallel)
+    
     method = match.arg(method)
     kcdf = match.arg(kcdf)
     
@@ -23,24 +25,40 @@ applyGSVA = function(group_df, group_col, gene_col, ExprMatList,
     
     names(gset_list) = groups
     
-    for(expr_mat in ExprMatList){
-        if(!inherits(expr_mat, "tbl_df")){
-            stop("element of ExprMatList should be tibble!")
-        }
-        expr_mat = as.data.frame(expr_mat)
-        rownames(expr_mat) = expr_mat[, 1]
-        expr_mat = expr_mat[, -1] %>% as.matrix()
-        
-        res = gsva(expr=expr_mat, gset.idx.list=gset_list, method = method, kcdf = kcdf)
-        res = as.data.frame(t(res))
-        #colnames(res)[1] = 'tsb'
-        resList[[i]] = res
-        names(resList)[i] = names(ExprMatList)[i]
-        i = i + 1
-    }   
+    if (length(ExprMatList) > 1) {
+        for(expr_mat in ExprMatList){
+            if(!inherits(expr_mat, "tbl_df")){
+                stop("element of ExprMatList should be tibble!")
+            }
+            expr_mat = as.data.frame(expr_mat)
+            rownames(expr_mat) = expr_mat[, 1]
+            expr_mat = expr_mat[, -1] %>% as.matrix()
+            
+            res = gsva(expr=expr_mat, gset.idx.list=gset_list, method = method, kcdf = kcdf)
+            res = as.data.frame(t(res))
+            colnames(res)[1] = 'tsb'
+            resList[[i]] = res
+            names(resList)[i] = names(ExprMatList)[i]
+            i = i + 1
+        } 
+    } else {
+        for(expr_mat in ExprMatList){
+            if(!inherits(expr_mat, "tbl_df")){
+                stop("element of ExprMatList should be tibble!")
+            }
+            expr_mat = as.data.frame(expr_mat)
+            rownames(expr_mat) = expr_mat[, 1]
+            expr_mat = expr_mat[, -1] %>% as.matrix()
+            
+            res = gsva(expr=expr_mat, gset.idx.list=gset_list, method = method, kcdf = kcdf)
+            res = as.data.frame(t(res))
+            resList[[i]] = res
+            names(resList)[i] = names(ExprMatList)[i]
+            i = i + 1
+        }      
+    }
     return(resList)
 }
-
 
 calc_TisIIs = function(df){
     df %>% 
