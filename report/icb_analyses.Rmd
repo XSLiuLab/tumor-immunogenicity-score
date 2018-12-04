@@ -279,7 +279,7 @@ rm(list = ls())
 ```
 
 
-## Biomarker comparison about immunotherapy clinical response prediction
+## Performance comparison on immunotherapy clinical response prediction
 
 Description of datasets please see preprocessing part or "Method Section" of manuscript. 
 
@@ -297,7 +297,7 @@ Description of datasets please see preprocessing part or "Method Section" of man
 load("results/df_all.RData")
 min_APM = min(df_all$APM)
 max_APM = max(df_all$APM)
-rm(df_all); gc()
+rm(df_all)
 
 library(GEOquery)
 library(readxl)
