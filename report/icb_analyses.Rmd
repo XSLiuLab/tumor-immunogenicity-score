@@ -630,6 +630,34 @@ if (!file.exists("results/GEBiomarker.RData")){
 
 ### Input file generation for TIDE
 
+```{r}
+rna_Snyder = rna_Snyder %>% 
+  rename(Gene = gene_name)
+
+rna_VanAllen = rna_VanAllen %>% 
+  rename(Gene = symbol)
+
+generateInput = function(df) {
+  df %>%
+    mutate(Ref = rowMeans(.[, -1])) %>% 
+    mutate_at(vars(-Gene, -Ref), `-`, quote(Ref)) %>% 
+    select(-Ref) %>% 
+    column_to_rownames(var = "Gene") %>% 
+    as.data.frame()
+}
+
+TIDE_hugo = generateInput(rna_hugo)
+TIDE_VanAllen = generateInput(rna_VanAllen)
+TIDE_Snyder = generateInput(rna_Snyder)
+
+write.table(TIDE_hugo, file="results/TIDE_input_hugo.tsv", quote = FALSE, sep = "\t", row.names = TRUE, col.names = TRUE)
+write.table(TIDE_VanAllen, file="results/TIDE_input_VanAllen.tsv", quote = FALSE, sep = "\t", row.names = TRUE, col.names = TRUE)
+write.table(TIDE_Snyder, file="results/TIDE_input_Snyder.tsv", quote = FALSE, sep = "\t", row.names = TRUE, col.names = TRUE)
+
+#f <- function(num, ref) num - !!ref
+
+
+```
 
 ### Compare prediction ROC and survival of APS, IIS, TMB and TIGS
 
