@@ -285,6 +285,35 @@ Description of datasets please see preprocessing part or "Method Section" of man
 
 ### Preprocessing of immunotherapy datasets
 
+The first step is to preprocess 3 immunotherapy datasets with gene expression, TMB and clinical outcome available. APS from Pancan analysis is used to normalize APS here.
+
+```{r get_APS_min_max}
+# get min and max APM value based on TCGA and GEO pan-cancer data
+load("results/df_all.RData")
+min_APS = min(df_all$APM)
+max_APS = max(df_all$APM)
+rm(df_all)
+```
+
+#### Van Allen et al 2015 dataset
+
+```{r prep_VanAllen2015}
+
+```
+
+
+#### Hugo et al 2016 dataset
+
+```{r prep_Hugo2016}
+
+```
+
+#### Snyder et al 2017 dataset
+
+```{r pre_Snyder2017}
+
+```
+
 
 ```{r, eval=FALSE}
 #-----------------------------------------------------------
@@ -293,11 +322,7 @@ Description of datasets please see preprocessing part or "Method Section" of man
 # There are nonsync mutation in common across three datasets
 # We use it as mutation load
 
-# get min and max APM value based on TCGA data
-load("results/df_all.RData")
-min_APM = min(df_all$APM)
-max_APM = max(df_all$APM)
-rm(df_all)
+
 
 library(GEOquery)
 library(readxl)
