@@ -293,19 +293,97 @@ load("results/df_all.RData")
 min_APS = min(df_all$APM)
 max_APS = max(df_all$APM)
 rm(df_all)
+
+# load gene list
+load("results/merged_geneList.RData")
+# load function
+source("../code/functions.R")
+```
+
+
+#### Hugo et al 2016 dataset
+
+```{r prep_Hugo2016, eval=FALSE}
+## Data source: Genomic and Transcriptomic Features of Response to Anti-PD-1 Therapy in Metastatic Melanoma. Cell 2016 Mar 24;165(1):35-44. PMID: 26997480
+suppressPackageStartupMessages(library(GEOquery))
+library(readxl)
+geo_dir = "../data/GEOdata"
+
+gse = "GSE78220"
+GSE_78220 = getGEO(gse, GSEMatrix = TRUE, AnnotGPL = TRUE, destdir = geo_dir)
+GSE_78220 = GSE_78220$GSE78220_series_matrix.txt.gz
+
+#### Download gene expression using following command
+# download.file(url = "https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE78220&format=file&file=GSE78220%5FPatientFPKM%2Exlsx", destfile = "../data/GSE78220_FPKM.xlsx")
+
+GSE78220_FPKM = readxl::read_xlsx("../data/GSE78220_FPKM.xlsx")
+
+GSE78220_FPKM = GSE78220_FPKM %>% 
+    as.data.frame() %>% 
+    mutate(mean_expr = rowMeans(.[, -1], na.rm = TRUE)) %>% 
+    arrange(Gene, desc(mean_expr)) %>%
+    distinct(Gene, .keep_all = TRUE) %>% 
+    dplyr::select(-mean_expr) %>% 
+    as.tibble()
+
+# pData(GSE_78220) %>% View()
+
+# normalize gene expression as log(x + 1)
+GSE78220_Norm = GSE78220_FPKM
+GSE78220_Norm[,-1] = log2(GSE78220_Norm[,-1] + 1)
+
+# apply gsva
+applyGSVA(merged_geneList, group_col = "Cell_type", 
+          gene_col = "Symbol", ExprMatList = list(GSE78220_Norm), method = "gsva") -> gsva.hugo2016
+
+# normalize APS
+APS_hugo = gsva.hugo2016[[1]]$APM
+APS_hugo = (APS_hugo - min_APS) / (max_APS - min_APS) 
+
+names(APS_hugo) = colnames(GSE78220_Norm)[-1]
+APS_hugo
+names(APS_hugo) = sub(pattern = "(Pt.*)\\.baseline", "\\1", names(APS_hugo))
+
+
+# keep biggest value
+APS_hugo = APS_hugo[-21]
+names(APS_hugo)[c(14, 20)] = c("Pt16", "Pt27")
+APS_hugo
+
+# keep corresponding expression data for downstream analysis
+rna_hugo = GSE78220_Norm[, -22]
+colnames(rna_hugo)[-1] = names(APS_hugo)
+save(rna_hugo, file = "results/Hugo2016_RNA.RData")
+
+
+GSE78220.APS = tibble(PatientID = names(APS_hugo), APS=APS_hugo)
+
+# read clincal and tmb data
+GSE_78220.TMB = read_csv("../data/Cell2016.csv")
+GSE_78220.TMB$nTMB = GSE_78220.TMB$TotalNonSyn / 38
+
+info_hugo = full_join(GSE_78220.TMB, GSE78220.APS, by = "PatientID")
+info_hugo = info_hugo[,c(1:5, 14,15, 6:13)]
+
+# calculate TIGS score
+info_hugo$TIGS = log(info_hugo$nTMB) * info_hugo$APS
+
+save(info_hugo, file = "results/Hugo2016_Info.RData")
 ```
 
 #### Van Allen et al 2015 dataset
 
-```{r prep_VanAllen2015}
+```{r prep_VanAllen2015, eval=FALSE}
 #----------------------------------------------------------
+# Data source :
 # Science 2015: Genomic correlates of response to CTLA4 blockade in metastatic melanoma
 #--------------------------
 library(readxl)
-science2015_TMB = read_xlsx("data/Science2015_TMB_List_AllPatients.xlsx")
-science2015_cli1 = read_xlsx("data/Science2015_Clinical.xlsx", sheet = 1)
-science2015_cli2 = read_xlsx("data/Science2015_Clinical.xlsx", sheet = 2)
-science2015_rna = read_tsv("data/MEL-IPI-Share.rpkm.gct")
+suppressPackageStartupMessages(library(tidyverse))
+science2015_TMB = read_xlsx("../data/Science2015_TMB_List_AllPatients.xlsx")
+science2015_cli1 = read_xlsx("../data/Science2015_Clinical.xlsx", sheet = 1)
+science2015_cli2 = read_xlsx("../data/Science2015_Clinical.xlsx", sheet = 2)
+science2015_rna = read_tsv("../data/MEL-IPI-Share.rpkm.gct")
 
 #---- Preprocess
 vc.nonSilent = c("Frame_Shift_Del", "Frame_Shift_Ins", "Splice_Site", "Translation_Start_Site",
@@ -316,12 +394,6 @@ science2015_TMB %>% group_by(patient) %>%
     summarise(TotalMutation=n(), 
               TotalNonSyn=sum(Variant_Classification %in% vc.nonSilent), 
              nTMB = TotalNonSyn / 38) -> science2015_TMB_summary
-
-# science2015_TMB = filter(science2015_TMB, Variant_Classification %in% vc.nonSilent)
-# 
-# science2015_TMB_summary = science2015_TMB %>% group_by(patient) %>% 
-#     summarize(TotalMutation=n(), nTMB=TotalMutation/38)
-# summary(science2015_TMB_summary)
 
 #---- remove duplicate symbols of rna data
 science2015_rna %>% mutate(symbol = sub("(.*)\\..*$", "\\1", Description)) %>% 
@@ -335,7 +407,7 @@ science2015_rna %>% mutate(symbol = sub("(.*)\\..*$", "\\1", Description)) %>%
     as.tibble() -> science2015_ge
 
 length(intersect(science2015_ge$symbol, GSE78220_Norm$Gene))
-# the gene number of science paper is bigger than other two paper
+# the gene number of science paper is bigger than hugo 2016
 # maybe miRNA and some other RNA included
 # keep them almost equal\
 science2015_ge = science2015_ge %>% 
@@ -343,16 +415,24 @@ science2015_ge = science2015_ge %>%
 
 science2015_ge[, -1] = log2(science2015_ge[, -1] + 1)
 
-applyGSVA(immune_cellType, group_col = "Cell_type", 
-          gene_col = "Symbol", ExprMatList = list(science2015_ge), method = "gsva") -> gsva.science2015
+applyGSVA(merged_geneList, group_col = "Cell_type", 
+          gene_col = "Symbol", 
+          ExprMatList = list(science2015_ge), method = "gsva") -> gsva.VanAllen2015
 
-science2015_APM = gsva.science2015[[1]]$APM
-names(science2015_APM) = colnames(science2015_ge)[-1]
-science2015_APM = (science2015_APM - min_APM) / (max_APM - min_APM)
+APS_VanAllen = gsva.VanAllen2015[[1]]$APM
+names(APS_VanAllen) = colnames(science2015_ge)[-1]
+APS_VanAllen = (APS_VanAllen - min_APS) / (max_APS - min_APS)
 
-science2015_APM_df = tibble(patient = names(science2015_APM), APM = science2015_APM)
-science2015_APM_df = science2015_APM_df %>% 
-    mutate(patient = sub("^MEL.IPI_(.*)\\.Tumor.*$", "\\1", patient))
+APS_VanAllen
+names(APS_VanAllen) = sub("^MEL.IPI_(.*)\\.Tumor.*$", "\\1", names(APS_VanAllen))
+APS_VanAllen
+
+rna_VanAllen = science2015_ge
+colnames(rna_VanAllen)[-1] = names(APS_VanAllen) 
+## save gene experssion
+save(rna_VanAllen, file = "results/VanAllen2015_RNA.RData")
+
+APS_VanAllen_df = tibble(patient = names(APS_VanAllen), APS = APS_VanAllen)
 
 science2015_cli = bind_rows(
     dplyr::select(science2015_cli1, patient, age_start, RECIST, overall_survival, progression_free, primary, group, 
@@ -361,97 +441,30 @@ science2015_cli = bind_rows(
            group, histology, stage, gender, dead, progression) %>% filter(patient %in% c("Pat20", "Pat91"))
 )
 # combine three datasets
-science2015 = full_join(full_join(science2015_cli, science2015_APM_df, by = "patient"), 
+info_VanAllen = full_join(full_join(science2015_cli, APS_VanAllen_df, by = "patient"), 
                          science2015_TMB_summary, by="patient")
 
-science2015$TIGS = science2015$APM * log(science2015$nTMB +1)
-write_csv(x = science2015, path = "results/science2015_results2.csv")
+info_VanAllen$TIGS = info_VanAllen$APS * log(info_VanAllen$nTMB +1) # to avoid TIGS <0, TIGS = log(TMB +1) *APM for this dataset
 
+save(info_VanAllen, file = "results/VanAllen2015_Info.RData")
 ```
 
-
-#### Hugo et al 2016 dataset
-
-```{r prep_Hugo2016}
-##  Genomic and Transcriptomic Features of Response to Anti-PD-1 Therapy in Metastatic Melanoma. Cell 2016 Mar 24;165(1):35-44. PMID: 26997480
-suppressPackageStartupMessages(library(GEOquery))
-geo_dir = "data/GEOdata"
-
-gse = "GSE78220"
-GSE_78220 = getGEO(gse, GSEMatrix = TRUE, AnnotGPL = TRUE, destdir = geo_dir)
-GSE_78220 = GSE_78220$GSE78220_series_matrix.txt.gz
-
-# download.file(url = "https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE78220&format=file&file=GSE78220%5FPatientFPKM%2Exlsx", destfile = "data/GSE78220_FPKM.xlsx")
-
-GSE78220_FPKM = read_xlsx("data/GSE78220_FPKM.xlsx")
-GSE78220_FPKM = GSE78220_FPKM %>% 
-    as.data.frame() %>% 
-    mutate(mean_expr = rowMeans(.[, -1], na.rm = TRUE)) %>% 
-    arrange(Gene, desc(mean_expr)) %>%
-    distinct(Gene, .keep_all = TRUE) %>% 
-    dplyr::select(-mean_expr) %>% 
-    as.tibble()
-
-# pData(GSE_78220) %>% View()
-
-# applyGSVA(immune_cellType, group_col = "Cell_type", 
-#           gene_col = "Symbol", ExprMatList = list(GSE78220_FPKM), method = "gsva", kcdf = "Poisson") -> gsva.gse78220
-# 
-# APM1_1 = (gsva.gse78220[[1]]$APM)
-
-GSE78220_Norm = GSE78220_FPKM
-GSE78220_Norm[,-1] = log2(GSE78220_Norm[,-1] + 1)
-applyGSVA(immune_cellType, group_col = "Cell_type", 
-          gene_col = "Symbol", ExprMatList = list(GSE78220_Norm), method = "gsva") -> gsva.gse78220_2
-
-APM1_2 = gsva.gse78220_2[[1]]$APM
-APM1_2 = (APM1_2 - min_APM) / (max_APM - min_APM) 
-
-names(APM1_2) = colnames(GSE78220_Norm)[-1]
-APM1_2
-names(APM1_2) = sub(pattern = "(Pt.*)\\.baseline", "\\1", names(APM1_2))
-# keep biggest value
-APM1_2 = APM1_2[-21]
-names(APM1_2)[c(14, 20)] = c("Pt16", "Pt27")
-
-ge.GSE78220 = tibble(PatientID = names(APM1_2), APM=APM1_2)
-
-# read clincal and tmb data
-GSE_78220.TMB = read_csv("data/Cell2016.csv")
-GSE_78220.TMB$nTMB = GSE_78220.TMB$TotalNonSyn / 38
-#GSE_78220.TMB$nTMB = log(GSE_78220.TMB$TotalNonSyn+1)
-
-Cell2016 = full_join(GSE_78220.TMB, ge.GSE78220, by = "PatientID")
-Cell2016 = Cell2016[,c(1:5, 14,15, 6:13)]
-
-Cell2016 %>% filter(!is.na(APM)) %>% 
-    summarise(MedianAPM = median(APM, na.rm=TRUE), MedianTMB = median(nTMB, na.rm = TRUE), 
-              ORR = sum(Response=="R")/n(), N = n())
-
-# calculate TIGS score
-Cell2016$TIGS = log(Cell2016$nTMB + 1) * Cell2016$APM 
-#Cell2016$TIGS = Cell2016$nTMB * Cell2016$APM 
-
-# save(Cell2016, file = "data/Cell2016.RData")
-write_csv(Cell2016, "results/Cell2016_results2.csv")
-```
 
 #### Snyder et al 2017 dataset
 
-```{r pre_Snyder2017}
+```{r pre_Snyder2017, eval=FALSE}
 #----------------------------------------------------------------
 # Contribution of systemic and somatic factors to clinical response and resistance in urothelial cancer: an exploratory multi-omic analysis
 #---------------------------------------------------------------
-# Data Source: https://github.com/XSLiuLab/multi-omic-urothelial-anti-pdl1
+# Data Source: https://github.com/XSLiuLab/multi-omic-urothelial-anti-pdl1 
+# This is a fork repository, original link can also be found in this link
 
 library(tidyverse)
-
-uro_cli = read_csv("~/biodata/Own/multi-omic-urothelial-anti-pdl1/data_clinical.csv")
-uro_counts = read_csv("~/biodata/Own/multi-omic-urothelial-anti-pdl1/data_counts.csv")
-uro_variants = read_csv("~/biodata/Own/multi-omic-urothelial-anti-pdl1/data_variants.csv",
+uro_cli = read_csv("../data/data_clinical.csv")
+uro_counts = read_csv("../data/data_counts.csv")
+uro_variants = read_csv("../data/data_variants.csv",
                         col_types = "c??????")
-uro_rna = read_csv("~/biodata/Own/multi-omic-urothelial-anti-pdl1/data_kallisto.csv")
-
+uro_rna = read_csv("../data/data_kallisto.csv")
 uro_rna_wide = reshape2::dcast(uro_rna, gene_name ~ patient_id, value.var = "est_counts")
 
 # try remove duplicated genes
@@ -467,148 +480,115 @@ length(intersect(uro_rna_ge$gene_name, GSE78220_FPKM$Gene))
 uro_rna_ge = dplyr::filter(uro_rna_ge, gene_name %in% GSE78220_FPKM$Gene)
 uro_rna_ge_Norm = uro_rna_ge
 uro_rna_ge_Norm[, -1] = log2(uro_rna_ge_Norm[,-1]+1)
-applyGSVA(immune_cellType, group_col = "Cell_type", 
-          gene_col = "Symbol", ExprMatList = list(uro_rna_ge_Norm), method = "gsva") -> gsva.uro
-APM.uro = gsva.uro[[1]]$APM
-APM.uro = (APM.uro - min_APM) / (max_APM - min_APM)
 
-APM.uro = tibble(patient_id = colnames(uro_rna_ge_Norm)[-1], APM = APM.uro)
+## apply GSVA
+applyGSVA(merged_geneList, group_col = "Cell_type", 
+          gene_col = "Symbol", ExprMatList = list(uro_rna_ge_Norm), method = "gsva") -> gsva.Snyder
+
+APS_Snyder = gsva.Snyder[[1]]$APM
+APS_Snyder = (APS_Snyder - min_APS) / (max_APS - min_APS)
+
+## save gene expression
+rna_Snyder = uro_rna_ge_Norm
+save(rna_Snyder, file = "results/Snyder2017_RNA.RData")
+
+APS_Snyder_df = tibble(patient_id = colnames(uro_rna_ge_Norm)[-1], 
+                       APS = APS_Snyder)
+
 uro_cli_2 = uro_cli %>% 
     dplyr::select(patient_id, Age, Sex, is_benefit, is_benefit_os, os, `Alive Status`) %>% 
     mutate(event = ifelse(`Alive Status` == 'Y', 0, 1))
 
 uro_tmb = uro_variants %>% 
     group_by(patient_id) %>% 
-    summarise(TMB = n(), Nonsyn = sum(!is.na(gene_name)), nTMB = TMB/38) %>% #/38 
+    summarise(TMB = n(), Nonsyn = sum(!is.na(gene_name)), nTMB = TMB/38) %>% 
     mutate(patient_id = as.character(patient_id))
 
-uro2017 = dplyr::full_join(uro_cli_2, dplyr::full_join(uro_tmb, APM.uro))
-uro2017$TIGS = uro2017$APM * log(uro2017$nTMB +1)
-uro2017$TIGS2 = uro2017$APM * log(uro2017$nTMB)
+info_Snyder = dplyr::full_join(uro_cli_2, dplyr::full_join(uro_tmb, APS_Snyder_df))
+info_Snyder$TIGS = info_Snyder$APS * log(info_Snyder$nTMB)
  
+save(info_Snyder, file = "results/Snyder2017_Info.RData")
 
-write_csv(x = uro2017, path = "results/urothelial2017_results2.csv")
+rm(list = ls())
 ```
 
 
-```{r, eval=FALSE}
-#-----------------------------------------------------------
-# preprocess data with both TMB and RNAseq/expression data
-#----------------------------------------------------------
-# There are nonsync mutation in common across three datasets
-# We use it as mutation load
-
-
-
-library(GEOquery)
-library(readxl)
-library(tidyverse)
-
-load("~/biodata/Own/immune_cellType.RData")
-
-##-----
-
-
-```
-
-### Compare ROC and survival curves
+### Compare ROC and survival status
 
 ```{r eval=FALSE}
-#------------------------------------
-# Plot ROC for data analysis results
-#------------------------------------
 library(pROC)
 library(tidyverse)
-theme_set(theme_bw())
+#theme_set(theme_bw())
+library(cowplot)
 
 cell2016 = read_csv("results/Cell2016_results.csv")
-cell2017 = read_csv("results/BMS038_results.csv")
 science2015 = read_csv("results/science2015_results2.csv") # to avoid TIGS <0, TIGS = log(TMB +1) *APM for this dataset
+# plos medicine 2017
+urothelial2017 = read_csv("results/urothelial2017_results.csv")
 
-
+load("results/Hugo2016_Info.RData")
+load("results/VanAllen2015_Info.RData")
+load("results/Snyder2017_Info.RData")
 
 #------------------------------------------
-# cell 2016
-cell2016_roc1 = roc(cell2016$Response, cell2016$nTMB)
-cell2016_roc2 = roc(cell2016$Response, cell2016$APM)
-cell2016_roc3 = roc(cell2016$Response, cell2016$TIGS)
+# Hugo 2016
+hugo2016_roc1 = roc(info_hugo$Response, info_hugo$nTMB)
+hugo2016_roc2 = roc(info_hugo$Response, info_hugo$APS)
+hugo2016_roc3 = roc(info_hugo$Response, info_hugo$TIGS)
 
-ggroc(list(TMB=cell2016_roc1, TIGS=cell2016_roc3), legacy.axes = TRUE) + 
+ggroc(list(TMB=hugo2016_roc1, TIGS=hugo2016_roc3), legacy.axes = TRUE) + 
     labs(color = "Predictor") + ggpubr::theme_classic2(base_size = 12, base_family = "Arial")
 
-auc(cell2016_roc1)
-auc(cell2016_roc2)
-auc(cell2016_roc3)
+auc(hugo2016_roc1)
+auc(hugo2016_roc2)
+auc(hugo2016_roc3)
 
-#-------------------
-# cell 2017
-# cell2017_2 = cell2017 %>% 
-#     mutate(Response = case_when(
-#         BOR %in% c("CR", "PR") ~ "R",
-#         BOR == "PD" ~"NR",
-#         TRUE ~ NA_character_
-#     ),
-#     TIGS = log(nTMB) * APM) %>% filter(!is.na(Response))
-# 
-# cell2017_roc1 = roc(cell2017_2$Response, cell2017_2$nTMB)
-# cell2017_roc2 = roc(cell2017_2$Response, cell2017_2$APM)
-# cell2017_roc3 = roc(cell2017_2$Response, cell2017_2$TIGS)
-# 
-# ggroc(list(TMB=cell2017_roc1, TIGS=cell2017_roc3), legacy.axes = TRUE) + labs(color = "Predictor")
-# 
-# auc(cell2017_roc1)
-# auc(cell2017_roc2)
-# auc(cell2017_roc3)
 
 #---------------------------
-# Science 2015
-# science2015_2 = science2015 %>% 
-#     mutate(Response = case_when(
-#         RECIST %in% c("CR", "PR") ~ "R",
-#         RECIST == "PD" ~"NR",
-#         TRUE ~ NA_character_
-#     ),
-#     TIGS = log(nTMB) * APM) %>% filter(!is.na(Response))
+# VanAllen 2015
 
-science2015_2 = science2015 %>%
+info_VanAllen2 = info_VanAllen %>%
     mutate(Response = case_when(
         group == "response" ~ "R",
         group == "nonresponse" ~"NR",
         TRUE ~ NA_character_
-    )) %>% filter(!is.na(Response)) # ,TIGS = log(nTMB) * APM 
+    )) %>% filter(!is.na(Response))
 
 
-science2015_roc1 = roc(science2015_2$Response, science2015_2$nTMB)
-science2015_roc2 = roc(science2015_2$Response, science2015_2$APM)
-science2015_roc3 = roc(science2015_2$Response, science2015_2$TIGS)
+## -- using following command if only compare patients with TIGS availble
+## -- the result are basically same
+# info_VanAllen2 = info_VanAllen %>%
+#     mutate(Response = case_when(
+#         group == "response" ~ "R",
+#         group == "nonresponse" ~"NR",
+#         TRUE ~ NA_character_
+#     )) %>% filter(!is.na(Response), !is.na(TIGS))
 
-ggroc(list(TMB=science2015_roc1, TIGS=science2015_roc3), legacy.axes = TRUE) + labs(color = "Predictor") + 
+
+VanAllen2015_roc1 = roc(info_VanAllen2$Response, info_VanAllen2$nTMB)
+VanAllen2015_roc2 = roc(info_VanAllen2$Response, info_VanAllen2$APS)
+VanAllen2015_roc3 = roc(info_VanAllen2$Response, info_VanAllen2$TIGS)
+
+ggroc(list(VanAllen2015_roc1, VanAllen2015_roc3), legacy.axes = TRUE) + labs(color = "Predictor") + 
     ggpubr::theme_classic2(base_size = 12, base_family = "Arial")
 
-auc(science2015_roc1)
-auc(science2015_roc2)
-auc(science2015_roc3)
+auc(VanAllen2015_roc1)
+auc(VanAllen2015_roc2)
+auc(VanAllen2015_roc3)
 
 #---------------------------------------
-# plos medicine 2017
-urothelial2017 = read_csv("results/urothelial2017_results.csv")
-urothelial2017$TIGS = log(urothelial2017$nTMB) * urothelial2017$APM
-#urothelial2017$TIGS = urothelial2017$nTMB * urothelial2017$APM
-urothelial2017 = filter(urothelial2017, !is.na(APM), !is.na(nTMB))
+# Snyder 2017
 
-urothelial2017_roc1 = roc(urothelial2017$is_benefit, urothelial2017$nTMB)
-urothelial2017_roc2 = roc(urothelial2017$is_benefit, urothelial2017$APM)
-urothelial2017_roc3 = roc(urothelial2017$is_benefit, urothelial2017$TIGS)
-# urothelial2017_roc4 = roc(urothelial2017$is_benefit, urothelial2017$TIGS2)
+Snyder2017_roc1 = roc(info_Snyder$is_benefit, info_Snyder$nTMB)
+Snyder2017_roc2 = roc(info_Snyder$is_benefit, info_Snyder$APS)
+Snyder2017_roc3 = roc(info_Snyder$is_benefit, info_Snyder$TIGS)
 
-
-ggroc(list(TMB=urothelial2017_roc1, TIGS=urothelial2017_roc3), legacy.axes = TRUE) + 
+ggroc(list(TMB=Snyder2017_roc1, TIGS=Snyder2017_roc3), legacy.axes = TRUE) + 
     labs(color = "Predictor") + ggpubr::theme_classic2(base_size = 12, base_family = "Arial")
 
-auc(urothelial2017_roc1)
-auc(urothelial2017_roc2)
-auc(urothelial2017_roc3)
-auc(urothelial2017_roc4)
+auc(Snyder2017_roc1)
+auc(Snyder2017_roc2)
+auc(Snyder2017_roc3)
 
 # cox
 library(survival)
