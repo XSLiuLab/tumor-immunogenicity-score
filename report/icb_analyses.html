@@ -10,7 +10,7 @@
 
 <meta name="author" content="Shixiang Wang" />
 
-<meta name="date" content="2018-12-03" />
+<meta name="date" content="2018-12-04" />
 
 <title>Immunotherapy datasets analyses</title>
 
@@ -114,9 +114,9 @@ $(document).ready(function () {
       <li><a href="#tigs-definition-and-performance">TIGS definition and performance</a></li>
       <li><a href="#more-exploration-of-tigs-formula">More exploration of TIGS formula</a></li>
       </ul></li>
-      <li><a href="#biomarker-comparison-about-immunotherapy-clinical-response-prediction">Biomarker comparison about immunotherapy clinical response prediction</a><ul>
+      <li><a href="#performance-comparison-on-immunotherapy-clinical-response-prediction">Performance comparison on immunotherapy clinical response prediction</a><ul>
       <li><a href="#preprocessing-of-immunotherapy-datasets">Preprocessing of immunotherapy datasets</a></li>
-      <li><a href="#compare-roc-and-survival-curves">Compare ROC and survival curves</a></li>
+      <li><a href="#compare-roc-and-survival-status">Compare ROC and survival status</a></li>
       </ul></li>
       </ul>
     </div>
@@ -451,41 +451,38 @@ res_df =<span class="st"> </span><span class="kw">data.frame</span>(<span class=
 <p>We can find that R squares of linear model have a maximum value when “a” is around 40. Therefore, “a=38” is optimized to rescale the raw whole exome mutation counts and balance the contribution for APM and TMB in TIGS formula.</p>
 </div>
 </div>
-<div id="biomarker-comparison-about-immunotherapy-clinical-response-prediction" class="section level2">
-<h2>Biomarker comparison about immunotherapy clinical response prediction</h2>
+<div id="performance-comparison-on-immunotherapy-clinical-response-prediction" class="section level2">
+<h2>Performance comparison on immunotherapy clinical response prediction</h2>
 <p>Description of datasets please see preprocessing part or “Method Section” of manuscript.</p>
 <div id="preprocessing-of-immunotherapy-datasets" class="section level3">
 <h3>Preprocessing of immunotherapy datasets</h3>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#-----------------------------------------------------------</span>
-<span class="co"># preprocess data with both TMB and RNAseq/expression data</span>
-<span class="co">#----------------------------------------------------------</span>
-<span class="co"># There are nonsync mutation in common across three datasets</span>
-<span class="co"># We use it as mutation load</span>
-
-<span class="co"># get min and max APM value based on TCGA data</span>
+<p>The first step is to preprocess 3 immunotherapy datasets with gene expression, TMB and clinical outcome available. APS from Pancan analysis is used to normalize APS here.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># get min and max APM value based on TCGA and GEO pan-cancer data</span>
 <span class="kw">load</span>(<span class="st">&quot;results/df_all.RData&quot;</span>)
-min_APM =<span class="st"> </span><span class="kw">min</span>(df_all<span class="op">$</span>APM)
-max_APM =<span class="st"> </span><span class="kw">max</span>(df_all<span class="op">$</span>APM)
-<span class="kw">rm</span>(df_all); <span class="kw">gc</span>()
+min_APS =<span class="st"> </span><span class="kw">min</span>(df_all<span class="op">$</span>APM)
+max_APS =<span class="st"> </span><span class="kw">max</span>(df_all<span class="op">$</span>APM)
+<span class="kw">rm</span>(df_all)
 
-<span class="kw">library</span>(GEOquery)
+<span class="co"># load gene list</span>
+<span class="kw">load</span>(<span class="st">&quot;results/merged_geneList.RData&quot;</span>)
+<span class="co"># load function</span>
+<span class="kw">source</span>(<span class="st">&quot;../code/functions.R&quot;</span>)</code></pre></div>
+<div id="hugo-et-al-2016-dataset" class="section level4">
+<h4>Hugo et al 2016 dataset</h4>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## Data source: Genomic and Transcriptomic Features of Response to Anti-PD-1 Therapy in Metastatic Melanoma. Cell 2016 Mar 24;165(1):35-44. PMID: 26997480
+<span class="kw">suppressPackageStartupMessages</span>(<span class="kw">library</span>(GEOquery))
 <span class="kw">library</span>(readxl)
-<span class="kw">library</span>(tidyverse)
-
-<span class="kw">load</span>(<span class="st">&quot;~/biodata/Own/immune_cellType.RData&quot;</span>)
-
-##-----
-## Ref1: Genomic and Transcriptomic Features of Response to Anti-PD-1 Therapy in Metastatic Melanoma. Cell 2016 Mar 24;165(1):35-44. PMID: 26997480
-
-geo_dir =<span class="st"> &quot;data/GEOdata&quot;</span>
+geo_dir =<span class="st"> &quot;../data/GEOdata&quot;</span>
 
 gse =<span class="st"> &quot;GSE78220&quot;</span>
 GSE_<span class="dv">78220</span> =<span class="st"> </span><span class="kw">getGEO</span>(gse, <span class="dt">GSEMatrix =</span> <span class="ot">TRUE</span>, <span class="dt">AnnotGPL =</span> <span class="ot">TRUE</span>, <span class="dt">destdir =</span> geo_dir)
 GSE_<span class="dv">78220</span> =<span class="st"> </span>GSE_<span class="dv">78220</span><span class="op">$</span>GSE78220_series_matrix.txt.gz
 
-<span class="co"># download.file(url = &quot;https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE78220&amp;format=file&amp;file=GSE78220%5FPatientFPKM%2Exlsx&quot;, destfile = &quot;data/GSE78220_FPKM.xlsx&quot;)</span>
+#### Download gene expression using following command
+<span class="co"># download.file(url = &quot;https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE78220&amp;format=file&amp;file=GSE78220%5FPatientFPKM%2Exlsx&quot;, destfile = &quot;../data/GSE78220_FPKM.xlsx&quot;)</span>
 
-GSE78220_FPKM =<span class="st"> </span><span class="kw">read_xlsx</span>(<span class="st">&quot;data/GSE78220_FPKM.xlsx&quot;</span>)
+GSE78220_FPKM =<span class="st"> </span>readxl<span class="op">::</span><span class="kw">read_xlsx</span>(<span class="st">&quot;../data/GSE78220_FPKM.xlsx&quot;</span>)
+
 GSE78220_FPKM =<span class="st"> </span>GSE78220_FPKM <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">    </span><span class="kw">as.data.frame</span>() <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">    </span><span class="kw">mutate</span>(<span class="dt">mean_expr =</span> <span class="kw">rowMeans</span>(.[, <span class="op">-</span><span class="dv">1</span>], <span class="dt">na.rm =</span> <span class="ot">TRUE</span>)) <span class="op">%&gt;%</span><span class="st"> </span>
@@ -496,138 +493,60 @@ GSE78220_FPKM =<span class="st"> </span>GSE78220_FPKM <span class="op">%&gt;%</s
 
 <span class="co"># pData(GSE_78220) %&gt;% View()</span>
 
-<span class="co"># applyGSVA(immune_cellType, group_col = &quot;Cell_type&quot;, </span>
-<span class="co">#           gene_col = &quot;Symbol&quot;, ExprMatList = list(GSE78220_FPKM), method = &quot;gsva&quot;, kcdf = &quot;Poisson&quot;) -&gt; gsva.gse78220</span>
-<span class="co"># </span>
-<span class="co"># APM1_1 = (gsva.gse78220[[1]]$APM)</span>
-
+<span class="co"># normalize gene expression as log(x + 1)</span>
 GSE78220_Norm =<span class="st"> </span>GSE78220_FPKM
 GSE78220_Norm[,<span class="op">-</span><span class="dv">1</span>] =<span class="st"> </span><span class="kw">log2</span>(GSE78220_Norm[,<span class="op">-</span><span class="dv">1</span>] <span class="op">+</span><span class="st"> </span><span class="dv">1</span>)
-<span class="kw">applyGSVA</span>(immune_cellType, <span class="dt">group_col =</span> <span class="st">&quot;Cell_type&quot;</span>, 
-          <span class="dt">gene_col =</span> <span class="st">&quot;Symbol&quot;</span>, <span class="dt">ExprMatList =</span> <span class="kw">list</span>(GSE78220_Norm), <span class="dt">method =</span> <span class="st">&quot;gsva&quot;</span>) -&gt;<span class="st"> </span>gsva.gse78220_<span class="dv">2</span>
 
-APM1_<span class="dv">2</span> =<span class="st"> </span>gsva.gse78220_<span class="dv">2</span>[[<span class="dv">1</span>]]<span class="op">$</span>APM
-APM1_<span class="dv">2</span> =<span class="st"> </span>(APM1_<span class="dv">2</span> <span class="op">-</span><span class="st"> </span>min_APM) <span class="op">/</span><span class="st"> </span>(max_APM <span class="op">-</span><span class="st"> </span>min_APM) 
+<span class="co"># apply gsva</span>
+<span class="kw">applyGSVA</span>(merged_geneList, <span class="dt">group_col =</span> <span class="st">&quot;Cell_type&quot;</span>, 
+          <span class="dt">gene_col =</span> <span class="st">&quot;Symbol&quot;</span>, <span class="dt">ExprMatList =</span> <span class="kw">list</span>(GSE78220_Norm), <span class="dt">method =</span> <span class="st">&quot;gsva&quot;</span>) -&gt;<span class="st"> </span>gsva.hugo2016
 
-<span class="kw">names</span>(APM1_<span class="dv">2</span>) =<span class="st"> </span><span class="kw">colnames</span>(GSE78220_Norm)[<span class="op">-</span><span class="dv">1</span>]
-APM1_<span class="dv">2</span>
-<span class="kw">names</span>(APM1_<span class="dv">2</span>) =<span class="st"> </span><span class="kw">sub</span>(<span class="dt">pattern =</span> <span class="st">&quot;(Pt.*)</span><span class="ch">\\</span><span class="st">.baseline&quot;</span>, <span class="st">&quot;</span><span class="ch">\\</span><span class="st">1&quot;</span>, <span class="kw">names</span>(APM1_<span class="dv">2</span>))
+<span class="co"># normalize APS</span>
+APS_hugo =<span class="st"> </span>gsva.hugo2016[[<span class="dv">1</span>]]<span class="op">$</span>APM
+APS_hugo =<span class="st"> </span>(APS_hugo <span class="op">-</span><span class="st"> </span>min_APS) <span class="op">/</span><span class="st"> </span>(max_APS <span class="op">-</span><span class="st"> </span>min_APS) 
+
+<span class="kw">names</span>(APS_hugo) =<span class="st"> </span><span class="kw">colnames</span>(GSE78220_Norm)[<span class="op">-</span><span class="dv">1</span>]
+APS_hugo
+<span class="kw">names</span>(APS_hugo) =<span class="st"> </span><span class="kw">sub</span>(<span class="dt">pattern =</span> <span class="st">&quot;(Pt.*)</span><span class="ch">\\</span><span class="st">.baseline&quot;</span>, <span class="st">&quot;</span><span class="ch">\\</span><span class="st">1&quot;</span>, <span class="kw">names</span>(APS_hugo))
+
+
 <span class="co"># keep biggest value</span>
-APM1_<span class="dv">2</span> =<span class="st"> </span>APM1_<span class="dv">2</span>[<span class="op">-</span><span class="dv">21</span>]
-<span class="kw">names</span>(APM1_<span class="dv">2</span>)[<span class="kw">c</span>(<span class="dv">14</span>, <span class="dv">20</span>)] =<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;Pt16&quot;</span>, <span class="st">&quot;Pt27&quot;</span>)
+APS_hugo =<span class="st"> </span>APS_hugo[<span class="op">-</span><span class="dv">21</span>]
+<span class="kw">names</span>(APS_hugo)[<span class="kw">c</span>(<span class="dv">14</span>, <span class="dv">20</span>)] =<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;Pt16&quot;</span>, <span class="st">&quot;Pt27&quot;</span>)
+APS_hugo
 
-ge.GSE78220 =<span class="st"> </span><span class="kw">tibble</span>(<span class="dt">PatientID =</span> <span class="kw">names</span>(APM1_<span class="dv">2</span>), <span class="dt">APM=</span>APM1_<span class="dv">2</span>)
+<span class="co"># keep corresponding expression data for downstream analysis</span>
+rna_hugo =<span class="st"> </span>GSE78220_Norm[, <span class="op">-</span><span class="dv">22</span>]
+<span class="kw">colnames</span>(rna_hugo)[<span class="op">-</span><span class="dv">1</span>] =<span class="st"> </span><span class="kw">names</span>(APS_hugo)
+<span class="kw">save</span>(rna_hugo, <span class="dt">file =</span> <span class="st">&quot;results/Hugo2016_RNA.RData&quot;</span>)
+
+
+GSE78220.APS =<span class="st"> </span><span class="kw">tibble</span>(<span class="dt">PatientID =</span> <span class="kw">names</span>(APS_hugo), <span class="dt">APS=</span>APS_hugo)
 
 <span class="co"># read clincal and tmb data</span>
-GSE_<span class="fl">78220.</span>TMB =<span class="st"> </span><span class="kw">read_csv</span>(<span class="st">&quot;data/Cell2016.csv&quot;</span>)
+GSE_<span class="fl">78220.</span>TMB =<span class="st"> </span><span class="kw">read_csv</span>(<span class="st">&quot;../data/Cell2016.csv&quot;</span>)
 GSE_<span class="fl">78220.</span>TMB<span class="op">$</span>nTMB =<span class="st"> </span>GSE_<span class="fl">78220.</span>TMB<span class="op">$</span>TotalNonSyn <span class="op">/</span><span class="st"> </span><span class="dv">38</span>
-<span class="co">#GSE_78220.TMB$nTMB = log(GSE_78220.TMB$TotalNonSyn+1)</span>
 
-Cell2016 =<span class="st"> </span><span class="kw">full_join</span>(GSE_<span class="fl">78220.</span>TMB, ge.GSE78220, <span class="dt">by =</span> <span class="st">&quot;PatientID&quot;</span>)
-Cell2016 =<span class="st"> </span>Cell2016[,<span class="kw">c</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">5</span>, <span class="dv">14</span>,<span class="dv">15</span>, <span class="dv">6</span><span class="op">:</span><span class="dv">13</span>)]
-
-Cell2016 <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">is.na</span>(APM)) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">    </span><span class="kw">summarise</span>(<span class="dt">MedianAPM =</span> <span class="kw">median</span>(APM, <span class="dt">na.rm=</span><span class="ot">TRUE</span>), <span class="dt">MedianTMB =</span> <span class="kw">median</span>(nTMB, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>), 
-              <span class="dt">ORR =</span> <span class="kw">sum</span>(Response<span class="op">==</span><span class="st">&quot;R&quot;</span>)<span class="op">/</span><span class="kw">n</span>(), <span class="dt">N =</span> <span class="kw">n</span>())
+info_hugo =<span class="st"> </span><span class="kw">full_join</span>(GSE_<span class="fl">78220.</span>TMB, GSE78220.APS, <span class="dt">by =</span> <span class="st">&quot;PatientID&quot;</span>)
+info_hugo =<span class="st"> </span>info_hugo[,<span class="kw">c</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">5</span>, <span class="dv">14</span>,<span class="dv">15</span>, <span class="dv">6</span><span class="op">:</span><span class="dv">13</span>)]
 
 <span class="co"># calculate TIGS score</span>
-Cell2016<span class="op">$</span>TIGS =<span class="st"> </span><span class="kw">log</span>(Cell2016<span class="op">$</span>nTMB <span class="op">+</span><span class="st"> </span><span class="dv">1</span>) <span class="op">*</span><span class="st"> </span>Cell2016<span class="op">$</span>APM 
-<span class="co">#Cell2016$TIGS = Cell2016$nTMB * Cell2016$APM </span>
+info_hugo<span class="op">$</span>TIGS =<span class="st"> </span><span class="kw">log</span>(info_hugo<span class="op">$</span>nTMB) <span class="op">*</span><span class="st"> </span>info_hugo<span class="op">$</span>APS
 
-<span class="co"># save(Cell2016, file = &quot;data/Cell2016.RData&quot;)</span>
-<span class="kw">write_csv</span>(Cell2016, <span class="st">&quot;results/Cell2016_results2.csv&quot;</span>)
-
-<span class="co">#-------------------------------------</span>
-<span class="co"># Cell 2017 : Tumor and Microenvironment Evolution during Immunotherapy with Nivolumab</span>
-<span class="co"># BMS038</span>
-
-BMS038_Clinical =<span class="st"> </span><span class="kw">read_csv</span>(<span class="st">&quot;data/bms038_clinical_data.csv&quot;</span>)
-BMS038_TMB =<span class="st"> </span><span class="kw">read_csv</span>(<span class="st">&quot;data/pre_therapy_nonsynonmous_mutations.csv&quot;</span>)
-
-BMS038_GE =<span class="st"> </span><span class="kw">read.delim</span>(<span class="st">&quot;data/CountData.BMS038.txt&quot;</span>)
-
-BMS038_GE=<span class="st"> </span>BMS038_GE <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">    </span><span class="kw">as.data.frame</span>() <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">    </span><span class="kw">mutate</span>(<span class="dt">mean_expr =</span> <span class="kw">rowMeans</span>(.[, <span class="op">-</span><span class="dv">119</span>], <span class="dt">na.rm =</span> <span class="ot">TRUE</span>)) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">    </span><span class="kw">arrange</span>(HUGO, <span class="kw">desc</span>(mean_expr)) <span class="op">%&gt;%</span>
-<span class="st">    </span><span class="kw">distinct</span>(HUGO, <span class="dt">.keep_all =</span> <span class="ot">TRUE</span>) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">    </span>dplyr<span class="op">::</span><span class="kw">select</span>(<span class="op">-</span>mean_expr) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">    </span><span class="kw">as.tibble</span>() <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">    </span>dplyr<span class="op">::</span><span class="kw">select</span>(HUGO, <span class="kw">everything</span>())
-
-BMS038_GE.pre =<span class="st"> </span>BMS038_GE <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">    </span>dplyr<span class="op">::</span><span class="kw">select</span>(HUGO, <span class="kw">ends_with</span>(<span class="st">&quot;Pre&quot;</span>))
-
-BMS038_GE.on =<span class="st"> </span>BMS038_GE <span class="op">%&gt;%</span>
-<span class="st">    </span>dplyr<span class="op">::</span><span class="kw">select</span>(HUGO, <span class="kw">ends_with</span>(<span class="st">&quot;On&quot;</span>))
-
-<span class="co"># normalize the data</span>
-BMS038_GE.pre.n =<span class="st"> </span>BMS038_GE.pre
-BMS038_GE.pre.n[, <span class="op">-</span><span class="dv">1</span>] =<span class="st"> </span><span class="kw">log2</span>(BMS038_GE.pre.n[, <span class="op">-</span><span class="dv">1</span>] <span class="op">+</span><span class="st"> </span><span class="dv">1</span>)
-
-BMS038_GE.on.n =<span class="st"> </span>BMS038_GE.on
-BMS038_GE.on.n[, <span class="op">-</span><span class="dv">1</span>] =<span class="st"> </span><span class="kw">log2</span>(BMS038_GE.on.n[, <span class="op">-</span><span class="dv">1</span>] <span class="op">+</span><span class="st"> </span><span class="dv">1</span>)
-
-BMS038_GE.pre.n =<span class="st"> </span>BMS038_GE.pre.n <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">is.na</span>(HUGO))
-BMS038_GE.on.n =<span class="st"> </span>BMS038_GE.on.n <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">is.na</span>(HUGO))
-
-<span class="kw">applyGSVA</span>(immune_cellType, <span class="dt">group_col =</span> <span class="st">&quot;Cell_type&quot;</span>, 
-          <span class="dt">gene_col =</span> <span class="st">&quot;Symbol&quot;</span>, <span class="dt">ExprMatList =</span> <span class="kw">list</span>(BMS038_GE.pre.n), <span class="dt">method =</span> <span class="st">&quot;gsva&quot;</span>) -&gt;<span class="st"> </span>gsva.bms038.pre
-<span class="kw">applyGSVA</span>(immune_cellType, <span class="dt">group_col =</span> <span class="st">&quot;Cell_type&quot;</span>, 
-          <span class="dt">gene_col =</span> <span class="st">&quot;Symbol&quot;</span>, <span class="dt">ExprMatList =</span> <span class="kw">list</span>(BMS038_GE.on.n), <span class="dt">method =</span> <span class="st">&quot;gsva&quot;</span>) -&gt;<span class="st"> </span>gsva.bms038.on
-
-<span class="kw">boxplot</span>(gsva.bms038.pre[[<span class="dv">1</span>]]<span class="op">$</span>APM)
-<span class="kw">boxplot</span>(gsva.bms038.on[[<span class="dv">1</span>]]<span class="op">$</span>APM)
-<span class="kw">wilcox.test</span>(gsva.bms038.pre[[<span class="dv">1</span>]]<span class="op">$</span>APM, gsva.bms038.on[[<span class="dv">1</span>]]<span class="op">$</span>APM)
-<span class="kw">median</span>(gsva.bms038.pre[[<span class="dv">1</span>]]<span class="op">$</span>APM)
-<span class="kw">median</span>(gsva.bms038.on[[<span class="dv">1</span>]]<span class="op">$</span>APM)
-
-<span class="co"># we use pre treatment data to predict ORR</span>
-BMS038_APM.pre =<span class="st"> </span>gsva.bms038.pre[[<span class="dv">1</span>]]<span class="op">$</span>APM
-<span class="kw">colnames</span>(BMS038_GE.pre.n) =<span class="st"> </span><span class="kw">sub</span>(<span class="st">&quot;_Pre&quot;</span>, <span class="st">&quot;&quot;</span>, <span class="kw">colnames</span>(BMS038_GE.pre.n))
-<span class="kw">names</span>(BMS038_APM.pre) =<span class="st"> </span><span class="kw">colnames</span>(BMS038_GE.pre.n)[<span class="op">-</span><span class="dv">1</span>]
-
-BMS038_APM.on =<span class="st"> </span>gsva.bms038.on[[<span class="dv">1</span>]]<span class="op">$</span>APM
-<span class="kw">colnames</span>(BMS038_GE.on.n) =<span class="st"> </span><span class="kw">sub</span>(<span class="st">&quot;_On&quot;</span>, <span class="st">&quot;&quot;</span>, <span class="kw">colnames</span>(BMS038_GE.on.n))
-<span class="kw">names</span>(BMS038_APM.on) =<span class="st"> </span><span class="kw">colnames</span>(BMS038_GE.on.n)[<span class="op">-</span><span class="dv">1</span>]
-
-<span class="kw">identical</span>(<span class="kw">names</span>(BMS038_APM.pre), <span class="kw">names</span>(BMS038_APM.on))
-
-BMS038_APM =<span class="st"> </span><span class="kw">tibble</span>(<span class="dt">PatientID =</span> <span class="kw">names</span>(BMS038_APM.pre), <span class="dt">APM =</span> BMS038_APM.pre, <span class="dt">APM_on =</span> BMS038_APM.on[<span class="kw">names</span>(BMS038_APM.pre)])
-
-<span class="co"># normlized to [0, 1]</span>
-BMS038_APM<span class="op">$</span>APM =<span class="st"> </span>(BMS038_APM<span class="op">$</span>APM <span class="op">-</span><span class="st"> </span>min_APM) <span class="op">/</span><span class="st"> </span>(max_APM <span class="op">-</span><span class="st"> </span>min_APM)
-BMS038_APM<span class="op">$</span>APM_on =<span class="st"> </span>(BMS038_APM<span class="op">$</span>APM_on <span class="op">-</span><span class="st"> </span>min_APM) <span class="op">/</span><span class="st"> </span>(max_APM <span class="op">-</span><span class="st"> </span>min_APM)
-<span class="co"># summary BMS038 TMB data</span>
-BMS038_TMB.summary =<span class="st"> </span>BMS038_TMB <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">    </span><span class="kw">group_by</span>(Patient) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">    </span><span class="kw">summarise</span>(<span class="dt">TotalNonSyn =</span> <span class="kw">n</span>(), <span class="dt">nTMB =</span> TotalNonSyn <span class="op">/</span><span class="st"> </span><span class="dv">38</span>)
-
-<span class="co"># join them</span>
-BMS038 =<span class="st"> </span><span class="kw">full_join</span>(<span class="kw">full_join</span>(BMS038_Clinical, BMS038_APM, <span class="dt">by=</span><span class="st">&quot;PatientID&quot;</span>), BMS038_TMB.summary, <span class="dt">by =</span> <span class="kw">c</span>(<span class="st">&quot;PatientID&quot;</span> =<span class="st"> &quot;Patient&quot;</span>))
-
-BMS038<span class="op">$</span>TIGS =<span class="st"> </span>BMS038<span class="op">$</span>APM <span class="op">*</span><span class="st"> </span><span class="kw">log</span>(BMS038<span class="op">$</span>nTMB <span class="op">+</span><span class="dv">1</span>)
-
-<span class="co"># summary </span>
-BMS038_summary =<span class="st"> </span>BMS038 <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">    </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">is.na</span>(APM), <span class="op">!</span><span class="kw">is.na</span>(TotalNonSyn)) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">    </span><span class="kw">summarise</span>(<span class="dt">N=</span><span class="kw">n</span>(), <span class="dt">R=</span><span class="kw">sum</span>(BOR <span class="op">%in%</span><span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;CR&quot;</span>, <span class="st">&quot;PR&quot;</span>)), <span class="dt">MedianAPM =</span> <span class="kw">median</span>(APM), <span class="dt">MedianTMB =</span> <span class="kw">median</span>(nTMB))
-BMS038_summary
-
-<span class="kw">median</span>(BMS038_TMB.summary<span class="op">$</span>nTMB)
-BMS038_Clinical <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">summarise</span>(<span class="dt">N=</span><span class="kw">n</span>(), <span class="dt">R =</span> <span class="kw">sum</span>(BOR <span class="op">%in%</span><span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;CR&quot;</span>, <span class="st">&quot;PR&quot;</span>)))
-
-<span class="kw">write_csv</span>(<span class="dt">x =</span> BMS038, <span class="dt">path =</span> <span class="st">&quot;results/BMS038_results2.csv&quot;</span>)
-
-<span class="co">#----------------------------------------------------------</span>
+<span class="kw">save</span>(info_hugo, <span class="dt">file =</span> <span class="st">&quot;results/Hugo2016_Info.RData&quot;</span>)</code></pre></div>
+</div>
+<div id="van-allen-et-al-2015-dataset" class="section level4">
+<h4>Van Allen et al 2015 dataset</h4>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#----------------------------------------------------------</span>
+<span class="co"># Data source :</span>
 <span class="co"># Science 2015: Genomic correlates of response to CTLA4 blockade in metastatic melanoma</span>
 <span class="co">#--------------------------</span>
 <span class="kw">library</span>(readxl)
-science2015_TMB =<span class="st"> </span><span class="kw">read_xlsx</span>(<span class="st">&quot;data/Science2015_TMB_List_AllPatients.xlsx&quot;</span>)
-science2015_cli1 =<span class="st"> </span><span class="kw">read_xlsx</span>(<span class="st">&quot;data/Science2015_Clinical.xlsx&quot;</span>, <span class="dt">sheet =</span> <span class="dv">1</span>)
-science2015_cli2 =<span class="st"> </span><span class="kw">read_xlsx</span>(<span class="st">&quot;data/Science2015_Clinical.xlsx&quot;</span>, <span class="dt">sheet =</span> <span class="dv">2</span>)
-science2015_rna =<span class="st"> </span><span class="kw">read_tsv</span>(<span class="st">&quot;data/MEL-IPI-Share.rpkm.gct&quot;</span>)
-<span class="co"># science2015_rna_raw = read_tsv(&quot;data/MEL-IPI-Share.reads.gct&quot;)</span>
+<span class="kw">suppressPackageStartupMessages</span>(<span class="kw">library</span>(tidyverse))
+science2015_TMB =<span class="st"> </span><span class="kw">read_xlsx</span>(<span class="st">&quot;../data/Science2015_TMB_List_AllPatients.xlsx&quot;</span>)
+science2015_cli1 =<span class="st"> </span><span class="kw">read_xlsx</span>(<span class="st">&quot;../data/Science2015_Clinical.xlsx&quot;</span>, <span class="dt">sheet =</span> <span class="dv">1</span>)
+science2015_cli2 =<span class="st"> </span><span class="kw">read_xlsx</span>(<span class="st">&quot;../data/Science2015_Clinical.xlsx&quot;</span>, <span class="dt">sheet =</span> <span class="dv">2</span>)
+science2015_rna =<span class="st"> </span><span class="kw">read_tsv</span>(<span class="st">&quot;../data/MEL-IPI-Share.rpkm.gct&quot;</span>)
 
 <span class="co">#---- Preprocess</span>
 vc.nonSilent =<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;Frame_Shift_Del&quot;</span>, <span class="st">&quot;Frame_Shift_Ins&quot;</span>, <span class="st">&quot;Splice_Site&quot;</span>, <span class="st">&quot;Translation_Start_Site&quot;</span>,
@@ -638,12 +557,6 @@ science2015_TMB <span class="op">%&gt;%</span><span class="st"> </span><span cla
 <span class="st">    </span><span class="kw">summarise</span>(<span class="dt">TotalMutation=</span><span class="kw">n</span>(), 
               <span class="dt">TotalNonSyn=</span><span class="kw">sum</span>(Variant_Classification <span class="op">%in%</span><span class="st"> </span>vc.nonSilent), 
              <span class="dt">nTMB =</span> TotalNonSyn <span class="op">/</span><span class="st"> </span><span class="dv">38</span>) -&gt;<span class="st"> </span>science2015_TMB_summary
-
-<span class="co"># science2015_TMB = filter(science2015_TMB, Variant_Classification %in% vc.nonSilent)</span>
-<span class="co"># </span>
-<span class="co"># science2015_TMB_summary = science2015_TMB %&gt;% group_by(patient) %&gt;% </span>
-<span class="co">#     summarize(TotalMutation=n(), nTMB=TotalMutation/38)</span>
-<span class="co"># summary(science2015_TMB_summary)</span>
 
 <span class="co">#---- remove duplicate symbols of rna data</span>
 science2015_rna <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">mutate</span>(<span class="dt">symbol =</span> <span class="kw">sub</span>(<span class="st">&quot;(.*)</span><span class="ch">\\</span><span class="st">..*$&quot;</span>, <span class="st">&quot;</span><span class="ch">\\</span><span class="st">1&quot;</span>, Description)) <span class="op">%&gt;%</span><span class="st"> </span>
@@ -657,7 +570,7 @@ science2015_rna <span class="op">%&gt;%</span><span class="st"> </span><span cla
 <span class="st">    </span><span class="kw">as.tibble</span>() -&gt;<span class="st"> </span>science2015_ge
 
 <span class="kw">length</span>(<span class="kw">intersect</span>(science2015_ge<span class="op">$</span>symbol, GSE78220_Norm<span class="op">$</span>Gene))
-<span class="co"># the gene number of science paper is bigger than other two paper</span>
+<span class="co"># the gene number of science paper is bigger than hugo 2016</span>
 <span class="co"># maybe miRNA and some other RNA included</span>
 <span class="co"># keep them almost equal\</span>
 science2015_ge =<span class="st"> </span>science2015_ge <span class="op">%&gt;%</span><span class="st"> </span>
@@ -665,16 +578,24 @@ science2015_ge =<span class="st"> </span>science2015_ge <span class="op">%&gt;%<
 
 science2015_ge[, <span class="op">-</span><span class="dv">1</span>] =<span class="st"> </span><span class="kw">log2</span>(science2015_ge[, <span class="op">-</span><span class="dv">1</span>] <span class="op">+</span><span class="st"> </span><span class="dv">1</span>)
 
-<span class="kw">applyGSVA</span>(immune_cellType, <span class="dt">group_col =</span> <span class="st">&quot;Cell_type&quot;</span>, 
-          <span class="dt">gene_col =</span> <span class="st">&quot;Symbol&quot;</span>, <span class="dt">ExprMatList =</span> <span class="kw">list</span>(science2015_ge), <span class="dt">method =</span> <span class="st">&quot;gsva&quot;</span>) -&gt;<span class="st"> </span>gsva.science2015
+<span class="kw">applyGSVA</span>(merged_geneList, <span class="dt">group_col =</span> <span class="st">&quot;Cell_type&quot;</span>, 
+          <span class="dt">gene_col =</span> <span class="st">&quot;Symbol&quot;</span>, 
+          <span class="dt">ExprMatList =</span> <span class="kw">list</span>(science2015_ge), <span class="dt">method =</span> <span class="st">&quot;gsva&quot;</span>) -&gt;<span class="st"> </span>gsva.VanAllen2015
 
-science2015_APM =<span class="st"> </span>gsva.science2015[[<span class="dv">1</span>]]<span class="op">$</span>APM
-<span class="kw">names</span>(science2015_APM) =<span class="st"> </span><span class="kw">colnames</span>(science2015_ge)[<span class="op">-</span><span class="dv">1</span>]
-science2015_APM =<span class="st"> </span>(science2015_APM <span class="op">-</span><span class="st"> </span>min_APM) <span class="op">/</span><span class="st"> </span>(max_APM <span class="op">-</span><span class="st"> </span>min_APM)
+APS_VanAllen =<span class="st"> </span>gsva.VanAllen2015[[<span class="dv">1</span>]]<span class="op">$</span>APM
+<span class="kw">names</span>(APS_VanAllen) =<span class="st"> </span><span class="kw">colnames</span>(science2015_ge)[<span class="op">-</span><span class="dv">1</span>]
+APS_VanAllen =<span class="st"> </span>(APS_VanAllen <span class="op">-</span><span class="st"> </span>min_APS) <span class="op">/</span><span class="st"> </span>(max_APS <span class="op">-</span><span class="st"> </span>min_APS)
 
-science2015_APM_df =<span class="st"> </span><span class="kw">tibble</span>(<span class="dt">patient =</span> <span class="kw">names</span>(science2015_APM), <span class="dt">APM =</span> science2015_APM)
-science2015_APM_df =<span class="st"> </span>science2015_APM_df <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">    </span><span class="kw">mutate</span>(<span class="dt">patient =</span> <span class="kw">sub</span>(<span class="st">&quot;^MEL.IPI_(.*)</span><span class="ch">\\</span><span class="st">.Tumor.*$&quot;</span>, <span class="st">&quot;</span><span class="ch">\\</span><span class="st">1&quot;</span>, patient))
+APS_VanAllen
+<span class="kw">names</span>(APS_VanAllen) =<span class="st"> </span><span class="kw">sub</span>(<span class="st">&quot;^MEL.IPI_(.*)</span><span class="ch">\\</span><span class="st">.Tumor.*$&quot;</span>, <span class="st">&quot;</span><span class="ch">\\</span><span class="st">1&quot;</span>, <span class="kw">names</span>(APS_VanAllen))
+APS_VanAllen
+
+rna_VanAllen =<span class="st"> </span>science2015_ge
+<span class="kw">colnames</span>(rna_VanAllen)[<span class="op">-</span><span class="dv">1</span>] =<span class="st"> </span><span class="kw">names</span>(APS_VanAllen) 
+## save gene experssion
+<span class="kw">save</span>(rna_VanAllen, <span class="dt">file =</span> <span class="st">&quot;results/VanAllen2015_RNA.RData&quot;</span>)
+
+APS_VanAllen_df =<span class="st"> </span><span class="kw">tibble</span>(<span class="dt">patient =</span> <span class="kw">names</span>(APS_VanAllen), <span class="dt">APS =</span> APS_VanAllen)
 
 science2015_cli =<span class="st"> </span><span class="kw">bind_rows</span>(
     dplyr<span class="op">::</span><span class="kw">select</span>(science2015_cli1, patient, age_start, RECIST, overall_survival, progression_free, primary, group, 
@@ -683,26 +604,27 @@ science2015_cli =<span class="st"> </span><span class="kw">bind_rows</span>(
            group, histology, stage, gender, dead, progression) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">filter</span>(patient <span class="op">%in%</span><span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;Pat20&quot;</span>, <span class="st">&quot;Pat91&quot;</span>))
 )
 <span class="co"># combine three datasets</span>
-science2015 =<span class="st"> </span><span class="kw">full_join</span>(<span class="kw">full_join</span>(science2015_cli, science2015_APM_df, <span class="dt">by =</span> <span class="st">&quot;patient&quot;</span>), 
+info_VanAllen =<span class="st"> </span><span class="kw">full_join</span>(<span class="kw">full_join</span>(science2015_cli, APS_VanAllen_df, <span class="dt">by =</span> <span class="st">&quot;patient&quot;</span>), 
                          science2015_TMB_summary, <span class="dt">by=</span><span class="st">&quot;patient&quot;</span>)
 
-science2015<span class="op">$</span>TIGS =<span class="st"> </span>science2015<span class="op">$</span>APM <span class="op">*</span><span class="st"> </span><span class="kw">log</span>(science2015<span class="op">$</span>nTMB <span class="op">+</span><span class="dv">1</span>)
-<span class="kw">write_csv</span>(<span class="dt">x =</span> science2015, <span class="dt">path =</span> <span class="st">&quot;results/science2015_results2.csv&quot;</span>)
+info_VanAllen<span class="op">$</span>TIGS =<span class="st"> </span>info_VanAllen<span class="op">$</span>APS <span class="op">*</span><span class="st"> </span><span class="kw">log</span>(info_VanAllen<span class="op">$</span>nTMB <span class="op">+</span><span class="dv">1</span>) <span class="co"># to avoid TIGS &lt;0, TIGS = log(TMB +1) *APM for this dataset</span>
 
-
-<span class="co">#----------------------------------------------------------------</span>
+<span class="kw">save</span>(info_VanAllen, <span class="dt">file =</span> <span class="st">&quot;results/VanAllen2015_Info.RData&quot;</span>)</code></pre></div>
+</div>
+<div id="snyder-et-al-2017-dataset" class="section level4">
+<h4>Snyder et al 2017 dataset</h4>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#----------------------------------------------------------------</span>
 <span class="co"># Contribution of systemic and somatic factors to clinical response and resistance in urothelial cancer: an exploratory multi-omic analysis</span>
 <span class="co">#---------------------------------------------------------------</span>
-<span class="co"># Data Source: https://github.com/XSLiuLab/multi-omic-urothelial-anti-pdl1</span>
+<span class="co"># Data Source: https://github.com/XSLiuLab/multi-omic-urothelial-anti-pdl1 </span>
+<span class="co"># This is a fork repository, original link can also be found in this link</span>
 
 <span class="kw">library</span>(tidyverse)
-
-uro_cli =<span class="st"> </span><span class="kw">read_csv</span>(<span class="st">&quot;~/biodata/Own/multi-omic-urothelial-anti-pdl1/data_clinical.csv&quot;</span>)
-uro_counts =<span class="st"> </span><span class="kw">read_csv</span>(<span class="st">&quot;~/biodata/Own/multi-omic-urothelial-anti-pdl1/data_counts.csv&quot;</span>)
-uro_variants =<span class="st"> </span><span class="kw">read_csv</span>(<span class="st">&quot;~/biodata/Own/multi-omic-urothelial-anti-pdl1/data_variants.csv&quot;</span>,
+uro_cli =<span class="st"> </span><span class="kw">read_csv</span>(<span class="st">&quot;../data/data_clinical.csv&quot;</span>)
+uro_counts =<span class="st"> </span><span class="kw">read_csv</span>(<span class="st">&quot;../data/data_counts.csv&quot;</span>)
+uro_variants =<span class="st"> </span><span class="kw">read_csv</span>(<span class="st">&quot;../data/data_variants.csv&quot;</span>,
                         <span class="dt">col_types =</span> <span class="st">&quot;c??????&quot;</span>)
-uro_rna =<span class="st"> </span><span class="kw">read_csv</span>(<span class="st">&quot;~/biodata/Own/multi-omic-urothelial-anti-pdl1/data_kallisto.csv&quot;</span>)
-
+uro_rna =<span class="st"> </span><span class="kw">read_csv</span>(<span class="st">&quot;../data/data_kallisto.csv&quot;</span>)
 uro_rna_wide =<span class="st"> </span>reshape2<span class="op">::</span><span class="kw">dcast</span>(uro_rna, gene_name <span class="op">~</span><span class="st"> </span>patient_id, <span class="dt">value.var =</span> <span class="st">&quot;est_counts&quot;</span>)
 
 <span class="co"># try remove duplicated genes</span>
@@ -718,125 +640,113 @@ uro_rna_wide <span class="op">%&gt;%</span><span class="st"> </span>
 uro_rna_ge =<span class="st"> </span>dplyr<span class="op">::</span><span class="kw">filter</span>(uro_rna_ge, gene_name <span class="op">%in%</span><span class="st"> </span>GSE78220_FPKM<span class="op">$</span>Gene)
 uro_rna_ge_Norm =<span class="st"> </span>uro_rna_ge
 uro_rna_ge_Norm[, <span class="op">-</span><span class="dv">1</span>] =<span class="st"> </span><span class="kw">log2</span>(uro_rna_ge_Norm[,<span class="op">-</span><span class="dv">1</span>]<span class="op">+</span><span class="dv">1</span>)
-<span class="kw">applyGSVA</span>(immune_cellType, <span class="dt">group_col =</span> <span class="st">&quot;Cell_type&quot;</span>, 
-          <span class="dt">gene_col =</span> <span class="st">&quot;Symbol&quot;</span>, <span class="dt">ExprMatList =</span> <span class="kw">list</span>(uro_rna_ge_Norm), <span class="dt">method =</span> <span class="st">&quot;gsva&quot;</span>) -&gt;<span class="st"> </span>gsva.uro
-APM.uro =<span class="st"> </span>gsva.uro[[<span class="dv">1</span>]]<span class="op">$</span>APM
-APM.uro =<span class="st"> </span>(APM.uro <span class="op">-</span><span class="st"> </span>min_APM) <span class="op">/</span><span class="st"> </span>(max_APM <span class="op">-</span><span class="st"> </span>min_APM)
 
-APM.uro =<span class="st"> </span><span class="kw">tibble</span>(<span class="dt">patient_id =</span> <span class="kw">colnames</span>(uro_rna_ge_Norm)[<span class="op">-</span><span class="dv">1</span>], <span class="dt">APM =</span> APM.uro)
+## apply GSVA
+<span class="kw">applyGSVA</span>(merged_geneList, <span class="dt">group_col =</span> <span class="st">&quot;Cell_type&quot;</span>, 
+          <span class="dt">gene_col =</span> <span class="st">&quot;Symbol&quot;</span>, <span class="dt">ExprMatList =</span> <span class="kw">list</span>(uro_rna_ge_Norm), <span class="dt">method =</span> <span class="st">&quot;gsva&quot;</span>) -&gt;<span class="st"> </span>gsva.Snyder
+
+APS_Snyder =<span class="st"> </span>gsva.Snyder[[<span class="dv">1</span>]]<span class="op">$</span>APM
+APS_Snyder =<span class="st"> </span>(APS_Snyder <span class="op">-</span><span class="st"> </span>min_APS) <span class="op">/</span><span class="st"> </span>(max_APS <span class="op">-</span><span class="st"> </span>min_APS)
+
+## save gene expression
+rna_Snyder =<span class="st"> </span>uro_rna_ge_Norm
+<span class="kw">save</span>(rna_Snyder, <span class="dt">file =</span> <span class="st">&quot;results/Snyder2017_RNA.RData&quot;</span>)
+
+APS_Snyder_df =<span class="st"> </span><span class="kw">tibble</span>(<span class="dt">patient_id =</span> <span class="kw">colnames</span>(uro_rna_ge_Norm)[<span class="op">-</span><span class="dv">1</span>], 
+                       <span class="dt">APS =</span> APS_Snyder)
+
 uro_cli_<span class="dv">2</span> =<span class="st"> </span>uro_cli <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">    </span>dplyr<span class="op">::</span><span class="kw">select</span>(patient_id, Age, Sex, is_benefit, is_benefit_os, os, <span class="st">`</span><span class="dt">Alive Status</span><span class="st">`</span>) <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">    </span><span class="kw">mutate</span>(<span class="dt">event =</span> <span class="kw">ifelse</span>(<span class="st">`</span><span class="dt">Alive Status</span><span class="st">`</span> <span class="op">==</span><span class="st"> 'Y'</span>, <span class="dv">0</span>, <span class="dv">1</span>))
 
 uro_tmb =<span class="st"> </span>uro_variants <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">    </span><span class="kw">group_by</span>(patient_id) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">    </span><span class="kw">summarise</span>(<span class="dt">TMB =</span> <span class="kw">n</span>(), <span class="dt">Nonsyn =</span> <span class="kw">sum</span>(<span class="op">!</span><span class="kw">is.na</span>(gene_name)), <span class="dt">nTMB =</span> TMB<span class="op">/</span><span class="dv">38</span>) <span class="op">%&gt;%</span><span class="st"> </span><span class="co">#/38 </span>
+<span class="st">    </span><span class="kw">summarise</span>(<span class="dt">TMB =</span> <span class="kw">n</span>(), <span class="dt">Nonsyn =</span> <span class="kw">sum</span>(<span class="op">!</span><span class="kw">is.na</span>(gene_name)), <span class="dt">nTMB =</span> TMB<span class="op">/</span><span class="dv">38</span>) <span class="op">%&gt;%</span><span class="st"> </span>
 <span class="st">    </span><span class="kw">mutate</span>(<span class="dt">patient_id =</span> <span class="kw">as.character</span>(patient_id))
 
-uro2017 =<span class="st"> </span>dplyr<span class="op">::</span><span class="kw">full_join</span>(uro_cli_<span class="dv">2</span>, dplyr<span class="op">::</span><span class="kw">full_join</span>(uro_tmb, APM.uro))
-uro2017<span class="op">$</span>TIGS =<span class="st"> </span>uro2017<span class="op">$</span>APM <span class="op">*</span><span class="st"> </span><span class="kw">log</span>(uro2017<span class="op">$</span>nTMB <span class="op">+</span><span class="dv">1</span>)
-uro2017<span class="op">$</span>TIGS2 =<span class="st"> </span>uro2017<span class="op">$</span>APM <span class="op">*</span><span class="st"> </span><span class="kw">log</span>(uro2017<span class="op">$</span>nTMB)
+info_Snyder =<span class="st"> </span>dplyr<span class="op">::</span><span class="kw">full_join</span>(uro_cli_<span class="dv">2</span>, dplyr<span class="op">::</span><span class="kw">full_join</span>(uro_tmb, APS_Snyder_df))
+info_Snyder<span class="op">$</span>TIGS =<span class="st"> </span>info_Snyder<span class="op">$</span>APS <span class="op">*</span><span class="st"> </span><span class="kw">log</span>(info_Snyder<span class="op">$</span>nTMB)
  
+<span class="kw">save</span>(info_Snyder, <span class="dt">file =</span> <span class="st">&quot;results/Snyder2017_Info.RData&quot;</span>)
 
-<span class="kw">write_csv</span>(<span class="dt">x =</span> uro2017, <span class="dt">path =</span> <span class="st">&quot;results/urothelial2017_results2.csv&quot;</span>)</code></pre></div>
+<span class="kw">rm</span>(<span class="dt">list =</span> <span class="kw">ls</span>())</code></pre></div>
 </div>
-<div id="compare-roc-and-survival-curves" class="section level3">
-<h3>Compare ROC and survival curves</h3>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#------------------------------------</span>
-<span class="co"># Plot ROC for data analysis results</span>
-<span class="co">#------------------------------------</span>
-<span class="kw">library</span>(pROC)
+</div>
+<div id="compare-roc-and-survival-status" class="section level3">
+<h3>Compare ROC and survival status</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(pROC)
 <span class="kw">library</span>(tidyverse)
-<span class="kw">theme_set</span>(<span class="kw">theme_bw</span>())
+<span class="co">#theme_set(theme_bw())</span>
+<span class="kw">library</span>(cowplot)
 
 cell2016 =<span class="st"> </span><span class="kw">read_csv</span>(<span class="st">&quot;results/Cell2016_results.csv&quot;</span>)
-cell2017 =<span class="st"> </span><span class="kw">read_csv</span>(<span class="st">&quot;results/BMS038_results.csv&quot;</span>)
 science2015 =<span class="st"> </span><span class="kw">read_csv</span>(<span class="st">&quot;results/science2015_results2.csv&quot;</span>) <span class="co"># to avoid TIGS &lt;0, TIGS = log(TMB +1) *APM for this dataset</span>
+<span class="co"># plos medicine 2017</span>
+urothelial2017 =<span class="st"> </span><span class="kw">read_csv</span>(<span class="st">&quot;results/urothelial2017_results.csv&quot;</span>)
 
-
+<span class="kw">load</span>(<span class="st">&quot;results/Hugo2016_Info.RData&quot;</span>)
+<span class="kw">load</span>(<span class="st">&quot;results/VanAllen2015_Info.RData&quot;</span>)
+<span class="kw">load</span>(<span class="st">&quot;results/Snyder2017_Info.RData&quot;</span>)
 
 <span class="co">#------------------------------------------</span>
-<span class="co"># cell 2016</span>
-cell2016_roc1 =<span class="st"> </span><span class="kw">roc</span>(cell2016<span class="op">$</span>Response, cell2016<span class="op">$</span>nTMB)
-cell2016_roc2 =<span class="st"> </span><span class="kw">roc</span>(cell2016<span class="op">$</span>Response, cell2016<span class="op">$</span>APM)
-cell2016_roc3 =<span class="st"> </span><span class="kw">roc</span>(cell2016<span class="op">$</span>Response, cell2016<span class="op">$</span>TIGS)
+<span class="co"># Hugo 2016</span>
+hugo2016_roc1 =<span class="st"> </span><span class="kw">roc</span>(info_hugo<span class="op">$</span>Response, info_hugo<span class="op">$</span>nTMB)
+hugo2016_roc2 =<span class="st"> </span><span class="kw">roc</span>(info_hugo<span class="op">$</span>Response, info_hugo<span class="op">$</span>APS)
+hugo2016_roc3 =<span class="st"> </span><span class="kw">roc</span>(info_hugo<span class="op">$</span>Response, info_hugo<span class="op">$</span>TIGS)
 
-<span class="kw">ggroc</span>(<span class="kw">list</span>(<span class="dt">TMB=</span>cell2016_roc1, <span class="dt">TIGS=</span>cell2016_roc3), <span class="dt">legacy.axes =</span> <span class="ot">TRUE</span>) <span class="op">+</span><span class="st"> </span>
+<span class="kw">ggroc</span>(<span class="kw">list</span>(<span class="dt">TMB=</span>hugo2016_roc1, <span class="dt">TIGS=</span>hugo2016_roc3), <span class="dt">legacy.axes =</span> <span class="ot">TRUE</span>) <span class="op">+</span><span class="st"> </span>
 <span class="st">    </span><span class="kw">labs</span>(<span class="dt">color =</span> <span class="st">&quot;Predictor&quot;</span>) <span class="op">+</span><span class="st"> </span>ggpubr<span class="op">::</span><span class="kw">theme_classic2</span>(<span class="dt">base_size =</span> <span class="dv">12</span>, <span class="dt">base_family =</span> <span class="st">&quot;Arial&quot;</span>)
 
-<span class="kw">auc</span>(cell2016_roc1)
-<span class="kw">auc</span>(cell2016_roc2)
-<span class="kw">auc</span>(cell2016_roc3)
+<span class="kw">auc</span>(hugo2016_roc1)
+<span class="kw">auc</span>(hugo2016_roc2)
+<span class="kw">auc</span>(hugo2016_roc3)
 
-<span class="co">#-------------------</span>
-<span class="co"># cell 2017</span>
-<span class="co"># cell2017_2 = cell2017 %&gt;% </span>
-<span class="co">#     mutate(Response = case_when(</span>
-<span class="co">#         BOR %in% c(&quot;CR&quot;, &quot;PR&quot;) ~ &quot;R&quot;,</span>
-<span class="co">#         BOR == &quot;PD&quot; ~&quot;NR&quot;,</span>
-<span class="co">#         TRUE ~ NA_character_</span>
-<span class="co">#     ),</span>
-<span class="co">#     TIGS = log(nTMB) * APM) %&gt;% filter(!is.na(Response))</span>
-<span class="co"># </span>
-<span class="co"># cell2017_roc1 = roc(cell2017_2$Response, cell2017_2$nTMB)</span>
-<span class="co"># cell2017_roc2 = roc(cell2017_2$Response, cell2017_2$APM)</span>
-<span class="co"># cell2017_roc3 = roc(cell2017_2$Response, cell2017_2$TIGS)</span>
-<span class="co"># </span>
-<span class="co"># ggroc(list(TMB=cell2017_roc1, TIGS=cell2017_roc3), legacy.axes = TRUE) + labs(color = &quot;Predictor&quot;)</span>
-<span class="co"># </span>
-<span class="co"># auc(cell2017_roc1)</span>
-<span class="co"># auc(cell2017_roc2)</span>
-<span class="co"># auc(cell2017_roc3)</span>
 
 <span class="co">#---------------------------</span>
-<span class="co"># Science 2015</span>
-<span class="co"># science2015_2 = science2015 %&gt;% </span>
-<span class="co">#     mutate(Response = case_when(</span>
-<span class="co">#         RECIST %in% c(&quot;CR&quot;, &quot;PR&quot;) ~ &quot;R&quot;,</span>
-<span class="co">#         RECIST == &quot;PD&quot; ~&quot;NR&quot;,</span>
-<span class="co">#         TRUE ~ NA_character_</span>
-<span class="co">#     ),</span>
-<span class="co">#     TIGS = log(nTMB) * APM) %&gt;% filter(!is.na(Response))</span>
+<span class="co"># VanAllen 2015</span>
 
-science2015_<span class="dv">2</span> =<span class="st"> </span>science2015 <span class="op">%&gt;%</span>
+info_VanAllen2 =<span class="st"> </span>info_VanAllen <span class="op">%&gt;%</span>
 <span class="st">    </span><span class="kw">mutate</span>(<span class="dt">Response =</span> <span class="kw">case_when</span>(
         group <span class="op">==</span><span class="st"> &quot;response&quot;</span> <span class="op">~</span><span class="st"> &quot;R&quot;</span>,
         group <span class="op">==</span><span class="st"> &quot;nonresponse&quot;</span> <span class="op">~</span><span class="st">&quot;NR&quot;</span>,
         <span class="ot">TRUE</span> <span class="op">~</span><span class="st"> </span><span class="ot">NA_character_</span>
-    )) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">is.na</span>(Response)) <span class="co"># ,TIGS = log(nTMB) * APM </span>
+    )) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">filter</span>(<span class="op">!</span><span class="kw">is.na</span>(Response))
 
 
-science2015_roc1 =<span class="st"> </span><span class="kw">roc</span>(science2015_<span class="dv">2</span><span class="op">$</span>Response, science2015_<span class="dv">2</span><span class="op">$</span>nTMB)
-science2015_roc2 =<span class="st"> </span><span class="kw">roc</span>(science2015_<span class="dv">2</span><span class="op">$</span>Response, science2015_<span class="dv">2</span><span class="op">$</span>APM)
-science2015_roc3 =<span class="st"> </span><span class="kw">roc</span>(science2015_<span class="dv">2</span><span class="op">$</span>Response, science2015_<span class="dv">2</span><span class="op">$</span>TIGS)
+## -- using following command if only compare patients with TIGS availble
+## -- the result are basically same
+<span class="co"># info_VanAllen2 = info_VanAllen %&gt;%</span>
+<span class="co">#     mutate(Response = case_when(</span>
+<span class="co">#         group == &quot;response&quot; ~ &quot;R&quot;,</span>
+<span class="co">#         group == &quot;nonresponse&quot; ~&quot;NR&quot;,</span>
+<span class="co">#         TRUE ~ NA_character_</span>
+<span class="co">#     )) %&gt;% filter(!is.na(Response), !is.na(TIGS))</span>
 
-<span class="kw">ggroc</span>(<span class="kw">list</span>(<span class="dt">TMB=</span>science2015_roc1, <span class="dt">TIGS=</span>science2015_roc3), <span class="dt">legacy.axes =</span> <span class="ot">TRUE</span>) <span class="op">+</span><span class="st"> </span><span class="kw">labs</span>(<span class="dt">color =</span> <span class="st">&quot;Predictor&quot;</span>) <span class="op">+</span><span class="st"> </span>
+
+VanAllen2015_roc1 =<span class="st"> </span><span class="kw">roc</span>(info_VanAllen2<span class="op">$</span>Response, info_VanAllen2<span class="op">$</span>nTMB)
+VanAllen2015_roc2 =<span class="st"> </span><span class="kw">roc</span>(info_VanAllen2<span class="op">$</span>Response, info_VanAllen2<span class="op">$</span>APS)
+VanAllen2015_roc3 =<span class="st"> </span><span class="kw">roc</span>(info_VanAllen2<span class="op">$</span>Response, info_VanAllen2<span class="op">$</span>TIGS)
+
+<span class="kw">ggroc</span>(<span class="kw">list</span>(VanAllen2015_roc1, VanAllen2015_roc3), <span class="dt">legacy.axes =</span> <span class="ot">TRUE</span>) <span class="op">+</span><span class="st"> </span><span class="kw">labs</span>(<span class="dt">color =</span> <span class="st">&quot;Predictor&quot;</span>) <span class="op">+</span><span class="st"> </span>
 <span class="st">    </span>ggpubr<span class="op">::</span><span class="kw">theme_classic2</span>(<span class="dt">base_size =</span> <span class="dv">12</span>, <span class="dt">base_family =</span> <span class="st">&quot;Arial&quot;</span>)
 
-<span class="kw">auc</span>(science2015_roc1)
-<span class="kw">auc</span>(science2015_roc2)
-<span class="kw">auc</span>(science2015_roc3)
+<span class="kw">auc</span>(VanAllen2015_roc1)
+<span class="kw">auc</span>(VanAllen2015_roc2)
+<span class="kw">auc</span>(VanAllen2015_roc3)
 
 <span class="co">#---------------------------------------</span>
-<span class="co"># plos medicine 2017</span>
-urothelial2017 =<span class="st"> </span><span class="kw">read_csv</span>(<span class="st">&quot;results/urothelial2017_results.csv&quot;</span>)
-urothelial2017<span class="op">$</span>TIGS =<span class="st"> </span><span class="kw">log</span>(urothelial2017<span class="op">$</span>nTMB) <span class="op">*</span><span class="st"> </span>urothelial2017<span class="op">$</span>APM
-<span class="co">#urothelial2017$TIGS = urothelial2017$nTMB * urothelial2017$APM</span>
-urothelial2017 =<span class="st"> </span><span class="kw">filter</span>(urothelial2017, <span class="op">!</span><span class="kw">is.na</span>(APM), <span class="op">!</span><span class="kw">is.na</span>(nTMB))
+<span class="co"># Snyder 2017</span>
 
-urothelial2017_roc1 =<span class="st"> </span><span class="kw">roc</span>(urothelial2017<span class="op">$</span>is_benefit, urothelial2017<span class="op">$</span>nTMB)
-urothelial2017_roc2 =<span class="st"> </span><span class="kw">roc</span>(urothelial2017<span class="op">$</span>is_benefit, urothelial2017<span class="op">$</span>APM)
-urothelial2017_roc3 =<span class="st"> </span><span class="kw">roc</span>(urothelial2017<span class="op">$</span>is_benefit, urothelial2017<span class="op">$</span>TIGS)
-<span class="co"># urothelial2017_roc4 = roc(urothelial2017$is_benefit, urothelial2017$TIGS2)</span>
+Snyder2017_roc1 =<span class="st"> </span><span class="kw">roc</span>(info_Snyder<span class="op">$</span>is_benefit, info_Snyder<span class="op">$</span>nTMB)
+Snyder2017_roc2 =<span class="st"> </span><span class="kw">roc</span>(info_Snyder<span class="op">$</span>is_benefit, info_Snyder<span class="op">$</span>APS)
+Snyder2017_roc3 =<span class="st"> </span><span class="kw">roc</span>(info_Snyder<span class="op">$</span>is_benefit, info_Snyder<span class="op">$</span>TIGS)
 
-
-<span class="kw">ggroc</span>(<span class="kw">list</span>(<span class="dt">TMB=</span>urothelial2017_roc1, <span class="dt">TIGS=</span>urothelial2017_roc3), <span class="dt">legacy.axes =</span> <span class="ot">TRUE</span>) <span class="op">+</span><span class="st"> </span>
+<span class="kw">ggroc</span>(<span class="kw">list</span>(<span class="dt">TMB=</span>Snyder2017_roc1, <span class="dt">TIGS=</span>Snyder2017_roc3), <span class="dt">legacy.axes =</span> <span class="ot">TRUE</span>) <span class="op">+</span><span class="st"> </span>
 <span class="st">    </span><span class="kw">labs</span>(<span class="dt">color =</span> <span class="st">&quot;Predictor&quot;</span>) <span class="op">+</span><span class="st"> </span>ggpubr<span class="op">::</span><span class="kw">theme_classic2</span>(<span class="dt">base_size =</span> <span class="dv">12</span>, <span class="dt">base_family =</span> <span class="st">&quot;Arial&quot;</span>)
 
-<span class="kw">auc</span>(urothelial2017_roc1)
-<span class="kw">auc</span>(urothelial2017_roc2)
-<span class="kw">auc</span>(urothelial2017_roc3)
-<span class="kw">auc</span>(urothelial2017_roc4)
+<span class="kw">auc</span>(Snyder2017_roc1)
+<span class="kw">auc</span>(Snyder2017_roc2)
+<span class="kw">auc</span>(Snyder2017_roc3)
 
 <span class="co"># cox</span>
 <span class="kw">library</span>(survival)
@@ -913,7 +823,7 @@ fit2 =<span class="st"> </span><span class="kw">survfit</span>(<span class="kw">
 
 <div id="postamble" data-toggle="wy-nav-shift" class="status">
 <p class="author"><span class="glyphicon glyphicon-user"></span> Shixiang Wang</p>
-<p class="date"><span class="glyphicon glyphicon-calendar"></span> 2018-12-03</p>
+<p class="date"><span class="glyphicon glyphicon-calendar"></span> 2018-12-04</p>
 </div>
 
 

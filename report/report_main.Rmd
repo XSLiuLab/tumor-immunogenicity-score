@@ -46,6 +46,7 @@ R packages:
 * [ggstatsplot](https://github.com/IndrajeetPatil/ggstatsplot) - plot scatter with linear fit
 * [corrplot](https://cran.r-project.org/web/packages/corrplot/) - plot correlation 
 * knitr, rmdformats - used to compile this file
+* readxl - read xlsx data
 * ...
 
 These R packages are easily searched by internet and have no strict version requirements to reproduce the following analyses.
