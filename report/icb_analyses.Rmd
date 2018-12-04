@@ -373,8 +373,8 @@ write_csv(x = science2015, path = "results/science2015_results2.csv")
 #### Hugo et al 2016 dataset
 
 ```{r prep_Hugo2016}
-## Ref1: Genomic and Transcriptomic Features of Response to Anti-PD-1 Therapy in Metastatic Melanoma. Cell 2016 Mar 24;165(1):35-44. PMID: 26997480
-
+##  Genomic and Transcriptomic Features of Response to Anti-PD-1 Therapy in Metastatic Melanoma. Cell 2016 Mar 24;165(1):35-44. PMID: 26997480
+suppressPackageStartupMessages(library(GEOquery))
 geo_dir = "data/GEOdata"
 
 gse = "GSE78220"
