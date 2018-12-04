@@ -283,6 +283,21 @@ rm(list = ls())
 
 Description of datasets please see preprocessing part or "Method Section" of manuscript. 
 
+TMB is a well-known biomarker and has been applied. Considering our TIGS is based on TMB, thus the most important point we wanna do in this section is comparing the prediction/clinical perfermance between TMB and TIGS.  
+
+However, some other biomarkers can predict immunotherapy response have been studied by other groups. Therefore, this section we will include following biomarkers in comparsion.
+
+* APS - antigen processing and presenting efficiency score
+* TMB - tumor mutation burden
+* TIGS - tumor immunogenicity score
+* IIS - immune infiltration score
+* [IFNG](https://www.jci.org/articles/view/91190#SEC4) - interferon gamma response biomarkers of 6 genes including *IFNG, STAT1, IDO1, CXCL10, CXCL9*, and *HLA-DRA*
+* CD8 - gene expression level of CD8A + CD8B
+* PDL1 - an immunohistochemistry (IHC) biomarker approved by FDA. This study we use *PD-L1* gene expression as the IHC surrogate
+* [TIDE](https://www.nature.com/articles/s41591-018-0136-1) - TIDE signature which integrates the expression signatures of T cell dysfunction and T cell exclusion to model tumor immune evasion.
+
+The predicted values of gene expression biomarkers (i.e. IFNG, CD8, PDL1) will be the average values among all members defined by the original publications. 
+
 ### Preprocessing of immunotherapy datasets
 
 The first step is to preprocess 3 immunotherapy datasets with gene expression, TMB and clinical outcome available. APS from Pancan analysis is used to normalize APS here.
@@ -336,8 +351,10 @@ GSE78220_Norm[,-1] = log2(GSE78220_Norm[,-1] + 1)
 applyGSVA(merged_geneList, group_col = "Cell_type", 
           gene_col = "Symbol", ExprMatList = list(GSE78220_Norm), method = "gsva") -> gsva.hugo2016
 
+gsva.hugo2016 = calc_TisIIs(gsva.hugo2016[[1]])
+
 # normalize APS
-APS_hugo = gsva.hugo2016[[1]]$APM
+APS_hugo = gsva.hugo2016$APM
 APS_hugo = (APS_hugo - min_APS) / (max_APS - min_APS) 
 
 names(APS_hugo) = colnames(GSE78220_Norm)[-1]
@@ -356,14 +373,14 @@ colnames(rna_hugo)[-1] = names(APS_hugo)
 save(rna_hugo, file = "results/Hugo2016_RNA.RData")
 
 
-GSE78220.APS = tibble(PatientID = names(APS_hugo), APS=APS_hugo)
+GSE78220.APS = tibble(PatientID = names(APS_hugo), APS=APS_hugo, IIS = gsva.hugo2016$IIS[-21])
 
 # read clincal and tmb data
 GSE_78220.TMB = read_csv("../data/Cell2016.csv")
 GSE_78220.TMB$nTMB = GSE_78220.TMB$TotalNonSyn / 38
 
 info_hugo = full_join(GSE_78220.TMB, GSE78220.APS, by = "PatientID")
-info_hugo = info_hugo[,c(1:5, 14,15, 6:13)]
+info_hugo = info_hugo[,c(1:5, 14:16, 13)]
 
 # calculate TIGS score
 info_hugo$TIGS = log(info_hugo$nTMB) * info_hugo$APS
@@ -419,7 +436,9 @@ applyGSVA(merged_geneList, group_col = "Cell_type",
           gene_col = "Symbol", 
           ExprMatList = list(science2015_ge), method = "gsva") -> gsva.VanAllen2015
 
-APS_VanAllen = gsva.VanAllen2015[[1]]$APM
+gsva.VanAllen2015 = calc_TisIIs(gsva.VanAllen2015[[1]])
+
+APS_VanAllen = gsva.VanAllen2015$APM
 names(APS_VanAllen) = colnames(science2015_ge)[-1]
 APS_VanAllen = (APS_VanAllen - min_APS) / (max_APS - min_APS)
 
@@ -432,7 +451,8 @@ colnames(rna_VanAllen)[-1] = names(APS_VanAllen)
 ## save gene experssion
 save(rna_VanAllen, file = "results/VanAllen2015_RNA.RData")
 
-APS_VanAllen_df = tibble(patient = names(APS_VanAllen), APS = APS_VanAllen)
+APS_VanAllen_df = tibble(patient = names(APS_VanAllen), APS = APS_VanAllen, 
+                         IIS = gsva.VanAllen2015$IIS)
 
 science2015_cli = bind_rows(
     dplyr::select(science2015_cli1, patient, age_start, RECIST, overall_survival, progression_free, primary, group, 
@@ -485,7 +505,9 @@ uro_rna_ge_Norm[, -1] = log2(uro_rna_ge_Norm[,-1]+1)
 applyGSVA(merged_geneList, group_col = "Cell_type", 
           gene_col = "Symbol", ExprMatList = list(uro_rna_ge_Norm), method = "gsva") -> gsva.Snyder
 
-APS_Snyder = gsva.Snyder[[1]]$APM
+gsva.Snyder = calc_TisIIs(gsva.Snyder[[1]])
+
+APS_Snyder = gsva.Snyder$APM
 APS_Snyder = (APS_Snyder - min_APS) / (max_APS - min_APS)
 
 ## save gene expression
@@ -493,7 +515,8 @@ rna_Snyder = uro_rna_ge_Norm
 save(rna_Snyder, file = "results/Snyder2017_RNA.RData")
 
 APS_Snyder_df = tibble(patient_id = colnames(uro_rna_ge_Norm)[-1], 
-                       APS = APS_Snyder)
+                       APS = APS_Snyder, 
+                       IIS = gsva.Snyder$IIS)
 
 uro_cli_2 = uro_cli %>% 
     dplyr::select(patient_id, Age, Sex, is_benefit, is_benefit_os, os, `Alive Status`) %>% 
@@ -513,18 +536,21 @@ rm(list = ls())
 ```
 
 
-### Compare ROC and survival status
+### Gene expression biomarkers for response to immune checkpoint blockade
 
-```{r eval=FALSE}
+IFNG, CD8, PDL1
+
+
+### Compare prediction ROC and survival of APS, IIS, TMB and TIGS
+
+
+#### ROC comparison
+
+```{r roc_comparison}
 library(pROC)
 library(tidyverse)
 #theme_set(theme_bw())
-library(cowplot)
-
-cell2016 = read_csv("results/Cell2016_results.csv")
-science2015 = read_csv("results/science2015_results2.csv") # to avoid TIGS <0, TIGS = log(TMB +1) *APM for this dataset
-# plos medicine 2017
-urothelial2017 = read_csv("results/urothelial2017_results.csv")
+#library(cowplot)
 
 load("results/Hugo2016_Info.RData")
 load("results/VanAllen2015_Info.RData")
@@ -535,14 +561,15 @@ load("results/Snyder2017_Info.RData")
 hugo2016_roc1 = roc(info_hugo$Response, info_hugo$nTMB)
 hugo2016_roc2 = roc(info_hugo$Response, info_hugo$APS)
 hugo2016_roc3 = roc(info_hugo$Response, info_hugo$TIGS)
+hugo2016_roc4 = roc(info_hugo$Response, info_hugo$IIS)
 
 ggroc(list(TMB=hugo2016_roc1, TIGS=hugo2016_roc3), legacy.axes = TRUE) + 
     labs(color = "Predictor") + ggpubr::theme_classic2(base_size = 12, base_family = "Arial")
 
-auc(hugo2016_roc1)
-auc(hugo2016_roc2)
-auc(hugo2016_roc3)
-
+auc(hugo2016_roc1)  # AUC of TMB
+auc(hugo2016_roc2)  # AUC of APS
+auc(hugo2016_roc3)  # AUC of TIGS
+auc(hugo2016_roc4)  # AUC of IIS
 
 #---------------------------
 # VanAllen 2015
@@ -568,13 +595,16 @@ info_VanAllen2 = info_VanAllen %>%
 VanAllen2015_roc1 = roc(info_VanAllen2$Response, info_VanAllen2$nTMB)
 VanAllen2015_roc2 = roc(info_VanAllen2$Response, info_VanAllen2$APS)
 VanAllen2015_roc3 = roc(info_VanAllen2$Response, info_VanAllen2$TIGS)
+VanAllen2015_roc4 = roc(info_VanAllen2$Response, info_VanAllen2$IIS)
 
-ggroc(list(VanAllen2015_roc1, VanAllen2015_roc3), legacy.axes = TRUE) + labs(color = "Predictor") + 
+ggroc(list(TMB=VanAllen2015_roc1,TIGS=VanAllen2015_roc3), legacy.axes = TRUE) + 
+    labs(color = "Predictor") + 
     ggpubr::theme_classic2(base_size = 12, base_family = "Arial")
 
-auc(VanAllen2015_roc1)
-auc(VanAllen2015_roc2)
-auc(VanAllen2015_roc3)
+auc(VanAllen2015_roc1)  # AUC of TMB
+auc(VanAllen2015_roc2)  # AUC of APS
+auc(VanAllen2015_roc3)  # AUC of TIGS
+auc(VanAllen2015_roc4)  # AUC of IIS
 
 #---------------------------------------
 # Snyder 2017
@@ -582,14 +612,22 @@ auc(VanAllen2015_roc3)
 Snyder2017_roc1 = roc(info_Snyder$is_benefit, info_Snyder$nTMB)
 Snyder2017_roc2 = roc(info_Snyder$is_benefit, info_Snyder$APS)
 Snyder2017_roc3 = roc(info_Snyder$is_benefit, info_Snyder$TIGS)
+Snyder2017_roc4 = roc(info_Snyder$is_benefit, info_Snyder$IIS)
 
 ggroc(list(TMB=Snyder2017_roc1, TIGS=Snyder2017_roc3), legacy.axes = TRUE) + 
     labs(color = "Predictor") + ggpubr::theme_classic2(base_size = 12, base_family = "Arial")
 
-auc(Snyder2017_roc1)
-auc(Snyder2017_roc2)
-auc(Snyder2017_roc3)
+auc(Snyder2017_roc1)  # AUC of TMB
+auc(Snyder2017_roc2)  # AUC of APS
+auc(Snyder2017_roc3)  # AUC of TIGS
+auc(Snyder2017_roc4)  # AUC of IIS
 
+
+```
+
+#### Survival comparison
+
+```{r eval=FALSE}
 # cox
 library(survival)
 library(survminer)
@@ -656,6 +694,6 @@ ggsurvplot(fit1, data = urothelial2017, pval = TRUE, fun="pct", xlab = "Time (in
 
 fit2 = survfit(Surv(os, event) ~ TIGS_Status, data = urothelial2017)
 ggsurvplot(fit2, data = urothelial2017, pval = TRUE, fun="pct", xlab = "Time (in days)")
-
 ```
+
 
