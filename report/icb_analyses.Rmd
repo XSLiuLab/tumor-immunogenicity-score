@@ -296,7 +296,7 @@ However, some other biomarkers can predict immunotherapy response have been stud
 * PDL1 - an immunohistochemistry (IHC) biomarker approved by FDA. This study we use *PD-L1* gene expression as the IHC surrogate
 * [TIDE](https://www.nature.com/articles/s41591-018-0136-1) - TIDE signature which integrates the expression signatures of T cell dysfunction and T cell exclusion to model tumor immune evasion.
 
-The predicted values of gene expression biomarkers (i.e. IFNG, CD8, PDL1) will be the average values among all members defined by the original publications. 
+The predicted values of gene expression biomarkers (i.e. IFNG, CD8, PDL1) is the average values among all members defined by the original publications. 
 
 ### Preprocessing of immunotherapy datasets
 
@@ -538,7 +538,97 @@ rm(list = ls())
 
 ### Gene expression biomarkers for response to immune checkpoint blockade
 
-IFNG, CD8, PDL1
+This section we will describe how to calculate predicted value of gene signature biomarker using gene expression data.
+
+Load data firstly.
+
+```{r}
+# library(tidyverse)
+sigList = read_csv("../data/ICBbiomarkerSignature.csv", comment = "#")
+load("results/Hugo2016_RNA.RData")
+load("results/VanAllen2015_RNA.RData")
+load("results/Snyder2017_RNA.RData")
+```
+
+Check if all gene signatures are in data.
+
+```{r}
+all(sigList$Genes %in% rna_hugo$Gene)
+all(sigList$Genes %in% rna_Snyder$gene_name)
+all(sigList$Genes %in% rna_VanAllen$symbol)
+```
+
+We got all `TRUE`. Next we retrieve all gene expression values and then calculate average.
+
+```{r}
+rna_hugo_df = rna_hugo %>% 
+    dplyr::filter(Gene %in% sigList$Genes)
+
+rna_VanAllen_df = rna_VanAllen %>% 
+    dplyr::filter(symbol %in% sigList$Genes) %>% 
+    rename(Gene = symbol)
+
+rna_Snyder_df = rna_Snyder %>% 
+    dplyr::filter(gene_name %in% sigList$Genes) %>% 
+    rename(Gene = gene_name)
+```
+
+Combine them with `sigList`, then transform these `data.frame` to long format, calculate mean gene expression and transform back to wide format.
+
+```{r}
+rna_hugo_sigExpr = rna_hugo_df %>% 
+    dplyr::right_join(sigList, by=c("Gene"="Genes")) %>% 
+    tidyr::gather(key = "sample", value = "expression", -Gene, -Signature) %>% 
+    dplyr::group_by(sample, Signature) %>% 
+    dplyr::summarise(expression = mean(expression)) %>% 
+    tidyr::spread(key=Signature, value=expression) %>% 
+    dplyr::mutate(study = "Hugo2016")
+
+rna_VanAllen_sigExpr = rna_VanAllen_df %>% 
+    dplyr::right_join(sigList, by=c("Gene"="Genes")) %>% 
+    tidyr::gather(key = "sample", value = "expression", -Gene, -Signature) %>% 
+    dplyr::group_by(sample, Signature) %>% 
+    dplyr::summarise(expression = mean(expression)) %>% 
+    tidyr::spread(key=Signature, value=expression) %>% 
+    dplyr::mutate(study = "VanAllen2015")
+
+rna_Snyder_sigExpr = rna_Snyder_df %>% 
+    dplyr::right_join(sigList, by=c("Gene"="Genes")) %>% 
+    tidyr::gather(key = "sample", value = "expression", -Gene, -Signature) %>% 
+    dplyr::group_by(sample, Signature) %>% 
+    dplyr::summarise(expression = mean(expression)) %>% 
+    tidyr::spread(key=Signature, value=expression) %>% 
+    dplyr::mutate(study = "Snyder2017")
+```
+
+Show results as tables.
+
+```{r}
+DT::datatable(rna_hugo_sigExpr, 
+              options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE, 
+              caption = "gene signature expression in Hugo 2016 dataset")
+
+DT::datatable(rna_VanAllen_sigExpr, 
+              options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE, 
+              caption = "gene signature expression in VanAllen 2015 dataset")
+
+DT::datatable(rna_Snyder_sigExpr, 
+              options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE, 
+              caption = "gene signature expression in Snyder 2017 dataset")
+```
+
+Lastly, merge the three result datasets for downstream analysis.
+
+```{r}
+GEBiomarker = dplyr::bind_rows(rna_hugo_sigExpr, rna_VanAllen_sigExpr, rna_Snyder_sigExpr)
+
+if (!file.exists("results/GEBiomarker.RData")){
+    save(GEBiomarker, file = "results/GEBiomarker.RData")
+}
+```
+
+
+### Input file generation for TIDE
 
 
 ### Compare prediction ROC and survival of APS, IIS, TMB and TIGS
