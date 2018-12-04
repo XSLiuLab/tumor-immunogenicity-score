@@ -298,183 +298,6 @@ rm(df_all)
 #### Van Allen et al 2015 dataset
 
 ```{r prep_VanAllen2015}
-
-```
-
-
-#### Hugo et al 2016 dataset
-
-```{r prep_Hugo2016}
-
-```
-
-#### Snyder et al 2017 dataset
-
-```{r pre_Snyder2017}
-
-```
-
-
-```{r, eval=FALSE}
-#-----------------------------------------------------------
-# preprocess data with both TMB and RNAseq/expression data
-#----------------------------------------------------------
-# There are nonsync mutation in common across three datasets
-# We use it as mutation load
-
-
-
-library(GEOquery)
-library(readxl)
-library(tidyverse)
-
-load("~/biodata/Own/immune_cellType.RData")
-
-##-----
-## Ref1: Genomic and Transcriptomic Features of Response to Anti-PD-1 Therapy in Metastatic Melanoma. Cell 2016 Mar 24;165(1):35-44. PMID: 26997480
-
-geo_dir = "data/GEOdata"
-
-gse = "GSE78220"
-GSE_78220 = getGEO(gse, GSEMatrix = TRUE, AnnotGPL = TRUE, destdir = geo_dir)
-GSE_78220 = GSE_78220$GSE78220_series_matrix.txt.gz
-
-# download.file(url = "https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE78220&format=file&file=GSE78220%5FPatientFPKM%2Exlsx", destfile = "data/GSE78220_FPKM.xlsx")
-
-GSE78220_FPKM = read_xlsx("data/GSE78220_FPKM.xlsx")
-GSE78220_FPKM = GSE78220_FPKM %>% 
-    as.data.frame() %>% 
-    mutate(mean_expr = rowMeans(.[, -1], na.rm = TRUE)) %>% 
-    arrange(Gene, desc(mean_expr)) %>%
-    distinct(Gene, .keep_all = TRUE) %>% 
-    dplyr::select(-mean_expr) %>% 
-    as.tibble()
-
-# pData(GSE_78220) %>% View()
-
-# applyGSVA(immune_cellType, group_col = "Cell_type", 
-#           gene_col = "Symbol", ExprMatList = list(GSE78220_FPKM), method = "gsva", kcdf = "Poisson") -> gsva.gse78220
-# 
-# APM1_1 = (gsva.gse78220[[1]]$APM)
-
-GSE78220_Norm = GSE78220_FPKM
-GSE78220_Norm[,-1] = log2(GSE78220_Norm[,-1] + 1)
-applyGSVA(immune_cellType, group_col = "Cell_type", 
-          gene_col = "Symbol", ExprMatList = list(GSE78220_Norm), method = "gsva") -> gsva.gse78220_2
-
-APM1_2 = gsva.gse78220_2[[1]]$APM
-APM1_2 = (APM1_2 - min_APM) / (max_APM - min_APM) 
-
-names(APM1_2) = colnames(GSE78220_Norm)[-1]
-APM1_2
-names(APM1_2) = sub(pattern = "(Pt.*)\\.baseline", "\\1", names(APM1_2))
-# keep biggest value
-APM1_2 = APM1_2[-21]
-names(APM1_2)[c(14, 20)] = c("Pt16", "Pt27")
-
-ge.GSE78220 = tibble(PatientID = names(APM1_2), APM=APM1_2)
-
-# read clincal and tmb data
-GSE_78220.TMB = read_csv("data/Cell2016.csv")
-GSE_78220.TMB$nTMB = GSE_78220.TMB$TotalNonSyn / 38
-#GSE_78220.TMB$nTMB = log(GSE_78220.TMB$TotalNonSyn+1)
-
-Cell2016 = full_join(GSE_78220.TMB, ge.GSE78220, by = "PatientID")
-Cell2016 = Cell2016[,c(1:5, 14,15, 6:13)]
-
-Cell2016 %>% filter(!is.na(APM)) %>% 
-    summarise(MedianAPM = median(APM, na.rm=TRUE), MedianTMB = median(nTMB, na.rm = TRUE), 
-              ORR = sum(Response=="R")/n(), N = n())
-
-# calculate TIGS score
-Cell2016$TIGS = log(Cell2016$nTMB + 1) * Cell2016$APM 
-#Cell2016$TIGS = Cell2016$nTMB * Cell2016$APM 
-
-# save(Cell2016, file = "data/Cell2016.RData")
-write_csv(Cell2016, "results/Cell2016_results2.csv")
-
-#-------------------------------------
-# Cell 2017 : Tumor and Microenvironment Evolution during Immunotherapy with Nivolumab
-# BMS038
-
-BMS038_Clinical = read_csv("data/bms038_clinical_data.csv")
-BMS038_TMB = read_csv("data/pre_therapy_nonsynonmous_mutations.csv")
-
-BMS038_GE = read.delim("data/CountData.BMS038.txt")
-
-BMS038_GE= BMS038_GE %>% 
-    as.data.frame() %>% 
-    mutate(mean_expr = rowMeans(.[, -119], na.rm = TRUE)) %>% 
-    arrange(HUGO, desc(mean_expr)) %>%
-    distinct(HUGO, .keep_all = TRUE) %>% 
-    dplyr::select(-mean_expr) %>% 
-    as.tibble() %>% 
-    dplyr::select(HUGO, everything())
-
-BMS038_GE.pre = BMS038_GE %>% 
-    dplyr::select(HUGO, ends_with("Pre"))
-
-BMS038_GE.on = BMS038_GE %>%
-    dplyr::select(HUGO, ends_with("On"))
-
-# normalize the data
-BMS038_GE.pre.n = BMS038_GE.pre
-BMS038_GE.pre.n[, -1] = log2(BMS038_GE.pre.n[, -1] + 1)
-
-BMS038_GE.on.n = BMS038_GE.on
-BMS038_GE.on.n[, -1] = log2(BMS038_GE.on.n[, -1] + 1)
-
-BMS038_GE.pre.n = BMS038_GE.pre.n %>% filter(!is.na(HUGO))
-BMS038_GE.on.n = BMS038_GE.on.n %>% filter(!is.na(HUGO))
-
-applyGSVA(immune_cellType, group_col = "Cell_type", 
-          gene_col = "Symbol", ExprMatList = list(BMS038_GE.pre.n), method = "gsva") -> gsva.bms038.pre
-applyGSVA(immune_cellType, group_col = "Cell_type", 
-          gene_col = "Symbol", ExprMatList = list(BMS038_GE.on.n), method = "gsva") -> gsva.bms038.on
-
-boxplot(gsva.bms038.pre[[1]]$APM)
-boxplot(gsva.bms038.on[[1]]$APM)
-wilcox.test(gsva.bms038.pre[[1]]$APM, gsva.bms038.on[[1]]$APM)
-median(gsva.bms038.pre[[1]]$APM)
-median(gsva.bms038.on[[1]]$APM)
-
-# we use pre treatment data to predict ORR
-BMS038_APM.pre = gsva.bms038.pre[[1]]$APM
-colnames(BMS038_GE.pre.n) = sub("_Pre", "", colnames(BMS038_GE.pre.n))
-names(BMS038_APM.pre) = colnames(BMS038_GE.pre.n)[-1]
-
-BMS038_APM.on = gsva.bms038.on[[1]]$APM
-colnames(BMS038_GE.on.n) = sub("_On", "", colnames(BMS038_GE.on.n))
-names(BMS038_APM.on) = colnames(BMS038_GE.on.n)[-1]
-
-identical(names(BMS038_APM.pre), names(BMS038_APM.on))
-
-BMS038_APM = tibble(PatientID = names(BMS038_APM.pre), APM = BMS038_APM.pre, APM_on = BMS038_APM.on[names(BMS038_APM.pre)])
-
-# normlized to [0, 1]
-BMS038_APM$APM = (BMS038_APM$APM - min_APM) / (max_APM - min_APM)
-BMS038_APM$APM_on = (BMS038_APM$APM_on - min_APM) / (max_APM - min_APM)
-# summary BMS038 TMB data
-BMS038_TMB.summary = BMS038_TMB %>% 
-    group_by(Patient) %>% 
-    summarise(TotalNonSyn = n(), nTMB = TotalNonSyn / 38)
-
-# join them
-BMS038 = full_join(full_join(BMS038_Clinical, BMS038_APM, by="PatientID"), BMS038_TMB.summary, by = c("PatientID" = "Patient"))
-
-BMS038$TIGS = BMS038$APM * log(BMS038$nTMB +1)
-
-# summary 
-BMS038_summary = BMS038 %>% 
-    filter(!is.na(APM), !is.na(TotalNonSyn)) %>% 
-    summarise(N=n(), R=sum(BOR %in% c("CR", "PR")), MedianAPM = median(APM), MedianTMB = median(nTMB))
-BMS038_summary
-
-median(BMS038_TMB.summary$nTMB)
-BMS038_Clinical %>% summarise(N=n(), R = sum(BOR %in% c("CR", "PR")))
-
-write_csv(x = BMS038, path = "results/BMS038_results2.csv")
-
 #----------------------------------------------------------
 # Science 2015: Genomic correlates of response to CTLA4 blockade in metastatic melanoma
 #--------------------------
@@ -483,7 +306,6 @@ science2015_TMB = read_xlsx("data/Science2015_TMB_List_AllPatients.xlsx")
 science2015_cli1 = read_xlsx("data/Science2015_Clinical.xlsx", sheet = 1)
 science2015_cli2 = read_xlsx("data/Science2015_Clinical.xlsx", sheet = 2)
 science2015_rna = read_tsv("data/MEL-IPI-Share.rpkm.gct")
-# science2015_rna_raw = read_tsv("data/MEL-IPI-Share.reads.gct")
 
 #---- Preprocess
 vc.nonSilent = c("Frame_Shift_Del", "Frame_Shift_Ins", "Splice_Site", "Translation_Start_Site",
@@ -545,7 +367,78 @@ science2015 = full_join(full_join(science2015_cli, science2015_APM_df, by = "pat
 science2015$TIGS = science2015$APM * log(science2015$nTMB +1)
 write_csv(x = science2015, path = "results/science2015_results2.csv")
 
+```
 
+
+#### Hugo et al 2016 dataset
+
+```{r prep_Hugo2016}
+## Ref1: Genomic and Transcriptomic Features of Response to Anti-PD-1 Therapy in Metastatic Melanoma. Cell 2016 Mar 24;165(1):35-44. PMID: 26997480
+
+geo_dir = "data/GEOdata"
+
+gse = "GSE78220"
+GSE_78220 = getGEO(gse, GSEMatrix = TRUE, AnnotGPL = TRUE, destdir = geo_dir)
+GSE_78220 = GSE_78220$GSE78220_series_matrix.txt.gz
+
+# download.file(url = "https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE78220&format=file&file=GSE78220%5FPatientFPKM%2Exlsx", destfile = "data/GSE78220_FPKM.xlsx")
+
+GSE78220_FPKM = read_xlsx("data/GSE78220_FPKM.xlsx")
+GSE78220_FPKM = GSE78220_FPKM %>% 
+    as.data.frame() %>% 
+    mutate(mean_expr = rowMeans(.[, -1], na.rm = TRUE)) %>% 
+    arrange(Gene, desc(mean_expr)) %>%
+    distinct(Gene, .keep_all = TRUE) %>% 
+    dplyr::select(-mean_expr) %>% 
+    as.tibble()
+
+# pData(GSE_78220) %>% View()
+
+# applyGSVA(immune_cellType, group_col = "Cell_type", 
+#           gene_col = "Symbol", ExprMatList = list(GSE78220_FPKM), method = "gsva", kcdf = "Poisson") -> gsva.gse78220
+# 
+# APM1_1 = (gsva.gse78220[[1]]$APM)
+
+GSE78220_Norm = GSE78220_FPKM
+GSE78220_Norm[,-1] = log2(GSE78220_Norm[,-1] + 1)
+applyGSVA(immune_cellType, group_col = "Cell_type", 
+          gene_col = "Symbol", ExprMatList = list(GSE78220_Norm), method = "gsva") -> gsva.gse78220_2
+
+APM1_2 = gsva.gse78220_2[[1]]$APM
+APM1_2 = (APM1_2 - min_APM) / (max_APM - min_APM) 
+
+names(APM1_2) = colnames(GSE78220_Norm)[-1]
+APM1_2
+names(APM1_2) = sub(pattern = "(Pt.*)\\.baseline", "\\1", names(APM1_2))
+# keep biggest value
+APM1_2 = APM1_2[-21]
+names(APM1_2)[c(14, 20)] = c("Pt16", "Pt27")
+
+ge.GSE78220 = tibble(PatientID = names(APM1_2), APM=APM1_2)
+
+# read clincal and tmb data
+GSE_78220.TMB = read_csv("data/Cell2016.csv")
+GSE_78220.TMB$nTMB = GSE_78220.TMB$TotalNonSyn / 38
+#GSE_78220.TMB$nTMB = log(GSE_78220.TMB$TotalNonSyn+1)
+
+Cell2016 = full_join(GSE_78220.TMB, ge.GSE78220, by = "PatientID")
+Cell2016 = Cell2016[,c(1:5, 14,15, 6:13)]
+
+Cell2016 %>% filter(!is.na(APM)) %>% 
+    summarise(MedianAPM = median(APM, na.rm=TRUE), MedianTMB = median(nTMB, na.rm = TRUE), 
+              ORR = sum(Response=="R")/n(), N = n())
+
+# calculate TIGS score
+Cell2016$TIGS = log(Cell2016$nTMB + 1) * Cell2016$APM 
+#Cell2016$TIGS = Cell2016$nTMB * Cell2016$APM 
+
+# save(Cell2016, file = "data/Cell2016.RData")
+write_csv(Cell2016, "results/Cell2016_results2.csv")
+```
+
+#### Snyder et al 2017 dataset
+
+```{r pre_Snyder2017}
 #----------------------------------------------------------------
 # Contribution of systemic and somatic factors to clinical response and resistance in urothelial cancer: an exploratory multi-omic analysis
 #---------------------------------------------------------------
@@ -595,6 +488,26 @@ uro2017$TIGS2 = uro2017$APM * log(uro2017$nTMB)
  
 
 write_csv(x = uro2017, path = "results/urothelial2017_results2.csv")
+```
+
+
+```{r, eval=FALSE}
+#-----------------------------------------------------------
+# preprocess data with both TMB and RNAseq/expression data
+#----------------------------------------------------------
+# There are nonsync mutation in common across three datasets
+# We use it as mutation load
+
+
+
+library(GEOquery)
+library(readxl)
+library(tidyverse)
+
+load("~/biodata/Own/immune_cellType.RData")
+
+##-----
+
 
 ```
 
