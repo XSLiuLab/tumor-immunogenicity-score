@@ -9,7 +9,7 @@ applyGSVA = function(group_df, group_col, gene_col, ExprMatList,
         stop("GSVA package need to be installed!")
     }
     
-    library(parallel)
+    #library(parallel)
     
     method = match.arg(method)
     kcdf = match.arg(kcdf)
