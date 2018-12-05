@@ -893,61 +893,334 @@ if (!file.exists("results/roc_comparison_result.RData")) {
 ### Survival comparison
 
 
-Above we already show APS, TMB, TIGS and TIDE are good predictors, this section we focus on them. We separate patients into High and Low group in survival analysis based on median biomarker predicted value.
+Above we already show APS, TMB, TIGS and TIDE are good predictors, this section we focus on them. We use cox model and separate patients into High and Low group in K-M survival analysis based on median biomarker predicted value.
 
-```{r eval=FALSE}
+```{r}
 library(survival)
 library(survminer)
 
 #----------------------
 # Hugo 2016
 hugo_os = read_csv("../data/cell2016_OS.csv", col_types = cols())
-cell2016 = full_join(cell2016, cell2016_os, by="PatientID")
+info_hugo = full_join(info_hugo, hugo_os, by="PatientID")
 
-coxph(Surv(OverallSurvival, VitalStatus == "Dead") ~ nTMB, data = cell2016)
-coxph(Surv(OverallSurvival, VitalStatus == "Dead") ~ TIGS, data = cell2016)
-coxph(Surv(OverallSurvival, VitalStatus == "Dead") ~ APM, data = cell2016)
+# Cox model
 
-cell2016 %>% mutate(
+# Cox result of TMB
+coxph(Surv(OverallSurvival, VitalStatus == "Dead") ~ nTMB, data = info_hugo)
+
+# Cox result of APS
+coxph(Surv(OverallSurvival, VitalStatus == "Dead") ~ APS, data = info_hugo)
+
+# Cox result of TIGS
+coxph(Surv(OverallSurvival, VitalStatus == "Dead") ~ TIGS, data = info_hugo)
+
+# Cox result of TIDE
+coxph(Surv(OverallSurvival, VitalStatus == "Dead") ~ TIDE, data = info_hugo)
+
+
+# K-M fit
+info_hugo %>%  # take care of NA values
+  mutate(APS_Status = ifelse(APS>median(APS, na.rm = TRUE), "High", 
+                        ifelse(is.na(APS), NA, "Low")),
+    TIDE_Status = ifelse(TIDE>median(TIDE, na.rm = TRUE), "High",
+                         ifelse(is.na(TIDE), NA, "Low")),
     TMB_Status = ifelse(nTMB>median(nTMB), "High", "Low"),
     TIGS_Status = ifelse(TIGS>median(TIGS, na.rm = TRUE), "High",
-                         ifelse(is.na(TIGS), NA, "Low"))) -> cell2016
+                         ifelse(is.na(TIGS), NA, "Low"))) -> info_hugo2
 
-fit1 = survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ TMB_Status, data = cell2016)
-ggsurvplot(fit1, data = cell2016, pval = TRUE, fun = "pct", 
+# effect of TMB status on survival 
+fit1 = survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ TMB_Status, data = info_hugo2)
+ggsurvplot(fit1, data = info_hugo2, pval = TRUE, fun = "pct", 
            xlab = "Time (in days)")
 
-fit2 = survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ TIGS_Status, data = cell2016)
-ggsurvplot(fit2, data = cell2016, pval = TRUE, fun="pct", xlab = "Time (in days)")
+# effect of TIGS status on survival 
+fit2 = survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ TIGS_Status, data = info_hugo2)
+ggsurvplot(fit2, data = info_hugo2, pval = TRUE, fun="pct", xlab = "Time (in days)")
 
 
-# science 2015
-science2015 %>% mutate(TIGS = log(nTMB) * APM,
-                    TMB_Status = ifelse(nTMB>median(nTMB, na.rm = TRUE), "High",
-                                        ifelse(is.na(nTMB), NA, "Low")),
-                    TIGS_Status = ifelse(TIGS>median(TIGS, na.rm = TRUE), "High",
-                                         ifelse(is.na(TIGS), NA, "Low")))  %>% 
-    filter(group != "long-survival") -> science2015
+# effect of APS status on survival 
+fit3 = survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ APS_Status, data = info_hugo2)
+ggsurvplot(fit3, data = info_hugo2, pval = TRUE, fun = "pct", 
+           xlab = "Time (in days)")
 
-fit1 = survfit(Surv(overall_survival, dead== 1) ~ TMB_Status, data = science2015)
-ggsurvplot(fit1, data = science2015, pval = TRUE, fun="pct", xlab = "Time (in days)")
+# effect of TIDE status on survival 
+fit4 = survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ TIDE_Status, data = info_hugo2)
+ggsurvplot(fit4, data = info_hugo2, pval = TRUE, fun="pct", xlab = "Time (in days)")
 
-fit2 = survfit(Surv(overall_survival, dead== 1) ~ TIGS_Status, data = science2015)
-ggsurvplot(fit2, data = science2015, pval = TRUE, fun="pct", xlab = "Time (in days)")
+#----------------------
+# Van Allen 2015
 
-#--- plos medicine 2017
-urothelial2017 %>% mutate(TMB_Status = ifelse(nTMB>median(nTMB, na.rm = TRUE), "High",
-                                           ifelse(is.na(nTMB), NA, "Low")),
-                       TIGS_Status = ifelse(TIGS>median(TIGS, na.rm = TRUE), "High",
-                                            ifelse(is.na(TIGS), NA, "Low")))  -> urothelial2017
+# Cox model
 
-fit1 = survfit(Surv(os, event) ~ TMB_Status, data = urothelial2017)
-ggsurvplot(fit1, data = urothelial2017, pval = TRUE, fun="pct", xlab = "Time (in days)")
+# Cox result of TMB
+coxph(Surv(overall_survival, dead== 1) ~ nTMB, data = info_VanAllen)
 
-fit2 = survfit(Surv(os, event) ~ TIGS_Status, data = urothelial2017)
-ggsurvplot(fit2, data = urothelial2017, pval = TRUE, fun="pct", xlab = "Time (in days)")
+# Cox result of APS
+coxph(Surv(overall_survival, dead== 1) ~ APS, data = info_VanAllen)
+
+# Cox result of TIGS
+coxph(Surv(overall_survival, dead== 1) ~ TIGS, data = info_VanAllen)
+
+# Cox result of TIDE
+coxph(Surv(overall_survival, dead== 1) ~ TIDE, data = info_VanAllen)
+
+info_VanAllen %>% 
+  filter(group != "long-survival") %>% 
+  mutate(APS_Status = ifelse(APS>median(APS, na.rm = TRUE), "High", 
+                             ifelse(is.na(APS), NA, "Low")),
+         TIDE_Status = ifelse(TIDE>median(TIDE, na.rm = TRUE), "High", 
+                              ifelse(is.na(TIDE), NA, "Low")),
+         TMB_Status = ifelse(nTMB>median(nTMB, na.rm = TRUE), "High",
+                              ifelse(is.na(nTMB), NA, "Low")),
+         TIGS_Status = ifelse(TIGS>median(TIGS, na.rm = TRUE), "High",
+                              ifelse(is.na(TIGS), NA, "Low")))  -> info_VanAllen3
+
+# effect of TMB status on survival 
+fit1 = survfit(Surv(overall_survival, dead== 1) ~ TMB_Status, data = info_VanAllen3)
+ggsurvplot(fit1, data = info_VanAllen3, pval = TRUE, fun = "pct", 
+           xlab = "Time (in days)")
+
+# effect of TIGS status on survival 
+fit2 = survfit(Surv(overall_survival, dead== 1) ~ TIGS_Status, data = info_VanAllen3)
+ggsurvplot(fit2, data = info_VanAllen3, pval = TRUE, fun="pct", xlab = "Time (in days)")
+
+
+# effect of APS status on survival 
+fit3 = survfit(Surv(overall_survival, dead== 1) ~ APS_Status, data = info_VanAllen3)
+ggsurvplot(fit3, data = info_VanAllen3, pval = TRUE, fun = "pct", 
+           xlab = "Time (in days)")
+
+# effect of TIDE status on survival 
+fit4 = survfit(Surv(overall_survival, dead== 1) ~ TIDE_Status, data = info_VanAllen3)
+ggsurvplot(fit4, data = info_VanAllen3, pval = TRUE, fun="pct", xlab = "Time (in days)")
+
+#----------------------
+# Snyder 2017
+
+# Cox model
+
+# Cox result of TMB
+coxph(Surv(os, event) ~ nTMB, data = info_Snyder)
+
+# Cox result of APS
+coxph(Surv(os, event) ~ APS, data = info_Snyder)
+
+# Cox result of TIGS
+coxph(Surv(os, event) ~ TIGS, data = info_Snyder)
+
+# Cox result of TIDE
+coxph(Surv(os, event) ~ TIDE, data = info_Snyder)
+
+
+info_Snyder %>% 
+  mutate(APS_Status = ifelse(APS>median(APS, na.rm = TRUE), "High", 
+                             ifelse(is.na(APS), NA, "Low")),
+         TIDE_Status = ifelse(TIDE>median(TIDE, na.rm = TRUE), "High", 
+                              ifelse(is.na(TIDE), NA, "Low")),
+         TMB_Status = ifelse(nTMB>median(nTMB, na.rm = TRUE), "High",
+                              ifelse(is.na(nTMB), NA, "Low")),
+         TIGS_Status = ifelse(TIGS>median(TIGS, na.rm = TRUE), "High",
+                              ifelse(is.na(TIGS), NA, "Low")))  -> info_Snyder2
+
+# effect of TMB status on survival 
+fit1 = survfit(Surv(os, event) ~ TMB_Status, data = info_Snyder2)
+ggsurvplot(fit1, data = info_Snyder2, pval = TRUE, fun = "pct", 
+           xlab = "Time (in days)")
+
+# effect of TIGS status on survival 
+fit2 = survfit(Surv(os, event) ~ TIGS_Status, data = info_Snyder2)
+ggsurvplot(fit2, data = info_Snyder2, pval = TRUE, fun="pct", xlab = "Time (in days)")
+
+
+# effect of APS status on survival 
+fit3 = survfit(Surv(os, event) ~ APS_Status, data = info_Snyder2)
+ggsurvplot(fit3, data = info_Snyder2, pval = TRUE, fun = "pct", 
+           xlab = "Time (in days)")
+
+# effect of TIDE status on survival 
+fit4 = survfit(Surv(os, event) ~ TIDE_Status, data = info_Snyder2)
+ggsurvplot(fit4, data = info_Snyder2, pval = TRUE, fun="pct", xlab = "Time (in days)")
+
 ```
+
+From comparison of cox results and K-M plots above, we can conclude that:
+
+* TIGS is very robust, in all three datasets, "High group" all show statistically significant better survival than "Low group".
+* TIDE performs just so-so in Hugo 2016 dataset, very good in Van Allen 2015 dataset. But, it losts its power in Snyder 2017 dataset, patients with low TIDE value should have better survival but in this dataset patients with high TIDE value have better survival.
+* Patients with High TMB or APS in three datasets all show trends of better survival but not statistically significant.
+
+
+Next, we summary results (cox HR value and K-M fit) above for final visualization.
+
+```{r summary_cox_km}
+# summary cox result
+cox_TMB = list()
+cox_APS = list()
+cox_TIGS = list()
+cox_TIDE = list()
+
+summary(coxph(Surv(OverallSurvival, VitalStatus == "Dead") ~ nTMB, data = info_hugo)) -> cox_TMB[[1]]
+summary(coxph(Surv(OverallSurvival, VitalStatus == "Dead") ~ APS, data = info_hugo)) -> cox_APS[[1]]
+summary(coxph(Surv(OverallSurvival, VitalStatus == "Dead") ~ TIGS, data = info_hugo)) -> cox_TIGS[[1]]
+summary(coxph(Surv(OverallSurvival, VitalStatus == "Dead") ~ TIDE, data = info_hugo)) -> cox_TIDE[[1]]
+
+summary(coxph(Surv(overall_survival, dead== 1) ~ nTMB, data = info_VanAllen)) -> cox_TMB[[2]]
+summary(coxph(Surv(overall_survival, dead== 1) ~ APS, data = info_VanAllen)) -> cox_APS[[2]]
+summary(coxph(Surv(overall_survival, dead== 1) ~ TIGS, data = info_VanAllen)) -> cox_TIGS[[2]]
+summary(coxph(Surv(overall_survival, dead== 1) ~ TIDE, data = info_VanAllen)) -> cox_TIDE[[2]]
+
+summary(coxph(Surv(os, event) ~ nTMB, data = info_Snyder)) -> cox_TMB[[3]]
+summary(coxph(Surv(os, event) ~ APS, data = info_Snyder))  -> cox_APS[[3]]
+summary(coxph(Surv(os, event) ~ TIGS, data = info_Snyder)) -> cox_TIGS[[3]]
+summary(coxph(Surv(os, event) ~ TIDE, data = info_Snyder)) -> cox_TIDE[[3]]
+
+cox_df = tibble(
+  Group = c(rep("Hugo2016",4), rep("VanAllen2015",4), rep("Snyder2017",4)),
+  Biomarker = rep(c("TMB", "APS", "TIGS", "TIDE"), 3),
+  HR = c(
+    as.numeric(cox_TMB[[1]]$conf.int[1]),
+    as.numeric(cox_APS[[1]]$conf.int[1]),
+    as.numeric(cox_TIGS[[1]]$conf.int[1]),
+    as.numeric(cox_TIDE[[1]]$conf.int[1]),
+    as.numeric(cox_TMB[[2]]$conf.int[1]),
+    as.numeric(cox_APS[[2]]$conf.int[1]),
+    as.numeric(cox_TIGS[[2]]$conf.int[1]),
+    as.numeric(cox_TIDE[[2]]$conf.int[1]),
+    as.numeric(cox_TMB[[3]]$conf.int[1]),
+    as.numeric(cox_APS[[3]]$conf.int[1]),
+    as.numeric(cox_TIGS[[3]]$conf.int[1]),
+    as.numeric(cox_TIDE[[3]]$conf.int[1])
+  ),
+  Pvalue = c(
+    as.numeric(cox_TMB[[1]]$logtest["pvalue"]),
+    as.numeric(cox_APS[[1]]$logtest["pvalue"]),
+    as.numeric(cox_TIGS[[1]]$logtest["pvalue"]),
+    as.numeric(cox_TIDE[[1]]$logtest["pvalue"]),
+    as.numeric(cox_TMB[[2]]$logtest["pvalue"]),
+    as.numeric(cox_APS[[2]]$logtest["pvalue"]),
+    as.numeric(cox_TIGS[[2]]$logtest["pvalue"]),
+    as.numeric(cox_TIDE[[2]]$logtest["pvalue"]),
+    as.numeric(cox_TMB[[3]]$logtest["pvalue"]),
+    as.numeric(cox_APS[[3]]$logtest["pvalue"]),
+    as.numeric(cox_TIGS[[3]]$logtest["pvalue"]),
+    as.numeric(cox_TIDE[[3]]$logtest["pvalue"])
+  )
+)
+
+# show summary data as table
+DT::datatable(cox_df, 
+              options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE, 
+              caption = "HR of biomarkers for response prediction in three ICB datasets")
+
+
+# summary K-M fit
+km_TMB = list()
+km_APS = list()
+km_TIGS = list()
+km_TIDE = list()
+
+
+km_TMB[["Hugo"]] = survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ TMB_Status, data = info_hugo2)
+km_APS[["Hugo"]] = survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ TIGS_Status, data = info_hugo2)
+km_TIGS[["Hugo"]] = survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ APS_Status, data = info_hugo2)
+km_TIDE[["Hugo"]] = survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ TIDE_Status, data = info_hugo2)
+
+km_TMB[["VanAllen"]] = survfit(Surv(overall_survival, dead== 1) ~ TMB_Status, data = info_VanAllen3)
+km_APS[["VanAllen"]] = survfit(Surv(overall_survival, dead== 1) ~ TIGS_Status, data = info_VanAllen3)
+km_TIGS[["VanAllen"]] = survfit(Surv(overall_survival, dead== 1) ~ APS_Status, data = info_VanAllen3)
+km_TIDE[["VanAllen"]] = survfit(Surv(overall_survival, dead== 1) ~ TIDE_Status, data = info_VanAllen3)
+
+ 
+km_TMB[["Snyder"]] = survfit(Surv(os, event) ~ TMB_Status, data = info_Snyder2)
+km_APS[["Snyder"]] = survfit(Surv(os, event) ~ TIGS_Status, data = info_Snyder2)
+km_TIGS[["Snyder"]] = survfit(Surv(os, event) ~ APS_Status, data = info_Snyder2)
+km_TIDE[["Snyder"]] = survfit(Surv(os, event) ~ TIDE_Status, data = info_Snyder2)
+
+
+km_fit = list(TMB=km_TMB, APS=km_APS, TIGS=km_TIGS, TIDE=km_TIDE)
+
+if (!file.exists("results/cox_km_result.RData")) {
+  save(cox_df, km_fit, file = "results/cox_km_result.RData")
+}
+```
+
 
 ### Visualization of comparison profile
 
+This section we visualize comparsion profile, integrate analysis results of 3 immunotherapy datasets into a big figure.
+
+```{r}
+# make sure these package are loaded 
+library(pROC)
+library(ggsci)
+library(ggplot2)
+suppressPackageStartupMessages(library(cowplot))
+
+```
+
+Integrate ROC curve.
+
+```{r, fig.height=10}
+theme_set(cowplot::theme_cowplot())
+
+##-------- ROC
+
+# Van Allen 
+p_roc_1 = ggroc(list(TMB=roc_df$TMB[[2]], TIDE=roc_df$TIDE[[2]], TIGS=roc_df$TIGS[[2]]), legacy.axes = TRUE) + 
+  labs(color = "") + scale_color_manual(values = c("blue", "red", "black")) +  theme(legend.position = "top") 
+# Hugo      
+p_roc_2 = ggroc(list(TMB=roc_df$TMB[[1]], TIGS=roc_df$TIGS[[1]], TIDE=roc_df$TIDE[[1]]), legacy.axes = TRUE) + 
+  labs(color = "") + scale_color_manual(values = c("blue", "red", "black")) +  theme(legend.position = "none")
+# Snyder
+p_roc_3 = ggroc(list(TMB=roc_df$TMB[[3]], TIGS=roc_df$TIGS[[3]], TIDE=roc_df$TIDE[[3]]), legacy.axes = TRUE) + 
+  labs(color = "") + scale_color_manual(values = c("blue", "red", "black")) +  theme(legend.position = "none")
+
+plot_grid(p_roc_1, p_roc_2, p_roc_3, nrow = 3)
+
+```
+
+```{r}
+##-------- AUC values
+auc_df_long = auc_df %>% 
+  tidyr::gather(key = "biomarker", value = "auc", -Group)
+
+#p_auc_1 = 
+auc_df_long$auc = round(auc_df_long$auc, digits = 3)
+  
+auc_df_long %>% 
+  filter(Group == "VanAllen2015") %>% 
+  ggplot(aes(x=biomarker, y=auc)) +  
+  geom_bar(stat = "identity", fill="lightblue") + 
+  geom_text(aes(label=auc), hjust=-0.2) +
+  geom_hline(yintercept = 0.5, linetype=2) + 
+  ylim(0, 0.8) + ylab("AUC") + theme(axis.title.y = element_blank()) +
+  coord_flip() -> p_auc_1
+
+auc_df_long %>% 
+  filter(Group == "Hugo2016") %>% 
+  ggplot(aes(x=biomarker, y=auc)) +  
+  geom_bar(stat = "identity", fill="lightblue") + 
+  geom_text(aes(label=auc), hjust=-0.2) +
+  geom_hline(yintercept = 0.5, linetype=2) + 
+  ylim(0, 0.8) + ylab("AUC") + theme(axis.title.y = element_blank()) +
+  coord_flip() -> p_auc_2
+
+auc_df_long %>% 
+  filter(Group == "Snyder2017") %>% 
+  ggplot(aes(x=biomarker, y=auc)) +  
+  geom_bar(stat = "identity", fill="lightblue") + 
+  geom_text(aes(label=auc), hjust=-0.2) +
+  geom_hline(yintercept = 0.5, linetype=2) + 
+  ylim(0, 0.8) + ylab("AUC") + theme(axis.title.y = element_blank()) +
+  coord_flip() -> p_auc_3
+
+
+```
+
+```{r}
+#--- KM-plots
+ggsurvplot(km_APS$VanAllen, pval = TRUE, fun = "pct", 
+           xlab = "Time (in days)", palette = c("red", "blue"))
+```
 
