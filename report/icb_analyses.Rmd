@@ -77,7 +77,7 @@ We plot ORR against APS, TMB respectively, and fit their relationship with linea
 Load pan-cancer ORR data and show it as a table.
 
 ```{r}
-sm_data = read_csv("../data/summary_data_new_20180906.csv")
+sm_data = read_csv("../data/summary_data_new_20180906.csv", col_types = cols())
 
 DT::datatable(sm_data, 
               options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE)
@@ -376,7 +376,7 @@ save(rna_hugo, file = "results/Hugo2016_RNA.RData")
 GSE78220.APS = tibble(PatientID = names(APS_hugo), APS=APS_hugo, IIS = gsva.hugo2016$IIS[-21])
 
 # read clincal and tmb data
-GSE_78220.TMB = read_csv("../data/Cell2016.csv")
+GSE_78220.TMB = read_csv("../data/Cell2016.csv", col_types = cols())
 GSE_78220.TMB$nTMB = GSE_78220.TMB$TotalNonSyn / 38
 
 info_hugo = full_join(GSE_78220.TMB, GSE78220.APS, by = "PatientID")
@@ -400,7 +400,7 @@ suppressPackageStartupMessages(library(tidyverse))
 science2015_TMB = read_xlsx("../data/Science2015_TMB_List_AllPatients.xlsx")
 science2015_cli1 = read_xlsx("../data/Science2015_Clinical.xlsx", sheet = 1)
 science2015_cli2 = read_xlsx("../data/Science2015_Clinical.xlsx", sheet = 2)
-science2015_rna = read_tsv("../data/MEL-IPI-Share.rpkm.gct")
+science2015_rna = read_tsv("../data/MEL-IPI-Share.rpkm.gct", col_types = cols())
 
 #---- Preprocess
 vc.nonSilent = c("Frame_Shift_Del", "Frame_Shift_Ins", "Splice_Site", "Translation_Start_Site",
@@ -480,11 +480,11 @@ save(info_VanAllen, file = "results/VanAllen2015_Info.RData")
 # This is a fork repository, original link can also be found in this link
 
 library(tidyverse)
-uro_cli = read_csv("../data/data_clinical.csv")
-uro_counts = read_csv("../data/data_counts.csv")
+uro_cli = read_csv("../data/data_clinical.csv", col_types = cols())
+uro_counts = read_csv("../data/data_counts.csv", col_types = cols())
 uro_variants = read_csv("../data/data_variants.csv",
                         col_types = "c??????")
-uro_rna = read_csv("../data/data_kallisto.csv")
+uro_rna = read_csv("../data/data_kallisto.csv", col_types = cols())
 uro_rna_wide = reshape2::dcast(uro_rna, gene_name ~ patient_id, value.var = "est_counts")
 
 # try remove duplicated genes
@@ -544,7 +544,7 @@ Load data firstly.
 
 ```{r}
 # library(tidyverse)
-sigList = read_csv("../data/ICBbiomarkerSignature.csv", comment = "#")
+sigList = read_csv("../data/ICBbiomarkerSignature.csv", comment = "#", col_types = cols())
 load("results/Hugo2016_RNA.RData")
 load("results/VanAllen2015_RNA.RData")
 load("results/Snyder2017_RNA.RData")
@@ -688,9 +688,9 @@ load("results/GEBiomarker.RData")
 
 # Of note, output csv from TIDE website has extra "" in last line
 #          please remove it before load data
-TIDE_hugo = read_csv("results/TIDE_output_hugo.csv")
-TIDE_Snyder = read_csv("results/TIDE_output_Snyder.csv")
-TIDE_VanAllen = read_csv("results/TIDE_output_VanAllen.csv")
+TIDE_hugo = read_csv("results/TIDE_output_hugo.csv", col_types = cols())
+TIDE_Snyder = read_csv("results/TIDE_output_Snyder.csv", col_types = cols())
+TIDE_VanAllen = read_csv("results/TIDE_output_VanAllen.csv", col_types = cols())
 
 #-----------------------------------------
 # Merge datasets
@@ -808,16 +808,100 @@ auc(Snyder2017_roc_TIDE)  # AUC of TIDE
 
 ```
 
-#### Survival comparison
+From comparison of AUC value above, we can conclude that:
+
+* TIGS and TIDE are better than TMB
+* TIGS and TIDE have almost same performance in two melanoma datasets, however, performance of TIDE go down a little in urothelial cancer dataset, maybe resulting from the fact that TIDE is trained on data of melanoma and NSCLC cancer (this point is stated at [TIDE website](http://tide.dfci.harvard.edu/), cancer type except for melanoma and NSCLC may not work).
+* APS, TMB are also not bad predictors (they have almost same performance)
+* Other predictors are not good predictors, they perform differently in different datasets.
+
+Next, we summary results above for final visualization.
+
+```{r}
+# summary AUC
+auc_df = tibble(
+  Group = c("Hugo2016", "VanAllen2015", "Snyder2017"),
+  TIGS = c(as.numeric(auc(hugo2016_roc_TIGS)), 
+           as.numeric(auc(VanAllen2015_roc_TIGS)),
+           as.numeric(auc(Snyder2017_roc_TIGS))), 
+  TIDE = c(as.numeric(auc(hugo2016_roc_TIDE)),
+           as.numeric(auc(VanAllen2015_roc_TIDE)), 
+           as.numeric(auc(Snyder2017_roc_TIDE))),
+  TMB = c(as.numeric(auc(hugo2016_roc_TMB)), 
+          as.numeric(auc(VanAllen2015_roc_TMB)),
+          as.numeric(auc(Snyder2017_roc_TMB))), 
+  APS = c(as.numeric(auc(hugo2016_roc_APS)),
+          as.numeric(auc(VanAllen2015_roc_APS)),
+          as.numeric(auc(Snyder2017_roc_APS))), 
+  IIS = c(as.numeric(auc(hugo2016_roc_IIS)),
+          as.numeric(auc(VanAllen2015_roc_IIS)), 
+          as.numeric(auc(Snyder2017_roc_IIS))),
+  IFNG = c(as.numeric(auc(hugo2016_roc_IFNG)),
+           as.numeric(auc(VanAllen2015_roc_IFNG)),
+           as.numeric(auc(Snyder2017_roc_IFNG))),
+  PDL1 = c(as.numeric(auc(hugo2016_roc_PDL1)), 
+           as.numeric(auc(VanAllen2015_roc_PDL1)),
+           as.numeric(auc(Snyder2017_roc_PDL1))),
+  CD8 = c(as.numeric(auc(hugo2016_roc_CD8)),
+          as.numeric(auc(VanAllen2015_roc_CD8)),
+          as.numeric(auc(Snyder2017_roc_CD8)))
+)
+
+# Show AUC table
+DT::datatable(auc_df, 
+              options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE, 
+              caption = "AUC of biomarkers for response prediction in three ICB datasets")
+
+```
+
+```{r}
+# summary ROC object
+roc_df = tibble(
+  Group = c("Hugo2016", "VanAllen2015", "Snyder2017"),
+  TIGS = c(list(hugo2016_roc_TIGS), 
+           list(VanAllen2015_roc_TIGS),
+           list(Snyder2017_roc_TIGS)), 
+  TIDE = c(list(hugo2016_roc_TIDE),
+           list(VanAllen2015_roc_TIDE), 
+           list(Snyder2017_roc_TIDE)),
+  TMB = c(list(hugo2016_roc_TMB), 
+          list(VanAllen2015_roc_TMB),
+          list(Snyder2017_roc_TMB)), 
+  APS = c(list(hugo2016_roc_APS),
+          list(VanAllen2015_roc_APS),
+          list(Snyder2017_roc_APS)), 
+  IIS = c(list(hugo2016_roc_IIS),
+          list(VanAllen2015_roc_IIS), 
+          list(Snyder2017_roc_IIS)),
+  IFNG = c(list(hugo2016_roc_IFNG),
+           list(VanAllen2015_roc_IFNG),
+           list(Snyder2017_roc_IFNG)),
+  PDL1 = c(list(hugo2016_roc_PDL1), 
+           list(VanAllen2015_roc_PDL1),
+           list(Snyder2017_roc_PDL1)),
+  CD8 = c(list(hugo2016_roc_CD8),
+          list(VanAllen2015_roc_CD8),
+          list(Snyder2017_roc_CD8))
+)
+
+if (!file.exists("results/roc_comparison_result.RData")) {
+  save(auc_df, roc_df, file = "results/roc_comparison_result.RData")
+}
+```
+
+
+### Survival comparison
+
+
+Above we already show APS, TMB, TIGS and TIDE are good predictors, this section we focus on them. We separate patients into High and Low group in survival analysis based on median biomarker predicted value.
 
 ```{r eval=FALSE}
-# cox
 library(survival)
 library(survminer)
 
 #----------------------
-# Cell 2016
-cell2016_os = read_csv("data/cell2016_OS.csv")
+# Hugo 2016
+hugo_os = read_csv("../data/cell2016_OS.csv", col_types = cols())
 cell2016 = full_join(cell2016, cell2016_os, by="PatientID")
 
 coxph(Surv(OverallSurvival, VitalStatus == "Dead") ~ nTMB, data = cell2016)
@@ -863,5 +947,7 @@ ggsurvplot(fit1, data = urothelial2017, pval = TRUE, fun="pct", xlab = "Time (in
 fit2 = survfit(Surv(os, event) ~ TIGS_Status, data = urothelial2017)
 ggsurvplot(fit2, data = urothelial2017, pval = TRUE, fun="pct", xlab = "Time (in days)")
 ```
+
+### Visualization of comparison profile
 
 
