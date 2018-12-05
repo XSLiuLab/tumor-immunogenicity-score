@@ -279,7 +279,7 @@ rm(list = ls())
 ```
 
 
-## Performance comparison on immunotherapy clinical response prediction
+## Performance comparison on immunotherapy clinical response prediction and survival benefit
 
 Description of datasets please see preprocessing part or "Method Section" of manuscript. 
 
@@ -296,7 +296,7 @@ However, some other biomarkers can predict immunotherapy response have been stud
 * PDL1 - an immunohistochemistry (IHC) biomarker approved by FDA. This study we use *PD-L1* gene expression as the IHC surrogate
 * [TIDE](https://www.nature.com/articles/s41591-018-0136-1) - TIDE signature which integrates the expression signatures of T cell dysfunction and T cell exclusion to model tumor immune evasion.
 
-The predicted values of gene expression biomarkers (i.e. IFNG, CD8, PDL1) is the average values among all members defined by the original publications. 
+The predicted values of gene expression biomarkers (i.e. IFNG, CD8, PDL1) are the average values among all members defined by the original publications. 
 
 ### Preprocessing of immunotherapy datasets
 
@@ -630,6 +630,10 @@ if (!file.exists("results/GEBiomarker.RData")){
 
 ### Input file generation for TIDE
 
+TIDE is developed by Shirley Liu lab, software website is available at (<http://tide.dfci.harvard.edu/>). We can generate input file for TIDE and submit it to the website for TIDE score calculation.
+
+Following suggestions provided at TIDE website, we firstly generate input files for three immunotherapy datasets .
+
 ```{r}
 rna_Snyder = rna_Snyder %>% 
   rename(Gene = gene_name)
@@ -637,10 +641,11 @@ rna_Snyder = rna_Snyder %>%
 rna_VanAllen = rna_VanAllen %>% 
   rename(Gene = symbol)
 
+# normalized expression substract mean expression
 generateInput = function(df) {
   df %>%
     mutate(Ref = rowMeans(.[, -1])) %>% 
-    mutate_at(vars(-Gene, -Ref), `-`, quote(Ref)) %>% 
+    mutate_at(vars(-Gene, -Ref), `-`, quote(Ref)) %>%  #f <- function(num, ref) num - !!ref
     select(-Ref) %>% 
     column_to_rownames(var = "Gene") %>% 
     as.data.frame()
@@ -650,19 +655,22 @@ TIDE_hugo = generateInput(rna_hugo)
 TIDE_VanAllen = generateInput(rna_VanAllen)
 TIDE_Snyder = generateInput(rna_Snyder)
 
-write.table(TIDE_hugo, file="results/TIDE_input_hugo.tsv", quote = FALSE, sep = "\t", row.names = TRUE, col.names = TRUE)
-write.table(TIDE_VanAllen, file="results/TIDE_input_VanAllen.tsv", quote = FALSE, sep = "\t", row.names = TRUE, col.names = TRUE)
-write.table(TIDE_Snyder, file="results/TIDE_input_Snyder.tsv", quote = FALSE, sep = "\t", row.names = TRUE, col.names = TRUE)
 
-#f <- function(num, ref) num - !!ref
+if (!file.exists("results/TIDE_input_hugo.tsv")){
+  write.table(TIDE_hugo, file="results/TIDE_input_hugo.tsv", quote = FALSE, sep = "\t", row.names = TRUE, col.names = TRUE)
+  write.table(TIDE_VanAllen, file="results/TIDE_input_VanAllen.tsv", quote = FALSE, sep = "\t", row.names = TRUE, col.names = TRUE)
+  write.table(TIDE_Snyder, file="results/TIDE_input_Snyder.tsv", quote = FALSE, sep = "\t", row.names = TRUE, col.names = TRUE)
+}
 
-
+rm(list = ls())
 ```
 
-### Compare prediction ROC and survival of APS, IIS, TMB and TIGS
+Next we submit the three `tsv` file to TIDE website. Previous immunotherapy item is set as "No". The result `csv` files are saved to `report/results` directory.
 
 
-#### ROC comparison
+### ROC comparison
+
+This section we compare ROC (AUC value) of biomarkers for response prediction.
 
 ```{r roc_comparison}
 library(pROC)
@@ -670,27 +678,58 @@ library(tidyverse)
 #theme_set(theme_bw())
 #library(cowplot)
 
+#------------------------------------------
+# Load data
 load("results/Hugo2016_Info.RData")
 load("results/VanAllen2015_Info.RData")
 load("results/Snyder2017_Info.RData")
 
+load("results/GEBiomarker.RData")
+
+# Of note, output csv from TIDE website has extra "" in last line
+#          please remove it before load data
+TIDE_hugo = read_csv("results/TIDE_output_hugo.csv")
+TIDE_Snyder = read_csv("results/TIDE_output_Snyder.csv")
+TIDE_VanAllen = read_csv("results/TIDE_output_VanAllen.csv")
+
+#-----------------------------------------
+# Merge datasets
+info_hugo = info_hugo %>% 
+  dplyr::left_join(dplyr::filter(GEBiomarker, study=="Hugo2016") %>% 
+                      dplyr::select(-study), by=c("PatientID" = "sample")) %>% 
+  dplyr::left_join(TIDE_hugo %>% dplyr::select(Patient, TIDE), by = c("PatientID" = "Patient"))
+
 #------------------------------------------
 # Hugo 2016
-hugo2016_roc1 = roc(info_hugo$Response, info_hugo$nTMB)
-hugo2016_roc2 = roc(info_hugo$Response, info_hugo$APS)
-hugo2016_roc3 = roc(info_hugo$Response, info_hugo$TIGS)
-hugo2016_roc4 = roc(info_hugo$Response, info_hugo$IIS)
+hugo2016_roc_TMB = roc(info_hugo$Response, info_hugo$nTMB)
+hugo2016_roc_APS = roc(info_hugo$Response, info_hugo$APS)
+hugo2016_roc_TIGS = roc(info_hugo$Response, info_hugo$TIGS)
+hugo2016_roc_IIS = roc(info_hugo$Response, info_hugo$IIS)
+hugo2016_roc_CD8 = roc(info_hugo$Response, info_hugo$CD8)
+hugo2016_roc_IFNG = roc(info_hugo$Response, info_hugo$IFNG)
+hugo2016_roc_PDL1 = roc(info_hugo$Response, info_hugo$PDL1)
+hugo2016_roc_TIDE = roc(info_hugo$Response, info_hugo$TIDE)
 
-ggroc(list(TMB=hugo2016_roc1, TIGS=hugo2016_roc3), legacy.axes = TRUE) + 
+ggroc(list(TMB=hugo2016_roc_TMB, TIGS=hugo2016_roc_TIGS, TIDE=hugo2016_roc_TIDE), legacy.axes = TRUE) + 
     labs(color = "Predictor") + ggpubr::theme_classic2(base_size = 12, base_family = "Arial")
 
-auc(hugo2016_roc1)  # AUC of TMB
-auc(hugo2016_roc2)  # AUC of APS
-auc(hugo2016_roc3)  # AUC of TIGS
-auc(hugo2016_roc4)  # AUC of IIS
+# AUC of predictors
+auc(hugo2016_roc_TMB)   # AUC of TMB
+auc(hugo2016_roc_APS)   # AUC of APS
+auc(hugo2016_roc_TIGS)  # AUC of TIGS
+auc(hugo2016_roc_IIS)   # AUC of IIS
+auc(hugo2016_roc_CD8)   # AUC of CD8
+auc(hugo2016_roc_IFNG)  # AUC of IFNG
+auc(hugo2016_roc_PDL1)  # AUC of PDL1
+auc(hugo2016_roc_TIDE)  # AUC of TIDE
 
 #---------------------------
 # VanAllen 2015
+
+info_VanAllen = info_VanAllen %>% 
+  dplyr::left_join(dplyr::filter(GEBiomarker, study=="VanAllen2015") %>% 
+                      dplyr::select(-study), by=c("patient" = "sample")) %>% 
+  dplyr::left_join(TIDE_VanAllen %>% dplyr::select(Patient, TIDE), by = c("patient" = "Patient"))
 
 info_VanAllen2 = info_VanAllen %>%
     mutate(Response = case_when(
@@ -710,36 +749,62 @@ info_VanAllen2 = info_VanAllen %>%
 #     )) %>% filter(!is.na(Response), !is.na(TIGS))
 
 
-VanAllen2015_roc1 = roc(info_VanAllen2$Response, info_VanAllen2$nTMB)
-VanAllen2015_roc2 = roc(info_VanAllen2$Response, info_VanAllen2$APS)
-VanAllen2015_roc3 = roc(info_VanAllen2$Response, info_VanAllen2$TIGS)
-VanAllen2015_roc4 = roc(info_VanAllen2$Response, info_VanAllen2$IIS)
+VanAllen2015_roc_TMB = roc(info_VanAllen2$Response, info_VanAllen2$nTMB)
+VanAllen2015_roc_APS = roc(info_VanAllen2$Response, info_VanAllen2$APS)
+VanAllen2015_roc_TIGS = roc(info_VanAllen2$Response, info_VanAllen2$TIGS)
+VanAllen2015_roc_IIS = roc(info_VanAllen2$Response, info_VanAllen2$IIS)
+VanAllen2015_roc_CD8 = roc(info_VanAllen2$Response, info_VanAllen2$CD8)
+VanAllen2015_roc_IFNG = roc(info_VanAllen2$Response, info_VanAllen2$IFNG)
+VanAllen2015_roc_PDL1 = roc(info_VanAllen2$Response, info_VanAllen2$PDL1)
+VanAllen2015_roc_TIDE = roc(info_VanAllen2$Response, info_VanAllen2$TIDE)
 
-ggroc(list(TMB=VanAllen2015_roc1,TIGS=VanAllen2015_roc3), legacy.axes = TRUE) + 
+ggroc(list(TMB=VanAllen2015_roc_TMB,TIGS=VanAllen2015_roc_TIGS, TIDE=VanAllen2015_roc_TIDE),
+      legacy.axes = TRUE) + 
     labs(color = "Predictor") + 
     ggpubr::theme_classic2(base_size = 12, base_family = "Arial")
 
-auc(VanAllen2015_roc1)  # AUC of TMB
-auc(VanAllen2015_roc2)  # AUC of APS
-auc(VanAllen2015_roc3)  # AUC of TIGS
-auc(VanAllen2015_roc4)  # AUC of IIS
+# AUC of predictors
+auc(VanAllen2015_roc_TMB)   # AUC of TMB
+auc(VanAllen2015_roc_APS)   # AUC of APS
+auc(VanAllen2015_roc_TIGS)  # AUC of TIGS
+auc(VanAllen2015_roc_IIS)   # AUC of IIS
+auc(VanAllen2015_roc_CD8)   # AUC of CD8
+auc(VanAllen2015_roc_PDL1)  # AUC of PDL1
+auc(VanAllen2015_roc_IFNG)  # AUC of IFNG
+auc(VanAllen2015_roc_TIDE)  # AUC of TIDE
 
 #---------------------------------------
 # Snyder 2017
 
-Snyder2017_roc1 = roc(info_Snyder$is_benefit, info_Snyder$nTMB)
-Snyder2017_roc2 = roc(info_Snyder$is_benefit, info_Snyder$APS)
-Snyder2017_roc3 = roc(info_Snyder$is_benefit, info_Snyder$TIGS)
-Snyder2017_roc4 = roc(info_Snyder$is_benefit, info_Snyder$IIS)
+info_Snyder = info_Snyder %>% 
+  dplyr::left_join(dplyr::filter(GEBiomarker, study=="Snyder2017") %>% 
+                      dplyr::select(-study), by=c("patient_id" = "sample")) %>% 
+  dplyr::left_join(TIDE_Snyder %>% dplyr::select(Patient, TIDE), by = c("patient_id" = "Patient"))
 
-ggroc(list(TMB=Snyder2017_roc1, TIGS=Snyder2017_roc3), legacy.axes = TRUE) + 
+Snyder2017_roc_TMB = roc(info_Snyder$is_benefit, info_Snyder$nTMB)
+Snyder2017_roc_APS = roc(info_Snyder$is_benefit, info_Snyder$APS)
+Snyder2017_roc_TIGS = roc(info_Snyder$is_benefit, info_Snyder$TIGS)
+Snyder2017_roc_IIS = roc(info_Snyder$is_benefit, info_Snyder$IIS)
+Snyder2017_roc_CD8 = roc(info_Snyder$is_benefit, info_Snyder$CD8)
+Snyder2017_roc_PDL1 = roc(info_Snyder$is_benefit, info_Snyder$PDL1)
+Snyder2017_roc_IFNG = roc(info_Snyder$is_benefit, info_Snyder$IFNG)
+Snyder2017_roc_TIDE = roc(info_Snyder$is_benefit, info_Snyder$TIDE)
+
+
+
+ggroc(list(TMB=Snyder2017_roc_TMB, TIGS=Snyder2017_roc_TIGS, TIDE=Snyder2017_roc_TIDE),
+      legacy.axes = TRUE) + 
     labs(color = "Predictor") + ggpubr::theme_classic2(base_size = 12, base_family = "Arial")
 
-auc(Snyder2017_roc1)  # AUC of TMB
-auc(Snyder2017_roc2)  # AUC of APS
-auc(Snyder2017_roc3)  # AUC of TIGS
-auc(Snyder2017_roc4)  # AUC of IIS
-
+# AUC of predictors
+auc(Snyder2017_roc_TMB)   # AUC of TMB
+auc(Snyder2017_roc_APS)   # AUC of APS
+auc(Snyder2017_roc_TIGS)  # AUC of TIGS
+auc(Snyder2017_roc_IIS)   # AUC of IIS
+auc(Snyder2017_roc_CD8)   # AUC of CD8
+auc(Snyder2017_roc_PDL1)  # AUC of PDL1
+auc(Snyder2017_roc_IFNG)  # AUC of IFNG
+auc(Snyder2017_roc_TIDE)  # AUC of TIDE
 
 ```
 
@@ -771,21 +836,6 @@ ggsurvplot(fit1, data = cell2016, pval = TRUE, fun = "pct",
 fit2 = survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ TIGS_Status, data = cell2016)
 ggsurvplot(fit2, data = cell2016, pval = TRUE, fun="pct", xlab = "Time (in days)")
 
-
-# cell 2017
-cell2017 %>% 
-    filter(Cohort == "NIV3-NAIVE") %>% 
-    mutate(TIGS = log(nTMB) * APM,
-    TMB_Status = ifelse(nTMB>median(nTMB, na.rm = TRUE), "High",
-                        ifelse(is.na(nTMB), NA, "Low")),
-    TIGS_Status = ifelse(TIGS>median(TIGS, na.rm = TRUE), "High",
-                         ifelse(is.na(TIGS), NA, "Low"))) -> cell2017
-
-fit1 = survfit(Surv(OS, OS_SOR) ~ TMB_Status, data = cell2017)
-ggsurvplot(fit1, data = cell2017, pval = TRUE )
-
-fit2  = survfit(Surv(OS, OS_SOR) ~ TIGS_Status, data = cell2017)
-ggsurvplot(fit2, data = cell2017, pval = TRUE )
 
 # science 2015
 science2015 %>% mutate(TIGS = log(nTMB) * APM,
