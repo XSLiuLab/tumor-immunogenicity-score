@@ -1,51 +1,45 @@
 # Available Resource and Workflow of Paper *Antigen presentation and tumor immunogenicity in cancer immunotherapy response prediction*
 
-This repository is to share analysis procedure, data and help readers or reviewers to know more detail of this work, reproduce or make use of results they are interested in.
-
-If you use data, results or conclusion from this work, please cite:
-
-*Antigen presentation and tumor immunogenicity in cancer immunotherapy response prediction, __Nature Communication__* (**Under Review**)
-
+Purpose of this repository is to share analysis procedure, data and help readers or reviewers to know more detail of this work, reproduce or make use of results they are interested in.
 
 ## Repository structure
 
 * __code__ directory - tidy R functions
 * __data__ directory - preprocessed data used for analysis and share
 * __report__ directory - Rmarkdown analysis report and corresponding html version
-* __manuscript__ directory - figures and related data used in manuscript
+  * `report/results` directory - important middle results and final results, most of them are in form of `.RData`, which can be easily loaded and operated by R. 
 * __LICENSE__ file 
-* This __README.md__ file
 
 ## Usage
 
-For reader want to know more detail about methods, procedure and results in manuscript, you can download or clone this repository and open html file named **report_main.html** under report directory with your favorite browser.
- 
-For reproducing results
+### Read analysis report
 
-TO DO.
+For readers who want to know more details about methods, procedures or results in manuscript, you can read our analysis report, which is availble at <https://xsliulab.github.io/tumor-immunogenicity-score/>. 
 
-## File description of data and code
+### Obtain data
 
-### data
+For readers who want to obtain raw/result data, please read corresponding preprocessing/analysis part in our [analysis report](https://xsliulab.github.io/tumor-immunogenicity-score/), locate data file, then download it with one of following ways:
 
-* summary_data_new_20180906.csv - curated data for ORR linear model and prediction analysis.
-* curated_TCGA_APM_TMB_Clinical.RData - curated TCGA pan-cancer data which clinical information, APM, TMB etc. available in RData format (which can be loaded by R). This is a main result of TCGA data process and used to analyze and plot figures showed in paper.
-* df_combine_gsva_clinical.RData - TCGA pan-cancer data which combine clinical data and GSVA result from GSVA in RData format.
+* In Github, download file by clicking either `Download` button or `Raw` button at corresponding data page
 
-### src （这里要修改和删除）
+* Use linux command `wget` or `curl`, fo example, you can download APM gene list by
 
-* download-TCGA-datasets-from-UCSCXena.R - for TCGA pancan clinical data and RNASeq data download.
-* APM-pancan-explore.R - TCGA pan-cancer data preprocessing and EDA.
-* APM-pancan-analysis.R - TCGA pan-cancer analysis (most of figures related to TCGA come from this).
-* APM-enrichment.R - GSEA based APM score level using gene sets from MSigDB (hallmark, reactome, KEGG etc.).
-* preprocess_data_with_both_TMB_and_GE.R - preprocess ICI datasets with both TMB and Gene Expression available.
-* plotROC.R - ROC and Survival analysis for ICI datasets with both TMB and GE available.
-* APM_TMB_and_ORR.R - pan-cancer ORR prediction analysis using pooled APM, TMB and TIGS.
-* processTable.R - process ORR reference information to more concise summary table.
+  `wget https://github.com/XSLiuLab/tumor-immunogenicity-score/blob/master/data/APM.csv`
 
-Other resource are available as supplementary files/tables of paper.
+Or you can download whole respository with one of following ways:
 
->NOTE: The code are not tidy, which means you cannot run automatically to reproduce all results (include figures and tables) of paper. If you are really interested in reproducing such a result, please run code one by one, read comments carefully and check input of code required. If you have any question, please open an issue or email to us.
+* Clone this repository with `git clone https://github.com/XSLiuLab/tumor-immunogenicity-score.git`
+* Download whole respository by clicking `Download` button at top right of url page <https://github.com/XSLiuLab/tumor-immunogenicity-score>
+
+### Reproduce analysis
+
+For readers who want to reproduce analysis shown in manuscript, please [install R](https://cran.r-project.org) in your computer, then install required R packages described at __Dependencies__ part of our [analysis report](https://xsliulab.github.io/tumor-immunogenicity-score/), followed by rendering `report_main.Rmd` file using [`knitr` package](https://github.com/yihui/knitr).
+
+## Citation
+
+If you use data, results or conclusion from this work, please cite:
+
+*Antigen presentation and tumor immunogenicity in cancer immunotherapy response prediction, __Nature Communication__* (**Under Review**)
 
 ## Acknowledgement
 
