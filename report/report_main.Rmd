@@ -18,7 +18,6 @@ library(rmdformats)
 options(max.print="75")
 opts_chunk$set(echo=TRUE,
 	           cache=TRUE,
-               tidy=TRUE,
                comment="#>")
 opts_knit$set(width=75)
 ```
@@ -64,5 +63,13 @@ These R packages are easily searched by internet and have no strict version requ
 # Immunotherapy datasets analyses 
 
 ```{r child = 'icb_analyses.Rmd'}
+```
+
+# Supplementary analyses
+
+## Random selection of APM genes or IIS genes
+
+```{r}
+
 ```
 
