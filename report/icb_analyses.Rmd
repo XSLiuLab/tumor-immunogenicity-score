@@ -1122,19 +1122,19 @@ km_TIDE = list()
 
 
 km_TMB[["Hugo"]] = survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ TMB_Status, data = info_hugo2)
-km_APS[["Hugo"]] = survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ TIGS_Status, data = info_hugo2)
-km_TIGS[["Hugo"]] = survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ APS_Status, data = info_hugo2)
+km_TIGS[["Hugo"]] = survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ TIGS_Status, data = info_hugo2)
+km_APS[["Hugo"]] = survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ APS_Status, data = info_hugo2)
 km_TIDE[["Hugo"]] = survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ TIDE_Status, data = info_hugo2)
 
 km_TMB[["VanAllen"]] = survfit(Surv(overall_survival, dead== 1) ~ TMB_Status, data = info_VanAllen3)
-km_APS[["VanAllen"]] = survfit(Surv(overall_survival, dead== 1) ~ TIGS_Status, data = info_VanAllen3)
-km_TIGS[["VanAllen"]] = survfit(Surv(overall_survival, dead== 1) ~ APS_Status, data = info_VanAllen3)
+km_TIGS[["VanAllen"]] = survfit(Surv(overall_survival, dead== 1) ~ TIGS_Status, data = info_VanAllen3)
+km_APS[["VanAllen"]] = survfit(Surv(overall_survival, dead== 1) ~ APS_Status, data = info_VanAllen3)
 km_TIDE[["VanAllen"]] = survfit(Surv(overall_survival, dead== 1) ~ TIDE_Status, data = info_VanAllen3)
 
  
 km_TMB[["Snyder"]] = survfit(Surv(os, event) ~ TMB_Status, data = info_Snyder2)
-km_APS[["Snyder"]] = survfit(Surv(os, event) ~ TIGS_Status, data = info_Snyder2)
-km_TIGS[["Snyder"]] = survfit(Surv(os, event) ~ APS_Status, data = info_Snyder2)
+km_TIGS[["Snyder"]] = survfit(Surv(os, event) ~ TIGS_Status, data = info_Snyder2)
+km_APS[["Snyder"]] = survfit(Surv(os, event) ~ APS_Status, data = info_Snyder2)
 km_TIDE[["Snyder"]] = survfit(Surv(os, event) ~ TIDE_Status, data = info_Snyder2)
 
 
@@ -1153,7 +1153,7 @@ This section we visualize comparsion profile, integrate analysis results of 3 im
 ```{r}
 # make sure these package are loaded 
 library(pROC)
-library(ggsci)
+#library(ggsci)
 library(ggplot2)
 suppressPackageStartupMessages(library(cowplot))
 
@@ -1168,15 +1168,18 @@ theme_set(cowplot::theme_cowplot())
 
 # Van Allen 
 p_roc_1 = ggroc(list(TMB=roc_df$TMB[[2]], TIDE=roc_df$TIDE[[2]], TIGS=roc_df$TIGS[[2]]), legacy.axes = TRUE) + 
-  labs(color = "") + scale_color_manual(values = c("blue", "red", "black")) +  theme(legend.position = "top") 
+  labs(color = "") + scale_color_manual(values = c("blue", "red", "black")) +  
+  theme(legend.position = c(0.8,0.4)) 
 # Hugo      
 p_roc_2 = ggroc(list(TMB=roc_df$TMB[[1]], TIGS=roc_df$TIGS[[1]], TIDE=roc_df$TIDE[[1]]), legacy.axes = TRUE) + 
-  labs(color = "") + scale_color_manual(values = c("blue", "red", "black")) +  theme(legend.position = "none")
+  labs(color = "") + scale_color_manual(values = c("blue", "red", "black")) +  
+  theme(legend.position = c(0.8,0.4)) 
 # Snyder
 p_roc_3 = ggroc(list(TMB=roc_df$TMB[[3]], TIGS=roc_df$TIGS[[3]], TIDE=roc_df$TIDE[[3]]), legacy.axes = TRUE) + 
-  labs(color = "") + scale_color_manual(values = c("blue", "red", "black")) +  theme(legend.position = "none")
+  labs(color = "") + scale_color_manual(values = c("blue", "red", "black")) +  
+  theme(legend.position = c(0.8,0.4)) 
 
-plot_grid(p_roc_1, p_roc_2, p_roc_3, nrow = 3)
+#plot_grid(p_roc_1, p_roc_2, p_roc_3, nrow = 3)
 
 ```
 
@@ -1192,7 +1195,7 @@ auc_df_long %>%
   filter(Group == "VanAllen2015") %>% 
   ggplot(aes(x=biomarker, y=auc)) +  
   geom_bar(stat = "identity", fill="lightblue") + 
-  geom_text(aes(label=auc), hjust=-0.2) +
+  geom_text(aes(label=auc), hjust=1) +
   geom_hline(yintercept = 0.5, linetype=2) + 
   ylim(0, 0.8) + ylab("AUC") + theme(axis.title.y = element_blank()) +
   coord_flip() -> p_auc_1
@@ -1201,7 +1204,7 @@ auc_df_long %>%
   filter(Group == "Hugo2016") %>% 
   ggplot(aes(x=biomarker, y=auc)) +  
   geom_bar(stat = "identity", fill="lightblue") + 
-  geom_text(aes(label=auc), hjust=-0.2) +
+  geom_text(aes(label=auc), hjust=1) +
   geom_hline(yintercept = 0.5, linetype=2) + 
   ylim(0, 0.8) + ylab("AUC") + theme(axis.title.y = element_blank()) +
   coord_flip() -> p_auc_2
@@ -1210,7 +1213,7 @@ auc_df_long %>%
   filter(Group == "Snyder2017") %>% 
   ggplot(aes(x=biomarker, y=auc)) +  
   geom_bar(stat = "identity", fill="lightblue") + 
-  geom_text(aes(label=auc), hjust=-0.2) +
+  geom_text(aes(label=auc), hjust=1) +
   geom_hline(yintercept = 0.5, linetype=2) + 
   ylim(0, 0.8) + ylab("AUC") + theme(axis.title.y = element_blank()) +
   coord_flip() -> p_auc_3
@@ -1220,7 +1223,89 @@ auc_df_long %>%
 
 ```{r}
 #--- KM-plots
-ggsurvplot(km_APS$VanAllen, pval = TRUE, fun = "pct", 
-           xlab = "Time (in days)", palette = c("red", "blue"))
+p_surv_APS = list()
+p_surv_TMB = list()
+p_surv_TIGS = list()
+p_surv_TIDE = list()
+
+p_surv_APS[[1]] = ggsurvplot(km_APS$VanAllen, pval = TRUE, fun = "pct", 
+           xlab = "Time (in days)", palette = c("red", "blue"), 
+           legend = c(0.8, 0.9), legend.title=element_blank(),legend.labs = c("APS High", "APS Low"))
+p_surv_APS[[2]] = ggsurvplot(km_APS$Hugo, pval = TRUE, fun = "pct", 
+           xlab = "Time (in days)", palette = c("red", "blue"), 
+           legend = c(0.8, 0.9), legend.title=element_blank(),legend.labs = c("APS High", "APS Low"))
+p_surv_APS[[3]] = ggsurvplot(km_APS$Snyder, pval = TRUE, fun = "pct", 
+           xlab = "Time (in days)", palette = c("red", "blue"), 
+           legend = c(0.8, 0.9), legend.title=element_blank(),legend.labs = c("APS High", "APS Low"))
+
+p_surv_TMB[[1]] = ggsurvplot(km_TMB$VanAllen, pval = TRUE, fun = "pct", 
+           xlab = "Time (in days)", palette = c("red", "blue"), 
+           legend = c(0.8, 0.9), legend.title=element_blank(),legend.labs = c("TMB High", "TMB Low"))
+p_surv_TMB[[2]] = ggsurvplot(km_TMB$Hugo, pval = TRUE, fun = "pct", 
+           xlab = "Time (in days)", palette = c("red", "blue"), 
+           legend = c(0.8, 0.9), legend.title=element_blank(),legend.labs = c("TMB High", "TMB Low"))
+p_surv_TMB[[3]] = ggsurvplot(km_TMB$Snyder, pval = TRUE, fun = "pct", 
+           xlab = "Time (in days)", palette = c("red", "blue"), 
+           legend = c(0.8, 0.9), legend.title=element_blank(),legend.labs = c("TMB High", "TMB Low"))
+
+p_surv_TIGS[[1]] = ggsurvplot(km_TIGS$VanAllen, pval = TRUE, fun = "pct", 
+           xlab = "Time (in days)", palette = c("red", "blue"), 
+           legend = c(0.8, 0.9), legend.title=element_blank(),legend.labs = c("TIGS High", "TIGS Low"))
+p_surv_TIGS[[2]] = ggsurvplot(km_TIGS$Hugo, pval = TRUE, fun = "pct", 
+           xlab = "Time (in days)", palette = c("red", "blue"), 
+           legend = c(0.8, 0.4), legend.title=element_blank(),legend.labs = c("TIGS High", "TIGS Low"))
+p_surv_TIGS[[3]] = ggsurvplot(km_TIGS$Snyder, pval = TRUE, fun = "pct", 
+           xlab = "Time (in days)", palette = c("red", "blue"), 
+           legend = c(0.8, 0.9), legend.title=element_blank(),legend.labs = c("TIGS High", "TIGS Low"))
+
+p_surv_TIDE[[1]] = ggsurvplot(km_TIDE$VanAllen, pval = TRUE, fun = "pct", 
+           xlab = "Time (in days)", palette = c("red", "blue"), 
+           legend = c(0.8, 0.9), legend.title=element_blank(),legend.labs = c("TIDE High", "TIDE Low"))
+p_surv_TIDE[[2]] = ggsurvplot(km_TIDE$Hugo, pval = TRUE, fun = "pct", 
+           xlab = "Time (in days)", palette = c("red", "blue"), 
+           legend = c(0.8, 0.9), legend.title=element_blank(),legend.labs = c("TIDE High", "TIDE Low"))
+p_surv_TIDE[[3]] = ggsurvplot(km_TIDE$Snyder, pval = TRUE, fun = "pct", 
+           xlab = "Time (in days)", palette = c("red", "blue"), 
+           legend = c(0.8, 0.9), legend.title=element_blank(),legend.labs = c("TIDE High", "TIDE Low"))
+  
+
+#ggpar(p , font.legend = c(12, "bold", "black"))
+```
+
+
+```{r}
+plot_list = list(
+  p_roc_1, p_auc_1, p_surv_TMB[[1]]$plot, p_surv_TIGS[[1]]$plot, p_surv_TIDE[[1]]$plot,
+  p_roc_2, p_auc_2, p_surv_TMB[[2]]$plot, p_surv_TIGS[[2]]$plot, p_surv_TIDE[[2]]$plot,
+  p_roc_3, p_auc_3, p_surv_TMB[[3]]$plot, p_surv_TIGS[[3]]$plot, p_surv_TIDE[[3]]$plot
+)
+# plot_grid(p_roc_1, p_roc_2, p_roc_3,
+#           p_auc_1, p_auc_2, p_auc_3,
+#           p_surv_TMB[[1]]$plot, p_surv_TMB[[2]]$plot, p_surv_TMB[[3]]$plot,
+#           p_surv_TIGS[[1]]$plot, p_surv_TIGS[[2]]$plot, p_surv_TIGS[[3]]$plot,
+#           p_surv_TIDE[[1]]$plot, p_surv_TIDE[[2]]$plot, p_surv_TIDE[[3]]$plot, nrow = 3, ncol=5, 
+#           align = "vh")
+plot_res = plot_grid(plotlist = plot_list, nrow=3, ncol=5, 
+                     labels = c(
+                       "a", "d", "g", "j", "m",
+                       "b", "e", "h", "k", "n",
+                       "c", "f", "i", "l", "o"
+                     ))
+save_plot("comp_profile.png", plot_res, nrow=3, ncol=5)
+
+knitr::include_graphics("comp_profile.png")
+
+```
+
+Save as pdf for publication.
+
+```{r}
+save_plot("comp_profile.pdf", plot_res, nrow=3, ncol=5)
+```
+
+### Session info
+
+```{r}
+sessionInfo()
 ```
 
