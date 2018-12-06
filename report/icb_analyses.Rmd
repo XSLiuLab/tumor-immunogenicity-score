@@ -35,15 +35,38 @@ load("results/Add_gsva_scc_sclc_merkel.RData")
 
 buildDF = function(x, tumor_type = NULL){
     stopifnot(!is.null(tumor_type))
-    APM = x$APM
-    res = data.frame(Project = tumor_type, APM = APM, stringsAsFactors = FALSE)
+    res = x %>% 
+      dplyr::mutate(Project = tumor_type) %>% 
+      as.data.frame()
     res
 }
 
-lapply(gsva.merkel, FUN = buildDF, tumor_type = "Merkel Cell Carcinoma") %>% purrr::reduce(rbind) -> df_merkel
-lapply(gsva.scc, FUN = buildDF, tumor_type = "Cutaneous Squamous Cell Carcinoma") %>% purrr::reduce(rbind) -> df_scc
-lapply(gsva.sclc, FUN = buildDF, tumor_type = "Small-Cell Lung Cancer") %>% purrr::reduce(rbind) -> df_sclc
+lapply(gsva.merkel, FUN = buildDF, tumor_type = "Merkel Cell Carcinoma") %>% 
+  purrr::reduce(dplyr::bind_rows) -> df_merkel
+lapply(gsva.scc, FUN = buildDF, tumor_type = "Cutaneous Squamous Cell Carcinoma") %>% 
+  purrr::reduce(dplyr::bind_rows) -> df_scc
+lapply(gsva.sclc, FUN = buildDF, tumor_type = "Small-Cell Lung Cancer") %>% 
+  purrr::reduce(dplyr::bind_rows) -> df_sclc
+
 ```
+
+```{r, include=FALSE}
+df_merkel = df_merkel %>% rename(aDC = tsb)
+df_scc = df_scc %>% rename(aDC = tsb)
+df_sclc = df_sclc %>% rename(aDC = tsb)
+```
+
+```{r, include=FALSE}
+source("../code/functions.R")
+df_merkel = calc_TisIIs(df_merkel)
+df_scc = calc_TisIIs(df_scc)
+df_sclc = calc_TisIIs(df_sclc)
+
+df_merkel = df_merkel %>% dplyr:::select(Project, APM, TIS, IIS)
+df_scc = df_scc %>% dplyr:::select(Project, APM, TIS, IIS)
+df_sclc = df_sclc %>% dplyr:::select(Project, APM, TIS, IIS)
+```
+
 
 ```{r}
 ## combine datasets
@@ -318,7 +341,7 @@ source("../code/functions.R")
 
 #### Hugo et al 2016 dataset
 
-```{r prep_Hugo2016, eval=FALSE}
+```{r prep_Hugo2016, eval=FALSE, message=FALSE}
 ## Data source: Genomic and Transcriptomic Features of Response to Anti-PD-1 Therapy in Metastatic Melanoma. Cell 2016 Mar 24;165(1):35-44. PMID: 26997480
 suppressPackageStartupMessages(library(GEOquery))
 library(readxl)
@@ -370,10 +393,29 @@ APS_hugo
 # keep corresponding expression data for downstream analysis
 rna_hugo = GSE78220_Norm[, -22]
 colnames(rna_hugo)[-1] = names(APS_hugo)
-save(rna_hugo, file = "results/Hugo2016_RNA.RData")
 
+if (!file.exists("results/Hugo2016_RNA.RData")) {
+  save(rna_hugo, file = "results/Hugo2016_RNA.RData")
+}
 
 GSE78220.APS = tibble(PatientID = names(APS_hugo), APS=APS_hugo, IIS = gsva.hugo2016$IIS[-21])
+
+# generate results for random selected APS genes
+set.seed(123456)
+apm_gens = merged_geneList %>% dplyr::filter(Cell_type == "APM")
+sapply(1:100, function(i){
+  tempGens = sample(GSE78220_Norm$Gene, 18)
+  apm_gens$Symbol = tempGens
+  applyGSVA(apm_gens, group_col = "Cell_type", 
+          gene_col = "Symbol", ExprMatList = list(GSE78220_Norm), method = "gsva")
+}) -> gsva.hugo2016.random
+
+gsva.hugo2016.random = as.data.frame(sapply(gsva.hugo2016.random, function(x){
+  (x$APM - min_APS) / (max_APS - min_APS) 
+}))
+colnames(gsva.hugo2016.random) = paste0("APS", 1:100)
+gsva.hugo2016.random = gsva.hugo2016.random[-21, ]
+rownames(gsva.hugo2016.random) = names(APS_hugo)
 
 # read clincal and tmb data
 GSE_78220.TMB = read_csv("../data/Cell2016.csv", col_types = cols())
@@ -390,7 +432,7 @@ save(info_hugo, file = "results/Hugo2016_Info.RData")
 
 #### Van Allen et al 2015 dataset
 
-```{r prep_VanAllen2015, eval=FALSE}
+```{r prep_VanAllen2015, eval=FALSE, message=FALSE}
 #----------------------------------------------------------
 # Data source :
 # Science 2015: Genomic correlates of response to CTLA4 blockade in metastatic melanoma
@@ -449,10 +491,30 @@ APS_VanAllen
 rna_VanAllen = science2015_ge
 colnames(rna_VanAllen)[-1] = names(APS_VanAllen) 
 ## save gene experssion
-save(rna_VanAllen, file = "results/VanAllen2015_RNA.RData")
+if (!file.exists("results/VanAllen2015_RNA.RData")){
+  save(rna_VanAllen, file = "results/VanAllen2015_RNA.RData")
+}
 
 APS_VanAllen_df = tibble(patient = names(APS_VanAllen), APS = APS_VanAllen, 
                          IIS = gsva.VanAllen2015$IIS)
+
+
+# generate results for random selected APS genes
+set.seed(123456)
+#apm_gens = merged_geneList %>% dplyr::filter(Cell_type == "APM")
+sapply(1:100, function(i){
+  tempGens = sample(science2015_ge$symbol, 18)
+  apm_gens$Symbol = tempGens
+  applyGSVA(apm_gens, group_col = "Cell_type", 
+          gene_col = "Symbol", ExprMatList = list(science2015_ge), method = "gsva")
+}) -> gsva.VanAllen2015.random
+
+gsva.VanAllen2015.random = as.data.frame(sapply(gsva.VanAllen2015.random, function(x){
+  (x$APM - min_APS) / (max_APS - min_APS) 
+}))
+colnames(gsva.VanAllen2015.random) = paste0("APS", 1:100)
+rownames(gsva.VanAllen2015.random) = names(APS_VanAllen)
+
 
 science2015_cli = bind_rows(
     dplyr::select(science2015_cli1, patient, age_start, RECIST, overall_survival, progression_free, primary, group, 
@@ -472,7 +534,7 @@ save(info_VanAllen, file = "results/VanAllen2015_Info.RData")
 
 #### Snyder et al 2017 dataset
 
-```{r pre_Snyder2017, eval=FALSE}
+```{r pre_Snyder2017, eval=FALSE, message=FALSE}
 #----------------------------------------------------------------
 # Contribution of systemic and somatic factors to clinical response and resistance in urothelial cancer: an exploratory multi-omic analysis
 #---------------------------------------------------------------
@@ -512,11 +574,29 @@ APS_Snyder = (APS_Snyder - min_APS) / (max_APS - min_APS)
 
 ## save gene expression
 rna_Snyder = uro_rna_ge_Norm
-save(rna_Snyder, file = "results/Snyder2017_RNA.RData")
+if (!file.exists("results/Snyder2017_RNA.RData")) {
+  save(rna_Snyder, file = "results/Snyder2017_RNA.RData")
+}
 
 APS_Snyder_df = tibble(patient_id = colnames(uro_rna_ge_Norm)[-1], 
                        APS = APS_Snyder, 
                        IIS = gsva.Snyder$IIS)
+
+# generate results for random selected APS genes
+set.seed(123456)
+#apm_gens = merged_geneList %>% dplyr::filter(Cell_type == "APM")
+sapply(1:100, function(i){
+  tempGens = sample(uro_rna_ge_Norm$gene_name, 18)
+  apm_gens$Symbol = tempGens
+  applyGSVA(apm_gens, group_col = "Cell_type", 
+          gene_col = "Symbol", ExprMatList = list(uro_rna_ge_Norm), method = "gsva")
+}) -> gsva.Snyder.random
+
+gsva.Snyder.random = as.data.frame(sapply(gsva.Snyder.random, function(x){
+  (x$APM - min_APS) / (max_APS - min_APS) 
+}))
+colnames(gsva.Snyder.random) = paste0("APS", 1:100)
+rownames(gsva.Snyder.random) = colnames(uro_rna_ge_Norm)[-1]
 
 uro_cli_2 = uro_cli %>% 
     dplyr::select(patient_id, Age, Sex, is_benefit, is_benefit_os, os, `Alive Status`) %>% 
@@ -532,7 +612,10 @@ info_Snyder$TIGS = info_Snyder$APS * log(info_Snyder$nTMB)
  
 save(info_Snyder, file = "results/Snyder2017_Info.RData")
 
-rm(list = ls())
+
+
+save(gsva.hugo2016.random, gsva.Snyder.random, gsva.VanAllen2015.random, 
+       file = "results/randomAPS.RData")
 ```
 
 
@@ -683,6 +766,7 @@ library(tidyverse)
 load("results/Hugo2016_Info.RData")
 load("results/VanAllen2015_Info.RData")
 load("results/Snyder2017_Info.RData")
+load("results/randomAPS.RData")
 
 load("results/GEBiomarker.RData")
 
@@ -698,6 +782,11 @@ info_hugo = info_hugo %>%
   dplyr::left_join(dplyr::filter(GEBiomarker, study=="Hugo2016") %>% 
                       dplyr::select(-study), by=c("PatientID" = "sample")) %>% 
   dplyr::left_join(TIDE_hugo %>% dplyr::select(Patient, TIDE), by = c("PatientID" = "Patient"))
+
+# combine random data
+gsva.hugo2016.random %>% 
+  rownames_to_column(var = "PatientID") %>% 
+  full_join(info_hugo, by = "PatientID") -> info_hugo
 
 #------------------------------------------
 # Hugo 2016
@@ -722,6 +811,16 @@ auc(hugo2016_roc_CD8)   # AUC of CD8
 auc(hugo2016_roc_IFNG)  # AUC of IFNG
 auc(hugo2016_roc_PDL1)  # AUC of PDL1
 auc(hugo2016_roc_TIDE)  # AUC of TIDE
+
+# AUC of random APS genes
+auc_random_hugo = c()
+for (i in 1:100){
+  t = as.numeric(auc(roc(info_hugo$Response, info_hugo[[paste0("APS",i)]])))
+  auc_random_hugo = c(auc_random_hugo, t)
+}
+
+auc_random_hugo
+auc_random_hugo_mean = mean(auc_random_hugo)
 
 #---------------------------
 # VanAllen 2015
@@ -748,6 +847,11 @@ info_VanAllen2 = info_VanAllen %>%
 #         TRUE ~ NA_character_
 #     )) %>% filter(!is.na(Response), !is.na(TIGS))
 
+# combine random data
+gsva.VanAllen2015.random %>% 
+  rownames_to_column(var = "patient") %>% 
+  full_join(info_VanAllen2, by = "patient") -> info_VanAllen2
+
 
 VanAllen2015_roc_TMB = roc(info_VanAllen2$Response, info_VanAllen2$nTMB)
 VanAllen2015_roc_APS = roc(info_VanAllen2$Response, info_VanAllen2$APS)
@@ -773,6 +877,17 @@ auc(VanAllen2015_roc_PDL1)  # AUC of PDL1
 auc(VanAllen2015_roc_IFNG)  # AUC of IFNG
 auc(VanAllen2015_roc_TIDE)  # AUC of TIDE
 
+# AUC of random APS genes
+auc_random_VanAllen = c()
+for (i in 1:100){
+  t = as.numeric(auc(roc(info_VanAllen2$Response, info_VanAllen2[[paste0("APS",i)]])))
+  auc_random_VanAllen = c(auc_random_VanAllen, t)
+}
+
+auc_random_VanAllen
+auc_random_VanAllen_mean = mean(auc_random_VanAllen)
+
+
 #---------------------------------------
 # Snyder 2017
 
@@ -780,6 +895,11 @@ info_Snyder = info_Snyder %>%
   dplyr::left_join(dplyr::filter(GEBiomarker, study=="Snyder2017") %>% 
                       dplyr::select(-study), by=c("patient_id" = "sample")) %>% 
   dplyr::left_join(TIDE_Snyder %>% dplyr::select(Patient, TIDE), by = c("patient_id" = "Patient"))
+
+# combine random data
+gsva.Snyder.random %>% 
+  rownames_to_column(var = "patient_id") %>% 
+  full_join(info_Snyder, by = "patient_id") -> info_Snyder
 
 Snyder2017_roc_TMB = roc(info_Snyder$is_benefit, info_Snyder$nTMB)
 Snyder2017_roc_APS = roc(info_Snyder$is_benefit, info_Snyder$APS)
@@ -805,6 +925,17 @@ auc(Snyder2017_roc_CD8)   # AUC of CD8
 auc(Snyder2017_roc_PDL1)  # AUC of PDL1
 auc(Snyder2017_roc_IFNG)  # AUC of IFNG
 auc(Snyder2017_roc_TIDE)  # AUC of TIDE
+
+# AUC of random APS genes
+auc_random_Snyder = c()
+for (i in 1:100){
+  t = as.numeric(auc(roc(info_Snyder$is_benefit, info_Snyder[[paste0("APS",i)]])))
+  auc_random_Snyder = c(auc_random_Snyder, t)
+}
+
+auc_random_Snyder
+auc_random_Snyder_mean = mean(auc_random_Snyder)
+
 
 ```
 
@@ -844,7 +975,10 @@ auc_df = tibble(
            as.numeric(auc(Snyder2017_roc_PDL1))),
   CD8 = c(as.numeric(auc(hugo2016_roc_CD8)),
           as.numeric(auc(VanAllen2015_roc_CD8)),
-          as.numeric(auc(Snyder2017_roc_CD8)))
+          as.numeric(auc(Snyder2017_roc_CD8))),
+  APSr = c(auc_random_hugo_mean,
+           auc_random_VanAllen_mean,
+           auc_random_Snyder_mean)
 )
 
 # Show AUC table
