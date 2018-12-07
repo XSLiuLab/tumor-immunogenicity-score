@@ -69,7 +69,80 @@ These R packages are easily searched by internet and have no strict version requ
 
 ## Random selection of APM genes or IIS genes
 
-```{r}
+TCGA contains about 10,000 patients with RNASeq data, it is hard to simulate GSVA serveral times with whole data (too much computation), thus we using a sampling strategy as following:
 
+* randomly select RNAseq data from 500 patients.
+* calculate GSVA score 
+    * calculate once from right genes.
+    * randomly select genes (10 times) and run GSVA.
+* calculate spearman correlation coefficient for normal APS and normal IIS, random APS and normal IIS, normal APS and random IIS, respectively. The latter two have ten values, we use their mean.
+* repeat the process 100 times.
+
+The GSVA score calculation is implemented by script `code/random_simulation.R` (this will take much time to finish). Next we calculate correlation using following commands.
+
+```{r eval=FALSE}
+load("results/randomRes/normal_results.RData")
+load("results/randomRes/random_res.RData")
 ```
 
+
+```{r}
+source("../code/functions.R")
+cor_res = data.frame(stringsAsFactors = FALSE)
+for (i in 1:100){
+    normal = normal_res[[i]][[1]]
+    normal = calc_TisIIs(normal)
+    
+    r1 = as.numeric(cor.test(normal$APM, normal$IIS, method = "spearman")$estimate)
+    
+    r2 = c() # normal APM, random IIS
+    r3 = c() # random APM, normal IIS
+    for (j in 1:10){
+        random = random_res[[i]][[j]][[1]]
+        tryCatch(
+            {
+                random = calc_TisIIs(random)
+                r_random1 = as.numeric(cor.test(normal$APM, random$IIS, method = "spearman")$estimate)
+                r2 = c(r2, r_random1)
+                r_random2 = as.numeric(cor.test(random$APM, normal$IIS, method = "spearman")$estimate)
+                r3 = c(r3, r_random2)
+            },
+            error = function(e) {
+                NA
+            })
+    }
+    r2 = mean(r2, na.rm = TRUE)
+    r3 = mean(r3, na.rm = TRUE)
+    cor_res = rbind(cor_res, c(r1, r2, r3))
+}
+
+colnames(cor_res) = c("normal", "random_IIS", "random_APS")
+
+write_tsv(cor_res, "results/randomGSVA.tsv")
+```
+
+Now, we plot spearman correlation efficient of 3 types.
+
+```{r}
+library(tidyverse)
+library(cowplot)
+cor_res = read_tsv("results/randomGSVA.tsv", col_types = cols())
+
+cor_res_long = gather(cor_res, key="Type", value="SpearmanCoeff")
+cor_res_long$Type = factor(cor_res_long$Type)
+
+p = ggplot(cor_res_long, aes(x=SpearmanCoeff, color=Type))  + 
+    stat_density(geom = "line") + 
+    xlab("Spearman correlation coefficient") + ylab("Density") +
+    guides(color=guide_legend(title = NULL)) + 
+    scale_color_discrete(labels=c("Normal", "Random APS genes", "Random IIS genes"))
+p
+```
+
+```{r}
+# save
+save_plot("random_simulation.pdf", plot = p, base_aspect_ratio = 1.6)
+```
+
+
+We can clearly see that if we change gene list for APS or IIS calculation, the strong positive correlation between APS and IIS will no longer exist.  

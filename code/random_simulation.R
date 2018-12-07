@@ -79,28 +79,57 @@ applyGSVA = function(group_df, group_col, gene_col, ExprMatList,
     return(resList)
 }
 
-
-normal_res = applyGSVA(merged_geneList, group_col = "Cell_type", gene_col = "Symbol", ExprMatList = list(RNASeq_pancan), method = "gsva") 
-
-save(normal_res, "results/randomRes/normal_results.RData")
-
-library(foreach)
-library(doParallel)
-registerDoParallel(cores = 4)
-
-random_geneList = replicate(10,sample(all_genes,nrow(merged_geneList),replace = FALSE))
-# use randomly selected genes substitute original genes
-
+set.seed(123456)
+normal_res = list()
 random_res = list()
 
-foreach(k=1:ncol(random_geneList)) %dopar% {
-    merged_geneList2 = merged_geneList
-    merged_geneList2$Symbol = random_geneList[, k]
+all_samples = colnames(RNASeq_pancan)[-1]
+
+# randomly select 500 samples
+for (i in 1:100){
+    message("round", i)
+    temp_samples = sample(all_samples, 500, replace = FALSE)
+    data = RNASeq_pancan[, c("sample", temp_samples)]
     
-    res = applyGSVA(merged_geneList2, group_col = "Cell_type", gene_col = "Symbol", ExprMatList = list(RNASeq_pancan), method = "gsva")
-    res = res[[1]]
-    save(res, file = paste0("results/randomRes/random_res", k, ".RData"))
-    random_res[[k]] = res
+    normal_res[[i]] = applyGSVA(merged_geneList, group_col = "Cell_type", gene_col = "Symbol", 
+                           ExprMatList = list(data), method = "gsva") 
+    # randomly select genes
+    random_geneList = replicate(10,sample(all_genes,nrow(merged_geneList),replace = FALSE))
+    merged_geneList2 = merged_geneList
+    
+    random_res2 = list()
+    for (k in 1:10){
+        message("calculation order", k)
+        merged_geneList2$Symbol = random_geneList[, k]
+        random_res2[[k]] = applyGSVA(merged_geneList2, group_col = "Cell_type", gene_col = "Symbol", 
+                        ExprMatList = list(data), method = "gsva")
+    }
+    random_res[[i]] = random_res2
 }
 
+save(normal_res, file="results/randomRes/normal_results.RData")
 save(random_res, file = "results/randomRes/random_res.RData")
+
+# normal_res = applyGSVA(merged_geneList, group_col = "Cell_type", gene_col = "Symbol", 
+#                        ExprMatList = list(RNASeq_pancan), method = "gsva") 
+# 
+# 
+# 
+# 
+# # random_geneList = replicate(10,sample(all_genes,nrow(merged_geneList),replace = FALSE))
+# # use randomly selected genes substitute original genes
+# random_res = list()
+# 
+# foreach(k=1:ncol(random_geneList)) %dopar% {
+#     merged_geneList2 = merged_geneList
+#     merged_geneList2$Symbol = random_geneList[, k]
+#     
+#     res = applyGSVA(merged_geneList2, group_col = "Cell_type", gene_col = "Symbol", 
+#                     ExprMatList = list(RNASeq_pancan), method = "gsva")
+#     res = res[[1]]
+#     save(res, file = paste0("results/randomRes/random_res", k, ".RData"))
+#     random_res[[k]] = res
+# }
+
+
+

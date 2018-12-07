@@ -797,7 +797,7 @@ hugo2016_roc_IIS = roc(info_hugo$Response, info_hugo$IIS)
 hugo2016_roc_CD8 = roc(info_hugo$Response, info_hugo$CD8)
 hugo2016_roc_IFNG = roc(info_hugo$Response, info_hugo$IFNG)
 hugo2016_roc_PDL1 = roc(info_hugo$Response, info_hugo$PDL1)
-hugo2016_roc_TIDE = roc(info_hugo$Response, info_hugo$TIDE)
+hugo2016_roc_TIDE = roc(info_hugo$Response, info_hugo$TIDE, direction = ">") # less TIDE, better outcome
 
 ggroc(list(TMB=hugo2016_roc_TMB, TIGS=hugo2016_roc_TIGS, TIDE=hugo2016_roc_TIDE), legacy.axes = TRUE) + 
     labs(color = "Predictor") + ggpubr::theme_classic2(base_size = 12, base_family = "Arial")
@@ -815,7 +815,7 @@ auc(hugo2016_roc_TIDE)  # AUC of TIDE
 # AUC of random APS genes
 auc_random_hugo = c()
 for (i in 1:100){
-  t = as.numeric(auc(roc(info_hugo$Response, info_hugo[[paste0("APS",i)]])))
+  t = as.numeric(auc(roc(info_hugo$Response, info_hugo[[paste0("APS",i)]], direction = "<")))
   auc_random_hugo = c(auc_random_hugo, t)
 }
 
@@ -860,7 +860,7 @@ VanAllen2015_roc_IIS = roc(info_VanAllen2$Response, info_VanAllen2$IIS)
 VanAllen2015_roc_CD8 = roc(info_VanAllen2$Response, info_VanAllen2$CD8)
 VanAllen2015_roc_IFNG = roc(info_VanAllen2$Response, info_VanAllen2$IFNG)
 VanAllen2015_roc_PDL1 = roc(info_VanAllen2$Response, info_VanAllen2$PDL1)
-VanAllen2015_roc_TIDE = roc(info_VanAllen2$Response, info_VanAllen2$TIDE)
+VanAllen2015_roc_TIDE = roc(info_VanAllen2$Response, info_VanAllen2$TIDE, direction = ">")
 
 ggroc(list(TMB=VanAllen2015_roc_TMB,TIGS=VanAllen2015_roc_TIGS, TIDE=VanAllen2015_roc_TIDE),
       legacy.axes = TRUE) + 
@@ -880,7 +880,7 @@ auc(VanAllen2015_roc_TIDE)  # AUC of TIDE
 # AUC of random APS genes
 auc_random_VanAllen = c()
 for (i in 1:100){
-  t = as.numeric(auc(roc(info_VanAllen2$Response, info_VanAllen2[[paste0("APS",i)]])))
+  t = as.numeric(auc(roc(info_VanAllen2$Response, info_VanAllen2[[paste0("APS",i)]], "<")))
   auc_random_VanAllen = c(auc_random_VanAllen, t)
 }
 
@@ -908,7 +908,7 @@ Snyder2017_roc_IIS = roc(info_Snyder$is_benefit, info_Snyder$IIS)
 Snyder2017_roc_CD8 = roc(info_Snyder$is_benefit, info_Snyder$CD8)
 Snyder2017_roc_PDL1 = roc(info_Snyder$is_benefit, info_Snyder$PDL1)
 Snyder2017_roc_IFNG = roc(info_Snyder$is_benefit, info_Snyder$IFNG)
-Snyder2017_roc_TIDE = roc(info_Snyder$is_benefit, info_Snyder$TIDE)
+Snyder2017_roc_TIDE = roc(info_Snyder$is_benefit, info_Snyder$TIDE, direction = ">")
 
 
 
@@ -929,7 +929,7 @@ auc(Snyder2017_roc_TIDE)  # AUC of TIDE
 # AUC of random APS genes
 auc_random_Snyder = c()
 for (i in 1:100){
-  t = as.numeric(auc(roc(info_Snyder$is_benefit, info_Snyder[[paste0("APS",i)]])))
+  t = as.numeric(auc(roc(info_Snyder$is_benefit, info_Snyder[[paste0("APS",i)]], direction = "<")))
   auc_random_Snyder = c(auc_random_Snyder, t)
 }
 
