@@ -80,7 +80,7 @@ TCGA contains about 10,000 patients with RNASeq data, it is hard to simulate GSV
 
 The GSVA score calculation is implemented by script `code/random_simulation.R` (this will take much time to finish). Next we calculate correlation using following commands.
 
-```{r eval=FALSE}
+```{r}
 load("results/randomRes/normal_results.RData")
 load("results/randomRes/random_res.RData")
 ```
