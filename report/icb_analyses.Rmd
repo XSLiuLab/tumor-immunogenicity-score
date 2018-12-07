@@ -1313,8 +1313,22 @@ p_roc_3 = ggroc(list(TMB=roc_df$TMB[[3]], TIGS=roc_df$TIGS[[3]], TIDE=roc_df$TID
   labs(color = "") + scale_color_manual(values = c("blue", "red", "black")) +  
   theme(legend.position = c(0.8,0.4)) 
 
-#plot_grid(p_roc_1, p_roc_2, p_roc_3, nrow = 3)
+p_roc_4 = ggroc(list(TIGS=roc_df$TIGS[[2]], APS=roc_df$APS[[2]], PDL1=roc_df$PDL1[[2]],
+                     CD8=roc_df$CD8[[2]], IFNG=roc_df$IFNG[[2]], IIS=roc_df$IIS[[2]]), legacy.axes = TRUE) + 
+  labs(color = "")  +  
+  theme(legend.position = c(0.8,0.4)) 
+p_roc_5 = ggroc(list(TIGS=roc_df$TIGS[[1]], APS=roc_df$APS[[1]], PDL1=roc_df$PDL1[[1]],
+                     CD8=roc_df$CD8[[1]], IFNG=roc_df$IFNG[[1]], IIS=roc_df$IIS[[1]]), legacy.axes = TRUE) + 
+  labs(color = "")  +  
+  theme(legend.position = c(0.8,0.4)) 
+p_roc_6 = ggroc(list(TIGS=roc_df$TIGS[[3]], APS=roc_df$APS[[3]], PDL1=roc_df$PDL1[[3]],
+                     CD8=roc_df$CD8[[3]], IFNG=roc_df$IFNG[[3]], IIS=roc_df$IIS[[3]]), legacy.axes = TRUE) + 
+  labs(color = "")  +  
+  theme(legend.position = c(0.8,0.4)) 
 
+
+p_extra=plot_grid(p_roc_4, p_roc_5, p_roc_6, nrow = 1)
+save_plot(filename = "extra_roc_comparison.pdf", plot = p_extra, nrow = 1, ncol = 3, base_aspect_ratio = 1.2)
 ```
 
 ```{r}
@@ -1403,6 +1417,8 @@ p_surv_TIDE[[3]] = ggsurvplot(km_TIDE$Snyder, pval = TRUE, fun = "pct",
            legend = c(0.8, 0.9), legend.title=element_blank(),legend.labs = c("TIDE High", "TIDE Low"))
   
 
+p_aps = plot_grid(plotlist = lapply(p_surv_APS, function(x)x$plot), ncol = 3)
+save_plot(filename = "aps_kmplot.pdf", plot = p_aps, ncol=3, base_aspect_ratio = 1.3)
 #ggpar(p , font.legend = c(12, "bold", "black"))
 ```
 
