@@ -1,16 +1,30 @@
 # Available Resource and Workflow of Paper *Antigen presentation and tumor immunogenicity in cancer immunotherapy response prediction*
 
+## Contents
+
+* [Overview](#overview)
+* [Repo Contents](#repo-contents)
+* [Instructions for Use](#instructions-for-use)
+  * [Read analysis report](#read-analysis-report)
+  * [Obtain data](#obtain-data)
+  * [Reproduce analysis](#reproduce-analysis)
+* [Citation](#citation)
+* [Acknowledgement](#acknowledgement)
+* [LICENSE](#license)
+
+## Overview
+
 Purpose of this repository is to share analysis procedure, data and help readers or reviewers to know more detail of this work, reproduce or make use of results they are interested in.
 
-## Repository structure
+## Repo Contents
 
-* __code__ directory - tidy R functions
-* __data__ directory - preprocessed data used for analysis and share
-* __report__ directory - Rmarkdown analysis report and corresponding html version
-  * `report/results` directory - important middle results and final results, most of them are in form of `.RData`, which can be easily loaded and operated by R. 
+* [code](./code): tidy R functions and R script for  GSVA score calculation with randomly selected APS/IIS genes.
+* [data](./data): preprocessed data used for analysis and share
+* [report](./report): Rmarkdown analysis report and results of manuscript
+  * [report/results](./report/results): important middle results and final results, most of them are in form of `.RData`, which can be easily loaded and operated by R. 
 * __LICENSE__ file 
 
-## Usage
+## Instructions for Use
 
 ### Read analysis report
 
@@ -24,7 +38,7 @@ For readers who want to obtain raw/result data, please read corresponding prepro
 
 * Use linux command `wget` or `curl`, fo example, you can download APM gene list by
 
-  `wget https://github.com/XSLiuLab/tumor-immunogenicity-score/blob/master/data/APM.csv`
+  ``wget https://github.com/XSLiuLab/tumor-immunogenicity-score/blob/master/data/APM.csv`
 
 Or you can download whole respository with one of following ways:
 
