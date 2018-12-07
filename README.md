@@ -1,4 +1,4 @@
-# Available Resource and Workflow of Paper *Antigen presentation and tumor immunogenicity in cancer immunotherapy response prediction*
+# Tumor Immunogenicity Score (TIGS)
 
 ## Contents
 
