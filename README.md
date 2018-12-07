@@ -38,7 +38,7 @@ For readers who want to obtain raw/result data, please read corresponding prepro
 
 * Use linux command `wget` or `curl`, fo example, you can download APM gene list by
 
-  ``wget https://github.com/XSLiuLab/tumor-immunogenicity-score/blob/master/data/APM.csv`
+  `wget https://github.com/XSLiuLab/tumor-immunogenicity-score/blob/master/data/APM.csv`
 
 Or you can download whole respository with one of following ways:
 
