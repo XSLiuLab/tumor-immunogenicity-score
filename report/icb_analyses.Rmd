@@ -12,7 +12,7 @@ output:
 
 ```{r include=FALSE}
 options(max.print="75")
-knitr::opts_chunk$set(echo = TRUE, comment = "#>", eval = TRUE, collapse = TRUE, cache = TRUE)
+knitr::opts_chunk$set(echo = TRUE, comment = "#>", eval = TRUE, collapse = TRUE, cache = FALSE)
 knitr::opts_knit$set(width=75)
 ```
 
@@ -790,13 +790,13 @@ gsva.hugo2016.random %>%
 
 #------------------------------------------
 # Hugo 2016
-hugo2016_roc_TMB = roc(info_hugo$Response, info_hugo$nTMB)
-hugo2016_roc_APS = roc(info_hugo$Response, info_hugo$APS)
-hugo2016_roc_TIGS = roc(info_hugo$Response, info_hugo$TIGS)
-hugo2016_roc_IIS = roc(info_hugo$Response, info_hugo$IIS)
-hugo2016_roc_CD8 = roc(info_hugo$Response, info_hugo$CD8)
-hugo2016_roc_IFNG = roc(info_hugo$Response, info_hugo$IFNG)
-hugo2016_roc_PDL1 = roc(info_hugo$Response, info_hugo$PDL1)
+hugo2016_roc_TMB = roc(info_hugo$Response, info_hugo$nTMB, direction = "<")
+hugo2016_roc_APS = roc(info_hugo$Response, info_hugo$APS, direction = "<")
+hugo2016_roc_TIGS = roc(info_hugo$Response, info_hugo$TIGS, direction = "<")
+hugo2016_roc_IIS = roc(info_hugo$Response, info_hugo$IIS, direction = "<")
+hugo2016_roc_CD8 = roc(info_hugo$Response, info_hugo$CD8, direction = "<")
+hugo2016_roc_IFNG = roc(info_hugo$Response, info_hugo$IFNG, direction = "<")
+hugo2016_roc_PDL1 = roc(info_hugo$Response, info_hugo$PDL1, direction = "<")
 hugo2016_roc_TIDE = roc(info_hugo$Response, info_hugo$TIDE, direction = ">") # less TIDE, better outcome
 
 ggroc(list(TMB=hugo2016_roc_TMB, TIGS=hugo2016_roc_TIGS, TIDE=hugo2016_roc_TIDE), legacy.axes = TRUE) + 
@@ -853,13 +853,13 @@ gsva.VanAllen2015.random %>%
   full_join(info_VanAllen2, by = "patient") -> info_VanAllen2
 
 
-VanAllen2015_roc_TMB = roc(info_VanAllen2$Response, info_VanAllen2$nTMB)
-VanAllen2015_roc_APS = roc(info_VanAllen2$Response, info_VanAllen2$APS)
-VanAllen2015_roc_TIGS = roc(info_VanAllen2$Response, info_VanAllen2$TIGS)
-VanAllen2015_roc_IIS = roc(info_VanAllen2$Response, info_VanAllen2$IIS)
-VanAllen2015_roc_CD8 = roc(info_VanAllen2$Response, info_VanAllen2$CD8)
-VanAllen2015_roc_IFNG = roc(info_VanAllen2$Response, info_VanAllen2$IFNG)
-VanAllen2015_roc_PDL1 = roc(info_VanAllen2$Response, info_VanAllen2$PDL1)
+VanAllen2015_roc_TMB = roc(info_VanAllen2$Response, info_VanAllen2$nTMB, direction = "<")
+VanAllen2015_roc_APS = roc(info_VanAllen2$Response, info_VanAllen2$APS, direction = "<")
+VanAllen2015_roc_TIGS = roc(info_VanAllen2$Response, info_VanAllen2$TIGS, direction = "<")
+VanAllen2015_roc_IIS = roc(info_VanAllen2$Response, info_VanAllen2$IIS, direction = "<")
+VanAllen2015_roc_CD8 = roc(info_VanAllen2$Response, info_VanAllen2$CD8, direction = "<")
+VanAllen2015_roc_IFNG = roc(info_VanAllen2$Response, info_VanAllen2$IFNG, direction = "<")
+VanAllen2015_roc_PDL1 = roc(info_VanAllen2$Response, info_VanAllen2$PDL1, direction = "<")
 VanAllen2015_roc_TIDE = roc(info_VanAllen2$Response, info_VanAllen2$TIDE, direction = ">")
 
 ggroc(list(TMB=VanAllen2015_roc_TMB,TIGS=VanAllen2015_roc_TIGS, TIDE=VanAllen2015_roc_TIDE),
@@ -901,13 +901,13 @@ gsva.Snyder.random %>%
   rownames_to_column(var = "patient_id") %>% 
   full_join(info_Snyder, by = "patient_id") -> info_Snyder
 
-Snyder2017_roc_TMB = roc(info_Snyder$is_benefit, info_Snyder$nTMB)
-Snyder2017_roc_APS = roc(info_Snyder$is_benefit, info_Snyder$APS)
-Snyder2017_roc_TIGS = roc(info_Snyder$is_benefit, info_Snyder$TIGS)
-Snyder2017_roc_IIS = roc(info_Snyder$is_benefit, info_Snyder$IIS)
-Snyder2017_roc_CD8 = roc(info_Snyder$is_benefit, info_Snyder$CD8)
-Snyder2017_roc_PDL1 = roc(info_Snyder$is_benefit, info_Snyder$PDL1)
-Snyder2017_roc_IFNG = roc(info_Snyder$is_benefit, info_Snyder$IFNG)
+Snyder2017_roc_TMB = roc(info_Snyder$is_benefit, info_Snyder$nTMB, direction = "<")
+Snyder2017_roc_APS = roc(info_Snyder$is_benefit, info_Snyder$APS, direction = "<")
+Snyder2017_roc_TIGS = roc(info_Snyder$is_benefit, info_Snyder$TIGS, direction = "<")
+Snyder2017_roc_IIS = roc(info_Snyder$is_benefit, info_Snyder$IIS, direction = "<")
+Snyder2017_roc_CD8 = roc(info_Snyder$is_benefit, info_Snyder$CD8, direction = "<")
+Snyder2017_roc_PDL1 = roc(info_Snyder$is_benefit, info_Snyder$PDL1, direction = "<")
+Snyder2017_roc_IFNG = roc(info_Snyder$is_benefit, info_Snyder$IFNG, direction = "<")
 Snyder2017_roc_TIDE = roc(info_Snyder$is_benefit, info_Snyder$TIDE, direction = ">")
 
 
