@@ -135,7 +135,7 @@ p = ggplot(cor_res_long, aes(x=SpearmanCoeff, color=Type))  +
     stat_density(geom = "line") + 
     xlab("Spearman correlation coefficient") + ylab("Density") +
     guides(color=guide_legend(title = NULL)) + 
-    scale_color_discrete(labels=c("Normal", "Random APS genes", "Random IIS genes"))
+    scale_color_discrete(labels=c("r(APS, IIS)", "r(APSr, IIS)", "r(APS, IISr"))
 p
 ```
 
