@@ -8,6 +8,7 @@
   * [Read analysis report](#read-analysis-report)
   * [Obtain data](#obtain-data)
   * [Reproduce analysis](#reproduce-analysis)
+* [Test Environment](#test-environment)
 * [Citation](#citation)
 * [Acknowledgement](#acknowledgement)
 * [LICENSE](#license)
@@ -47,7 +48,37 @@ Or you can download whole respository with one of following ways:
 
 ### Reproduce analysis
 
-For readers who want to reproduce analysis shown in manuscript, please [install R](https://cran.r-project.org) in your computer, then install required R packages described at __Dependencies__ part of our [analysis report](https://xsliulab.github.io/tumor-immunogenicity-score/), followed by rendering `report_main.Rmd` file using [`knitr` package](https://github.com/yihui/knitr).
+For readers who want to reproduce analysis shown in manuscript, please [install R](https://cran.r-project.org) in your computer, then install required R packages described at __Dependencies__ part of our [analysis report](https://xsliulab.github.io/tumor-immunogenicity-score/), followed by rendering `report_main.Rmd` file using [knitr package](https://github.com/yihui/knitr).
+
+
+
+## Test Environment
+
+* System: __MacOS__
+
+* Software: __R v3.5.1__
+
+* R packages:
+
+  * [UCSCXenaTools](https://github.com/ShixiangWang/UCSCXenaTools) - download data from UCSC Xena
+  * GEOquery - download data from NCBI GEO database
+  * [tidyverse](https://www.tidyverse.org/) - operate data, plot
+  * data.table - operate data
+  * survival - built in R, used to do survival analysis 
+  * forestplot - plot forestplot
+  * survminer - plot survival fit
+  * pROC - ROC analysis and visualization
+  * [TCGAmutations](https://github.com/PoisonAlien/TCGAmutations) - download TCGA mutation data
+  * [DT](https://cran.r-project.org/web/packages/DT/index.html) - show data table as a table in html
+  * [GSVA](https://github.com/rcastelo/GSVA) [v1.28.0](https://www.bioconductor.org/packages/3.7/bioc/html/GSVA.html) - GSVA algorithm implementation
+  * [ggstatsplot](https://github.com/IndrajeetPatil/ggstatsplot) - plot scatter with linear fit
+  * [corrplot](https://cran.r-project.org/web/packages/corrplot/) - plot correlation 
+  * knitr, rmdformats - used to compile this file
+  * readxl - read xlsx data
+
+  > __These R packages are easily searched by internet and have no strict version requirements to reproduce the analyses.__
+
+
 
 ## Citation
 
