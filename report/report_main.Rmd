@@ -147,3 +147,9 @@ save_plot("random_simulation.pdf", plot = p, base_aspect_ratio = 1.6)
 
 We can clearly see that if we change gene list for APS or IIS calculation, the strong positive correlation between APS and IIS will no longer exist.  
 
+## Session Info
+
+```{r}
+devtools::session_info()
+```
+
