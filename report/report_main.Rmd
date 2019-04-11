@@ -18,7 +18,7 @@ library(rmdformats)
 options(max.print="75")
 opts_chunk$set(echo=TRUE,
                comment="#>",
-               cache = FALSE)
+               cache = TRUE)
 opts_knit$set(width=75)
 ```
 

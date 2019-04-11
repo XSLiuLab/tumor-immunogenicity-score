@@ -41,7 +41,7 @@ library(dplyr)
 Obtain datasets information available at [TCGA data hubs of UCSC Xena](https://xenabrowser.net/datapages/?host=https%3A%2F%2Ftcga.xenahubs.net&removeHub=https%3A%2F%2Fxena.treehouse.gi.ucsc.edu%3A443):
 
 ```{r}
-xe = XenaGenerate(subset = XenaHostNames == "TCGA")
+xe = XenaGenerate(subset = XenaHostNames == "tcgaHub")
 xe
 ```
 
@@ -65,22 +65,22 @@ Create data queries and download them:
 ```{r download_xena_pancan, eval=FALSE}
 xe_clinical.query = XenaQuery(xe_clinical)
 xe_clinical.download = XenaDownload(xe_clinical.query, 
-                                    destdir = "UCSC_Xena/TCGA/Clinical")
+                                    destdir = "UCSC_Xena/TCGA/Clinical", trans_slash = TRUE)
 
 xe_rna_pancan.query = XenaQuery(xe_rna_pancan)
 xe_rna_pancan.download = XenaDownload(xe_rna_pancan.query, 
-                                      destdir = "UCSC_Xena/TCGA/RNAseq_Pancan")
+                                      destdir = "UCSC_Xena/TCGA/RNAseq_Pancan", trans_slash = TRUE)
 ```
 
 ```{r hide_download_pancan, include=FALSE}
 if (!dir.exists("UCSC_Xena")){
     xe_clinical.query = XenaQuery(xe_clinical)
     xe_clinical.download = XenaDownload(xe_clinical.query, 
-                                        destdir = "UCSC_Xena/TCGA/Clinical")
+                                        destdir = "UCSC_Xena/TCGA/Clinical", trans_slash = TRUE)
     
     xe_rna_pancan.query = XenaQuery(xe_rna_pancan)
     xe_rna_pancan.download = XenaDownload(xe_rna_pancan.query, 
-                                          destdir = "UCSC_Xena/TCGA/RNAseq_Pancan")
+                                          destdir = "UCSC_Xena/TCGA/RNAseq_Pancan", trans_slash = TRUE)
 }
 ```
 
