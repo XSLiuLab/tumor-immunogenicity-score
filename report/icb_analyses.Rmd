@@ -880,7 +880,7 @@ auc(VanAllen2015_roc_TIDE)  # AUC of TIDE
 # AUC of random APS genes
 auc_random_VanAllen = c()
 for (i in 1:100){
-  t = as.numeric(auc(roc(info_VanAllen2$Response, info_VanAllen2[[paste0("APS",i)]], "<")))
+  t = as.numeric(auc(roc(info_VanAllen2$Response, info_VanAllen2[[paste0("APS",i)]], didirection =  "<")))
   auc_random_VanAllen = c(auc_random_VanAllen, t)
 }
 
