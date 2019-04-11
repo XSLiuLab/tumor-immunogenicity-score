@@ -12,7 +12,8 @@ output:
 
 ```{r include=FALSE}
 options(max.print="75")
-knitr::opts_chunk$set(echo = TRUE, comment = "#>", eval = TRUE, collapse = TRUE, cache = FALSE)
+knitr::opts_chunk$set(echo = TRUE, comment = "#>", eval = TRUE, collapse = TRUE, cache = FALSE,
+                      dpi = 300)
 knitr::opts_knit$set(width=75)
 ```
 
@@ -91,7 +92,8 @@ df_all %>%
 sm_APM
 ```
 
-Lastly, we merge this data to 26 tumor types or subtypes for which data regarding the ORR, TMB are available __by hand__ using Excel. This process has been double checked. With the merged data, we can explore association of ORR and APM score, ORR and TMB etc. in immunotherapy datasets.
+Lastly, we merge this data to 25 tumor types or subtypes for which data regarding the ORR, TMB are available __by hand__ using Excel. This process has been double checked. With the merged data, we can explore association of ORR and APM score, ORR and TMB etc. in immunotherapy datasets.
+
 
 ### Significant correlation between APS, TMB and the ORR
 
@@ -100,11 +102,18 @@ We plot ORR against APS, TMB respectively, and fit their relationship with linea
 Load pan-cancer ORR data and show it as a table.
 
 ```{r}
-sm_data = read_csv("../data/summary_data_new_20180906.csv", col_types = cols())
+sm_data = read_csv("../data/summary_data_new_20190411.csv", col_types = cols())
 
 DT::datatable(sm_data, 
               options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE)
 ```
+
+>**Of note, a reviewer (#4) at second round review in *Nature Communication* found a problem about our data. **
+>
+>> DLBCL has high APM and TIGS, yet the response rate in Figure 4 of over 50% is incorrect. This 50%+ response rate is for Hodgkin lymphoma, not DLBCL.
+>
+>Thanks for his/her comment, we did mix the DLBC and Hodgkin lymphoma, thus we remove it and update our analyses.
+
 
 Focus on cancer type with APS, fit data with linear model.
 
@@ -122,7 +131,7 @@ summary(fit2)
 
 > Of note, here we use `log(TMB)` will not change the relationshipe between ORR and TMB.
 
-We observe that 28% variance of ORR can be explained by APS, and 44% variance of ORR can be explained by TMB. The result of TMB is similar to NEJM paper _Tumor Mutational Burden and Response Rate to PD-1 inhibition_. __This result show that TMB and APS are biomarker that predicting ORR of immunotherapy, TMB is better than APS__.
+We observe that 17.5% variance of ORR can be explained by APS, and 50.5% variance of ORR can be explained by TMB. The result of TMB is similar to NEJM paper _Tumor Mutational Burden and Response Rate to PD-1 inhibition_. __This result show that TMB and APS are biomarker that predicting ORR of immunotherapy, TMB is better than APS__.
 
 Next we plot the linear model.
 
@@ -148,15 +157,19 @@ ggplot(sm_data, aes(x=Pool_TMB, y=Pool_ORR)) +
     geom_smooth(method="lm", se=T)  + 
     geom_text_repel(aes(label=Cancer_Type), size=3)  +
     labs(x="Median No. of Coding Somatic Mutation per MB", y="Objective Response Rate (%)",
-         color = "Tumor Mutational Burden\n(no. of tumor analyzed)",
-         size="Objective Response Rate\n(no. of patients evaluated)") +
+         size="Objective Response Rate\n(no. of patients evaluated)",
+         color = "Tumor Mutational Burden\n(no. of tumor analyzed)") +
     scale_x_continuous(trans = log_trans(),
                        breaks = c(2, 10, 20, 30, 40, 50),
                        labels = c(2, 10, 20, 30, 40, 50)) +
     scale_size_continuous(breaks = c(50, 100, 500, 1000)) +
     scale_color_gradientn(colours = RColorBrewer::brewer.pal(5, name="OrRd")[-1],
                           breaks = c(100, 1000, 5000, 10000)) +
-    theme_bw()
+    theme_bw() + 
+  guides(
+    color = guide_colorbar(order = 1),
+    fill = guide_legend(order = 0)
+  )
 ```
 
 
@@ -193,7 +206,7 @@ lm(Pool_ORR ~ log(Pool_TMB +1):Pool_APM, data = sm_data)  -> fit3
 summary(fit3)
 ```
 
-We observe that 66% variance of ORR can be explained by TIGS, this result is indeed bettern than TMB.
+We observe that 60.1% variance of ORR can be explained by TIGS, this result is indeed bettern than TMB.
 
 
 ```{r}
@@ -216,11 +229,10 @@ ggplot(sm_data, aes(x=tigs, y=Pool_ORR)) +
 
 As mentioned above, we constructed the formula of `TIGS` according to our understanding of “tumor antigenicity”. Is there a better combination of these two factors?
 
-There are three basic models we take into consideration.
+There are two basic models we take into consideration.
 
-* Model 1: $ORR = d \times (a \times APS + b\times log(TMB)) + c$, i.e. $TIGS = a \times APS + b \times log(TMB)$
-* Model 2: $ORR = a \times (APS \times log(TMB)) + b$, i.e. $TIGS = APS \times log(TMB)$ (This is the model we used above)
-* Model 3: $ORR = e \times (a \times APS + b\times log(TMB) + c\times APS \times log(TMB)) + d$, i.e. $TIGS = a \times APS + b\times log(TMB) + c\times APS \times log(TMB)$
+* Model 1: $ORR = a \times (APS \times log(TMB)) + b$, i.e. $TIGS = APS \times log(TMB)$ (This is the model we used above)
+* Model 2: $ORR = e \times (a \times APS + b\times log(TMB) + c\times APS \times log(TMB)) + d$, i.e. $TIGS = a \times APS + b\times log(TMB) + c\times APS \times log(TMB)$
 
 a, b, c, d and e here are coefficients. In R, we don't need to write them in models, it will take care of them. 
 
@@ -229,15 +241,12 @@ Now, let's observe the results.
 
 ```{r}
 # Model 1
-lm(Pool_ORR ~ log(Pool_TMB)+Pool_APM, data = sm_data)  %>% summary() 
+lm(Pool_ORR ~ log(Pool_TMB+1):Pool_APM, data = sm_data)  %>% summary() 
 # Model 2
-lm(Pool_ORR ~ log(Pool_TMB):Pool_APM, data = sm_data)  %>% summary() 
-# Model 3
-lm(Pool_ORR ~ log(Pool_TMB)*Pool_APM, data = sm_data)  %>% summary() 
+lm(Pool_ORR ~ log(Pool_TMB+1)*Pool_APM, data = sm_data)  %>% summary() 
 ```
 
-The model 1 is the worst one. Model 3 is a little better than model 2, however model 2 is much simpler (model 2 is included in model 3!).  Following __Occam's razor__, we choose model 2 when compare it with model 3. We also choose model 2 when compare it with model 1 because it is better and consist with the fact APM and TMB are relatively independent but not absolutely independent. To summary, model 2 is the best option.
-
+Model 2 is a little better than model 1, however model 1 is much simpler (all terms of model 1 is included in model 2!).  Following __Occam's razor__, we choose model 1 when compare it with model 2. 
 
 **Any promotion of formula $TIGS = APS \times log(TMB + 1)$?**
 
