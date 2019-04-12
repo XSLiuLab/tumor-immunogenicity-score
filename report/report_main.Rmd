@@ -18,7 +18,7 @@ library(rmdformats)
 options(max.print="75")
 opts_chunk$set(echo=TRUE,
                comment="#>",
-               cache = TRUE)
+               cache = TRUE, dpi = 300)
 opts_knit$set(width=75)
 ```
 
@@ -167,7 +167,7 @@ tcga_all = tcga_all %>%
            TIGS = log(nTMB+1) * nAPM)
 ```
 
-Next we calculate median of TICG for each tumor type.
+Next we calculate median of APS, TMB, TIGS and their corresponding sample counts for each tumor type.
 
 ```{r}
 tcga_tigs = tcga_all %>% 
