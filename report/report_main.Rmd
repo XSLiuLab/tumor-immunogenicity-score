@@ -147,4 +147,158 @@ save_plot("random_simulation.pdf", plot = p, base_aspect_ratio = 1.6)
 
 We can clearly see that if we change gene list for APS or IIS calculation, the strong positive correlation between APS and IIS will no longer exist.  
 
+## Explore correlation between ORR and TIGS from TCGA data 
+
+A reviewer commented on our analysis which showed in section "TIGS definition and performance":
+
+> it appears that the authors lumped together data from different data sets (e.g. reference 26 for tumor mutational burden and TCGA data for expression)
+
+This analysis we adopted same idea from [*Tumor Mutational Burden and Response Rate to PD-1 inhibition*](https://www.ncbi.nlm.nih.gov/pubmed/29348162). To further check reliability of this analysis, here we use gene expression and TMB data from TCGA and ORR data from clinical literatures.
+
+Firstly we load TCGA data and calculate TIGS score.
+
+```{r}
+library(dplyr)
+load("results/TCGA_ALL.RData")
+
+tcga_all = tcga_all %>% 
+    mutate(nAPM = (APM - min(APM, na.rm = TRUE))/ (max(APM, na.rm = TRUE) - min(APM, na.rm = TRUE)),
+           nTMB = TMB_NonsynVariants / 38, 
+           TIGS = log(nTMB+1) * nAPM)
+```
+
+Next we calculate median of TICG for each tumor type.
+
+```{r}
+tcga_tigs = tcga_all %>% 
+  dplyr::filter(!is.na(Project)) %>% 
+  group_by(Project) %>% 
+  summarise(Patients_TIGS=sum(!is.na(TIGS)), TIGS=median(TIGS, na.rm = TRUE),
+            Patients_APS=sum(!is.na(nAPM)), APS=median(nAPM, na.rm = TRUE),
+            Patients_TMB=sum(!is.na(nTMB)), TMB=median(nTMB, na.rm = TRUE))
+DT::datatable(tcga_tigs)
+```
+
+We then save this data and merge them with ORR data according to corresponding tumor types.
+
+```{r, eval=FALSE}
+readr::write_csv(tcga_tigs, path = "results/TCGA_TIGS_byProject2.csv")
+```
+
+After merging data, we load data into R.
+
+```{r}
+tcga_orr = readr:::read_csv("results/TCGA_TIGS_byProject2.csv")
+```
+
+Now we plot figures.
+
+```{r}
+library(ggplot2)
+require(ggrepel)
+require(scales)
+```
+
+### APS
+
+```{r}
+ggplot(filter(tcga_orr, !is.na(ORR)), aes(x=APS, y=ORR)) + 
+    geom_point(aes(color=Patients_APS, size=Patients_ORR)) + 
+    geom_smooth(method="lm", se=T)  + 
+    geom_text_repel(aes(label=Project), size=3)  +
+    labs(x="Median Normalized APM Score ", y="Objective Response Rate (%)",
+         size="Objective Response Rate\n(no. of patients evaluated)", 
+         color = "APM Score\n(no. of tumor analyzed)") +
+    scale_size_continuous(breaks = c(50, 100, 500, 1000)) +
+    scale_color_gradientn(colours = RColorBrewer::brewer.pal(5, name="OrRd")[-1],
+                          breaks = c(50, 200, 500, 1000)) +
+    theme_bw() +
+    guides(
+    color = guide_colorbar(order = 1)
+  )
+```
+
+Significant correlation is observed.
+
+```{r}
+lm(ORR ~ APS, filter(tcga_orr, !is.na(ORR))) %>% summary() 
+```
+
+R and R square can be given as:
+
+```{r}
+# R
+filter(tcga_orr, !is.na(ORR)) %>% summarise(r = cor(ORR, APS)) %>% pull(r)
+# R square
+lm(ORR ~ APS, filter(tcga_orr, !is.na(ORR))) %>% summary()  %>% .$r.squared
+```
+
+### TMB
+
+```{r}
+ggplot(filter(tcga_orr, !is.na(ORR)), aes(x=TMB, y=ORR)) + 
+    geom_point(aes(color=Patients_TMB, size=Patients_ORR)) + 
+    geom_smooth(method="lm", se=T)  + 
+    geom_text_repel(aes(label=Project), size=3)  +
+    labs(x="Median No. of Coding Somatic Mutation per MB", y="Objective Response Rate (%)",
+         size="Objective Response Rate\n(no. of patients evaluated)",
+         color = "Tumor Mutational Burden\n(no. of tumor analyzed)") +
+    scale_x_continuous(trans = log_trans(),
+                       breaks = c(2, 10, 20, 30, 40, 50),
+                       labels = c(2, 10, 20, 30, 40, 50)) +
+    scale_size_continuous(breaks = c(50, 100, 500, 1000)) +
+    scale_color_gradientn(colours = RColorBrewer::brewer.pal(5, name="OrRd")[-1],
+                          breaks = c(100, 1000, 5000, 10000)) +
+    theme_bw() + 
+  guides(
+    color = guide_colorbar(order = 1)
+  )
+```
+
+Significant correlation is observed.
+
+```{r}
+lm(ORR ~ TMB, filter(tcga_orr, !is.na(ORR))) %>% summary() 
+```
+
+R and R square can be given as:
+
+```{r}
+# R
+filter(tcga_orr, !is.na(ORR)) %>% summarise(r = cor(ORR, TMB)) %>% pull(r)
+# R square
+lm(ORR ~ TMB, filter(tcga_orr, !is.na(ORR))) %>% summary()  %>% .$r.squared
+```
+
+### TIGS
+
+
+```{r}
+ggplot(filter(tcga_orr, !is.na(ORR)), aes(x=TIGS, y=ORR)) + 
+    geom_point(aes(size=Patients_ORR)) + 
+    geom_smooth(method="lm", se=T)  + 
+    geom_text_repel(aes(label=Project), size=3)  +
+    labs(x="Tumor Immunogenicity Score ", y="Objective Response Rate (%)",
+         size="Objective Response Rate\n(no. of patients evaluated)") +
+    scale_size_continuous(breaks = c(50, 100, 500, 1000)) +
+    theme_bw() 
+```
+
+Significant correlation is observed.
+
+```{r}
+lm(ORR ~ TIGS, filter(tcga_orr, !is.na(ORR))) %>% summary() 
+```
+
+R and R square can be given as:
+
+```{r}
+# R
+filter(tcga_orr, !is.na(ORR)) %>% summarise(r = cor(ORR, TIGS)) %>% pull(r)
+# R square
+lm(ORR ~ TIGS, filter(tcga_orr, !is.na(ORR))) %>% summary()  %>% .$r.squared
+```
+
+
+These data are consistent with our previous results and even better, which may be caused by fewer included tumor types.
 

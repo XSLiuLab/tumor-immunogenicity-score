@@ -1,0 +1,33 @@
+Project,Patients_TIGS,TIGS,Patients_ORR,ORR,Long_Name
+ACC,92,0.213541546,50,6,Adrenocortical Carcinoma
+BLCA,412,0.83078337,1385,19.03,Bladder Urothelial Carcinoma
+BRCA,1087,0.247297972,312,6.18,Breast invasive carcinoma
+CESC,308,0.734907722,71,18.28,Cervical squamous cell carcinoma and endocervical adenocarcinoma
+CHOL,36,0.451972135,,,Cholangiocarcinoma
+COAD,462,0.932251412,,,Colon adenocarcinoma
+DLBC,48,1.087232396,,,Lymphoid Neoplasm Diffuse Large B-cell Lymphoma
+ESCA,185,0.452286023,702,10.69,Esophageal carcinoma
+GBM,602,0.223690432,183,8.43,Glioblastoma multiforme
+HNSC,528,0.90751988,432,15.39,Head and Neck squamous cell carcinoma
+KICH,66,0.185825589,,,Kidney Chromophobe
+KIRC,537,0.581855943,472,23.69,Kidney renal clear cell carcinoma
+KIRP,291,0.545713614,,,Kidney renal papillary cell carcinoma
+LGG,516,0.071762805,,,Brain Lower Grade Glioma
+LIHC,377,0.864955512,357,18.07,Liver hepatocellular carcinoma
+LUAD,520,0.906000763,824,17.66,Lung adenocarcinoma
+LUSC,506,0.832572265,273,19.77,Lung squamous cell carcinoma
+MESO,87,0.349095397,107,13.08,Mesothelioma
+OV,595,0.334984615,539,9.29,Ovarian serous cystadenocarcinoma
+PAAD,185,0.324220646,14,0,Pancreatic adenocarcinoma
+PCPG,179,0.076184692,,,heochromocytoma and Paraganglioma
+PRAD,498,0.186743856,233,6.82,Prostate adenocarcinoma
+READ,169,0.750423802,,,Rectum adenocarcinoma
+SARC,261,0.336426286,156,10.91,Sarcoma
+SKCM,104,1.229738156,898,36.62,Skin Cutaneous Melanoma
+STAD,478,0.640338033,,,Stomach adenocarcinoma
+TGCT,150,0.072910124,,,Testicular Germ Cell Tumors
+THCA,507,0.099831666,,,Thyroid carcinoma
+THYM,124,0.165275019,,,Thymoma
+UCEC,548,0.729366596,,,Uterine Corpus Endometrial Carcinoma
+UCS,57,0.158392171,,,Uterine Carcinosarcoma
+UVM,80,0.124566007,56,3.6,Uveal Melanoma
