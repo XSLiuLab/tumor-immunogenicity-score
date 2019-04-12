@@ -21,6 +21,7 @@ Purpose of this repository is to share analysis procedure, data and help readers
 
 * [code](./code): tidy R functions and R script for  GSVA score calculation with randomly selected APS/IIS genes.
 * [data](./data): preprocessed data used for analysis and share
+* [docs](./docs): website pages & data/figure files for showing analysis reports
 * [report](./report): Rmarkdown analysis report and results of manuscript
   * [report/results](./report/results): important middle results and final results, most of them are in form of `.RData`, which can be easily loaded and operated by R. 
 * __LICENSE__ file 
@@ -50,13 +51,11 @@ Or you can download whole respository with one of following ways:
 
 For readers who want to reproduce analysis shown in manuscript, please [install R](https://cran.r-project.org) in your computer, then install required R packages described at __Dependencies__ part of our [analysis report](https://xsliulab.github.io/tumor-immunogenicity-score/), followed by rendering `report_main.Rmd` file using [knitr package](https://github.com/yihui/knitr).
 
-
-
 ## Test Environment
 
 * System: __MacOS__
 
-* Software: __R v3.5.1__
+* Software: __R v3.5.2__
 
 * R packages:
 
@@ -78,19 +77,15 @@ For readers who want to reproduce analysis shown in manuscript, please [install 
 
   > __These R packages are easily searched by internet and have no strict version requirements to reproduce the analyses.__
 
-
-
 ## Citation
 
 If you use data, results or conclusion from this work, please cite:
 
-*Antigen presentation and tumor immunogenicity in cancer immunotherapy response prediction, __Nature Communication__* (**Under Review**)
+*Antigen presentation and tumor immunogenicity in cancer immunotherapy response prediction (**Current stage: Submitted**)
 
 ## Acknowledgement
 
 We thank all the reviewers for providing valuable comments to promote the quality of this manuscript. We thank the authors and participating patients of immunotherapy publications for providing the data for this analysis. Thank TCGA project for making cancer genomics data available for analysis. Thank members of Liu lab for helpful discussion. This work was supported in part by the Shanghai Pujiang Program (16PJ1407400), The National Natural Science Foundation of China (31771373), and startup funding from ShanghaiTech University.
-
-
 
 ## LICENSE
 

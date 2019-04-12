@@ -167,8 +167,7 @@ ggplot(sm_data, aes(x=Pool_TMB, y=Pool_ORR)) +
                           breaks = c(100, 1000, 5000, 10000)) +
     theme_bw() + 
   guides(
-    color = guide_colorbar(order = 1),
-    fill = guide_legend(order = 0)
+    color = guide_colorbar(order = 1)
   )
 ```
 
