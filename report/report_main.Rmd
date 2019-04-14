@@ -1,6 +1,6 @@
 ---
 title: "Antigen presentation and tumor immunogenicity in cancer immunotherapy response prediction"
-author: "Shixiang Wang"
+author: "Shixiang Wang, Xue-Song Liu"
 date: "`r Sys.Date()`"
 output:
   rmdformats::readthedown:
@@ -301,4 +301,25 @@ lm(ORR ~ TIGS, filter(tcga_orr, !is.na(ORR))) %>% summary()  %>% .$r.squared
 
 
 These data are consistent with our previous results and even better, which may be caused by fewer included tumor types.
+
+
+## Predict ORR for other tumor types
+
+Using constructed linear formula, we can predict ORR of tumor types which (median) TIGS available.
+
+```{r}
+sm_data = read_csv("../data/summary_data_new_20190411.csv", col_types = cols())
+sm_data$TIGS = sm_data$Pool_APM * log(sm_data$Pool_TMB + 1)
+
+fit = lm(Pool_ORR ~ TIGS, filter(sm_data, !is.na(Pool_ORR)))
+fit
+```
+
+For example , we can predict ORR for uterine corpus endometrial carcinoma (UCEC) on the basis of median TIGS of 0.7.
+
+
+```{r}
+nd = data.frame(TIGS = c(0.7))
+predict(fit, newdata = nd, interval = "confidence")
+```
 
