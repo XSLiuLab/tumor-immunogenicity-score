@@ -22,6 +22,9 @@ This part will clearly describe how to process raw data but not provide an easy 
 
 TCGA Pan-cancer data (Version 2017-10-13), including datasets of clinical informaiton, gene expression, are downloaded from [UCSC Xena](https://xenabrowser.net/datapages/) via R package [UCSCXenaTools](https://github.com/ShixiangWang/UCSCXenaTools).
 
+> **UCSCXenaTools** is developed by Shixiang and it is an R package to robustly access data from UCSC Xena data hubs.
+> More please see paper: *Wang et al., (2019). The UCSCXenaTools R package: a toolkit for accessing genomics data from UCSC Xena platform, from cancer multi-omics to single-cell RNA-seq. Journal of Open Source Software, 4(40), 1627, https://doi.org/10.21105/joss.01627*
+
 If you have not installed this package yet, please run following command in R.
 
 ```{r install_ucscxenatools, eval=FALSE}
@@ -36,7 +39,6 @@ library(UCSCXenaTools)
 # also load dplyr package
 library(dplyr)
 ```
-
 
 Obtain datasets information available at [TCGA data hubs of UCSC Xena](https://xenabrowser.net/datapages/?host=https%3A%2F%2Ftcga.xenahubs.net&removeHub=https%3A%2F%2Fxena.treehouse.gi.ucsc.edu%3A443):
 
@@ -395,6 +397,30 @@ if (!file.exists("results/gsva_tcga_pancan.RData")){
 }
 
 rm(list = ls())
+```
+
+### Calculation of APS7
+
+According to reviewers' comment, here we update a new analysis about calculating APS based on 7 APM gene signature from Senbabaoglu, Y. et al. We name this score as 'APS7'.
+
+```{r, eval=FALSE}
+source("../code/functions.R")
+load("results/merged_geneList.RData")
+APS7.genes = c("B2M", "HLA-A", "HLA-B", "HLA-C",
+               "TAP1", "TAP2", "TAPBP")
+
+APS7 = merged_geneList %>% 
+  dplyr::filter(Symbol %in% APS7.genes)
+```
+
+```{r, eval=FALSE}
+load("results/TCGA_RNASeq_PanCancer.RData")
+
+res_APS7.GSVA = applyGSVA(APS7, group_col = "Cell_type", gene_col = "Symbol", ExprMatList = list(RNASeq_pancan), method = "gsva")
+
+res_APS7.GSVA = res_APS7.GSVA[[1]]
+
+save(res_APS7.GSVA, file = "results/res_APS7.GSVA.RData")
 ```
 
 
