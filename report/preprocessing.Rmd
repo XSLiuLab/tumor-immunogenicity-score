@@ -424,6 +424,7 @@ save(res_APS7.GSVA, file = "results/res_APS7.GSVA.RData")
 ```
 
 
+
 ## TIMER data download and clean
 
 TIMER is a method that can accurately resolve relative fractions of diverse cell types based on gene expression profiles from complex tissues. We downloaded TIMER result for TCGA samples from [Li, B. et al.](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-016-1028-7).
