@@ -1,3 +1,5 @@
+# FUN: Clean PHBR scores
+#
 # PHBR for MHC-I was obtained from Prof. Carter
 # PHBR for MHC-II was obtained from PHBR MHC-II paper Table S2
 #
