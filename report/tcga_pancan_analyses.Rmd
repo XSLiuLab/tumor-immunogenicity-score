@@ -20,7 +20,7 @@ This part will clearly describe how to analyze TCGA Pan-cancer data. Raw data us
 
 ## Clean and combine data
 
-Although data have been preprocessed in preprocessing part, they are still necessary to do some clean before really analyzing them according to our purpose.
+Although data have been preprocessed in preprocessing part, they are still necessary to do some cleaning before really analyzing them according to our purpose.
 
 ```{r library_pkgs_load_data, message=FALSE}
 library(tidyverse)
@@ -43,57 +43,218 @@ Totally, 9095 tumor samples have APS value.
 
 ## Strong association between APS and immune cell infiltration level
 
-### Association between GSVA scores
-
 We know that genes used for APS calculation does not overlap with genes of immune cell type, but we don't know if there are association between APS and them. Besides, we also don't know if there are association between APS and two aggregate scores: TIS and IIS.
 
-The first step we want to do is show the relationships between scores using a heatmap. The correlation calculation is based on __spearman__ method.
+**UPDATE**: Also, we also want to compare them with APS7, APS calculated with MHC II (substitute MHC I genes with classic MHC II genes), and PHBR scores from *MHC-I Genotype Restricts the Oncogenic Mutational Landscape* and *Evolutionary Pressure against MHC Class II Binding Cancer Mutations*. Therefore, we integrate them all before analyzing.
+
+
+```{r}
+load("results/res_APS7.GSVA.RData")
+load("results/res_APS_MHC_II.GSVA.RData")
+
+res_APS7.GSVA = res_APS7.GSVA %>% 
+  rownames_to_column(var = "Tumor_Sample_Barcode") %>% 
+  rename(APS7 = APM)
+
+res_MHCII.GSVA = res_MHCII.GSVA %>% 
+  rownames_to_column(var = "Tumor_Sample_Barcode") %>% 
+  rename(APS_MHC_II = APM_MHC_II)
+```
+
+```{r}
+load(file = "../data/TCGA.PHBR_I.score.RData")
+load(file = "../data/TCGA.PHBR_II.score.RData")
+
+PHBR_I.score = dplyr::tibble(
+  Tumor_Sample_Barcode = paste0(names(PHBR_I.score), "-01"),
+  PHBR_I = as.numeric(PHBR_I.score)
+)
+
+PHBR_II.score = dplyr::tibble(
+  Tumor_Sample_Barcode = paste0(names(PHBR_II.score), "-01"),
+  PHBR_II = as.numeric(PHBR_II.score)
+)
+```
+
+
+Combine them.
+
+```{r}
+df.gsva.tumor = purrr::reduce(list(df.gsva.tumor, res_APS7.GSVA, res_MHCII.GSVA, PHBR_I.score, PHBR_II.score), 
+              left_join)
+```
+
+
+### Association between GSVA scores and other presentation scores
+
+Here we explore association across APS, APS7, APS_MHC_II, PHBR_I, PHBR_II.
+
+```{r relationship_between_scores}
+score_df = df.gsva.tumor %>% 
+  select(Project, APM, APS7, APS_MHC_II, TIS, IIS, PHBR_I, PHBR_II)
+```
+
+First we check pan-cancer level association.
+
+```{r}
+cor_mat1 = cor(score_df %>% select(-Project), method = "spearman", use = "pairwise.complete.obs")
+```
+
+Show heatmap.
+
+```{r}
+breaksList = seq(-1, 1, by = 0.01)
+pheatmap::pheatmap(cor_mat1, display_numbers = TRUE, 
+                   color = colorRampPalette(c("blue", "white", "red"))(length(breaksList)),
+         breaks = breaksList)
+```
+
+Second we check cancer type specific level association.
+
+```{r}
+cor_mat2 = score_df %>% 
+  group_by(Project) %>% 
+  nest() %>% 
+  slice(1) %>% 
+  mutate(cor = map(data, cor, method = "spearman", use = "pairwise.complete.obs"))
+```
+
+Here we get 32 correlation matrixes.
+
+```{r}
+cor_mat2
+```
+
+Output the result pheatmaps to PDF is a good option to observe results.
+
+```{r include=FALSE}
+#old.par <- par(mfrow=c(1, 2))
+pdf("Score_correlation_matrix.pdf")
+
+for (i in seq_len(nrow(cor_mat2))) {
+  message("Processing ", cor_mat2$Project[i])
+  print(pheatmap::pheatmap(cor_mat2$cor[[i]], display_numbers = TRUE,
+                           cluster_rows = FALSE, cluster_cols = FALSE, 
+                           main = cor_mat2$Project[i], 
+                           color = colorRampPalette(c("blue", "white", "red"))(length(breaksList)),
+                           breaks = breaksList))
+}
+dev.off()
+#par(old.par)
+```
+
+
+### Association between subsets of immune cells and APS
+
+Next we answer the question: **which cells (CIBERSORT scores) or subsets of the IIS scores are most associated with the APS scores**.
+
+The first step is to calculate correlation using  __spearman__ method.
 
 ```{r relationship_APS_others}
 df.gsva.heat = df.gsva.tumor %>% 
-    select(-c(Tumor_Sample_Barcode:Tumor_stage)) %>% 
+    select(-c(Tumor_Sample_Barcode:Tumor_stage, APS7, APS_MHC_II, IIS, TIS, PHBR_I, PHBR_II)) %>% 
     filter(!is.na(APM)) %>% select(Project, APM, everything())
 heat_mat = sapply(unique(df.gsva.heat$Project), function(x){
     mat = filter(df.gsva.heat, Project == x)
     mat = mat[, -1]
-    cor_mat = cor(mat, method = "spearman")
+    cor_mat = cor(mat, method = "spearman", use = "pairwise.complete.obs")
     cor_mat[,1]
     })
 heat_mat = heat_mat[-1, ]
+```
 
-## If you dont want plot TIS and IIS here, please uncomment following code
-#heat_mat = heat_mat[!rownames(heat_mat) %in% c("TIS", "IIS"), ]
+Show plot.
 
-
+```{r, fig.width=9}
 library(pheatmap)
 breaksList = seq(-1, 1, by = 0.01)
 
-clust = pheatmap(heat_mat, 
-                 color = colorRampPalette(c("blue", "white", "red"))(length(breaksList)),
-                 breaks = breaksList)
-annotation_col = data.frame(
-    ProjectGroup = factor(paste0('ColCluster',cutree(clust$tree_col,3)))
-)
-annotation_row = data.frame(
-    ImmuneCellGroup = factor(paste0('RowCluster',cutree(clust$tree_row,2)))
-)
-rownames(annotation_col) = colnames(heat_mat)
-rownames(annotation_row) = rownames(heat_mat)
-pheatmap(heat_mat, color = colorRampPalette(c("blue", "white", "red"))(length(breaksList)),
-         breaks = breaksList,
-         annotation_row = annotation_row,
-         annotation_names_row = FALSE, 
-         fontsize_row = 8, fontsize_col = 6,
-         cellheight = 10, cellwidth = 10)
-
+pheatmap(heat_mat, 
+         color = colorRampPalette(c("blue", "white", "red"))(length(breaksList)),
+         breaks = breaksList)
 ```
 
-The two heatmaps show that there is strong positive/consistent relationship between APM and immune/T cell infiltration level across TCGA cancer types. These spearman correlation coefficient are showed as a table.
+This shows that there is strong positive/consistent relationship between APM and immune/T cell infiltration level across TCGA cancer types. These spearman correlation coefficient are showed as a table.
 
 ```{r vis_spearman_coef}
 DT::datatable(heat_mat, 
               options = list(scrollX = TRUE, keys = TRUE), rownames = TRUE)
 ```
+
+Thanks to TCGA, we can obtain CIBERSORT results for TCGA patients from paper *The Immune Landscape of Cancer*.
+
+```{r}
+cibersort = data.table::fread("../data/TCGA.Kallisto.fullIDs.cibersort.relative.tsv.gz")
+```
+
+Combine APM (score) and CIBERSORT information.
+
+```{r}
+cibersort_df = left_join(
+  df.gsva.tumor %>% 
+    select(Tumor_Sample_Barcode, Project, APM) %>% 
+    filter(!is.na(APM)),
+  cibersort %>% 
+    select(-CancerType) %>% 
+    rename(Tumor_Sample_Barcode = SampleID) %>% 
+    mutate(Tumor_Sample_Barcode = substr(Tumor_Sample_Barcode, 1, 15)) %>% 
+    mutate(Tumor_Sample_Barcode = gsub("\\.", "-", Tumor_Sample_Barcode))
+) %>% select(-c(Tumor_Sample_Barcode, P.value, Correlation, RMSE))
+
+```
+
+```{r, message=FALSE, warning=FALSE}
+heat_mat2 = sapply(unique(cibersort_df$Project), function(x){
+    mat = filter(cibersort_df, Project == x)
+    mat = mat[, -1]
+    cor_mat = cor(mat, method = "spearman", use = "pairwise.complete.obs")
+    cor_mat[,1]
+    })
+heat_mat2 = heat_mat2[-1, ]
+```
+
+```{r, fig.width=9}
+pheatmap(heat_mat2, 
+         color = colorRampPalette(c("blue", "white", "red"))(length(breaksList)),
+         breaks = breaksList)
+```
+
+Indeed, APM score correlate with T cell infiltration.
+
+However, we see PHBR_I does not have relationship with either APS or IIS, does this score correlate with immune cell infiltration?
+
+Let's check it.
+
+```{r}
+cibersort_df = left_join(
+  df.gsva.tumor %>% 
+    select(Tumor_Sample_Barcode, Project, PHBR_I) %>% 
+    filter(!is.na(PHBR_I)),
+  cibersort %>% 
+    select(-CancerType) %>% 
+    rename(Tumor_Sample_Barcode = SampleID) %>% 
+    mutate(Tumor_Sample_Barcode = substr(Tumor_Sample_Barcode, 1, 15)) %>% 
+    mutate(Tumor_Sample_Barcode = gsub("\\.", "-", Tumor_Sample_Barcode))
+) %>% select(-c(Tumor_Sample_Barcode, P.value, Correlation, RMSE))
+
+```
+
+```{r, message=FALSE, warning=FALSE}
+heat_mat2 = sapply(unique(cibersort_df$Project), function(x){
+    mat = filter(cibersort_df, Project == x)
+    mat = mat[, -1]
+    cor_mat = cor(mat, method = "spearman", use = "pairwise.complete.obs")
+    cor_mat[,1]
+    })
+heat_mat2 = heat_mat2[-1, ]
+```
+
+```{r, fig.width=9}
+pheatmap(heat_mat2, 
+         color = colorRampPalette(c("blue", "white", "red"))(length(breaksList)),
+         breaks = breaksList)
+```
+
 
 ### IIS is a good representation of immune cell infiltration
 
