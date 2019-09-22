@@ -12,7 +12,7 @@ output:
 
 ```{r include=FALSE}
 options(max.print="75")
-knitr::opts_chunk$set(echo = TRUE, comment = "#>", eval = TRUE, collapse = TRUE)
+knitr::opts_chunk$set(echo = TRUE, comment = "#>", eval = TRUE, collapse = TRUE, cache = FALSE)
 knitr::opts_knit$set(width=75)
 ```
 
