@@ -187,7 +187,7 @@ Thanks to TCGA, we can obtain CIBERSORT results for TCGA patients from paper *Th
 cibersort = data.table::fread("../data/TCGA.Kallisto.fullIDs.cibersort.relative.tsv.gz")
 ```
 
-Combine APM (score) and CIBERSORT information.
+Combine APM (score) and CIBERSORT information, calculate correlation and plot heatmap.
 
 ```{r}
 cibersort_df = left_join(
@@ -221,7 +221,7 @@ pheatmap(heat_mat2,
 
 Indeed, APM score correlate with T cell infiltration.
 
-However, we see PHBR_I does not have relationship with either APS or IIS, does this score correlate with immune cell infiltration?
+However, we see PHBR_I, PHBR_II does not have relationship with either APS or IIS, does this score correlate with immune cell infiltration?
 
 Let's check it.
 
@@ -255,6 +255,37 @@ pheatmap(heat_mat2,
          breaks = breaksList)
 ```
 
+Do the same analysis for PHBR_II score.
+
+```{r}
+cibersort_df = left_join(
+  df.gsva.tumor %>% 
+    select(Tumor_Sample_Barcode, Project, PHBR_II) %>% 
+    filter(!is.na(PHBR_II)),
+  cibersort %>% 
+    select(-CancerType) %>% 
+    rename(Tumor_Sample_Barcode = SampleID) %>% 
+    mutate(Tumor_Sample_Barcode = substr(Tumor_Sample_Barcode, 1, 15)) %>% 
+    mutate(Tumor_Sample_Barcode = gsub("\\.", "-", Tumor_Sample_Barcode))
+) %>% select(-c(Tumor_Sample_Barcode, P.value, Correlation, RMSE))
+
+```
+
+```{r, message=FALSE, warning=FALSE}
+heat_mat2 = sapply(unique(cibersort_df$Project), function(x){
+    mat = filter(cibersort_df, Project == x)
+    mat = mat[, -1]
+    cor_mat = cor(mat, method = "spearman", use = "pairwise.complete.obs")
+    cor_mat[,1]
+    })
+heat_mat2 = heat_mat2[-1, ]
+```
+
+```{r, fig.width=9}
+pheatmap(heat_mat2, 
+         color = colorRampPalette(c("blue", "white", "red"))(length(breaksList)),
+         breaks = breaksList)
+```
 
 ### IIS is a good representation of immune cell infiltration
 
@@ -277,7 +308,7 @@ __TIMER__ is another method that can accurately resolve relative fractions of di
 ```{r cmp_timer}
 load("results/timer.RData")
 
-df = dplyr::select(df.gsva.tumor, Project, APM, TIS, IIS, Gender, Age, Tumor_stage, OS.time, OS, Tumor_Sample_Barcode)
+df = dplyr::select(df.gsva.tumor, Project, APM, IIS, APS7, APS_MHC_II, PHBR_I, PHBR_II, Gender, Age, Tumor_stage, OS.time, OS, Tumor_Sample_Barcode)
 
 df_timer = dplyr::left_join(x = df, y = timer_clean, by = c("Tumor_Sample_Barcode"="sample"))
 ```
@@ -287,13 +318,13 @@ df_timer = dplyr::left_join(x = df, y = timer_clean, by = c("Tumor_Sample_Barcod
 library(corrplot)
 
 mat_timer_IIS = df_timer %>% 
-    select(-c(APM, TIS, Gender:Tumor_Sample_Barcode)) %>% 
+    select(-c(APM, APS7, APS_MHC_II, PHBR_I, PHBR_II, Gender:Tumor_Sample_Barcode)) %>% 
     filter(!is.na(IIS) & !is.na(T_cell.CD8)) %>% 
     filter(T_cell.CD8 != 0)
 mat_timer_IIS.heat = sapply(unique(mat_timer_IIS$Project), function(x){
     mat = filter(mat_timer_IIS, Project == x)
     mat = mat[, -1]
-    cor_mat = cor(mat, method = "spearman")
+    cor_mat = cor(mat, method = "spearman", use = "pairwise.complete.obs")
     cor_mat[,1]
 })
 
@@ -320,6 +351,45 @@ corrplot(mat_timer_IIS.heat, method = "color", tl.col="black", tl.srt = 45,
 ```
 
 The color bar in figure shows correlation coefficient values. The "X" marks relationship does not pass significant test (i.e. p>=0.05).
+
+Even Senbabaoglu et al have checked the relationship between IIS and CIBERSORT in clear cell renal cell carcinoma. Here we 
+expand it to all TCGA cancer type with CIBERSORT data and IIS avaiable.
+
+```{r}
+df_cibersort = left_join(
+  df.gsva.tumor %>% 
+    select(Tumor_Sample_Barcode, Project, IIS) %>% 
+    filter(!is.na(IIS)),
+  cibersort %>% 
+    select(-CancerType) %>% 
+    rename(Tumor_Sample_Barcode = SampleID) %>% 
+    mutate(Tumor_Sample_Barcode = substr(Tumor_Sample_Barcode, 1, 15)) %>% 
+    mutate(Tumor_Sample_Barcode = gsub("\\.", "-", Tumor_Sample_Barcode))
+) %>% select(-c(Tumor_Sample_Barcode, P.value, Correlation, RMSE))
+```
+
+
+```{r cmp_CIBERSORT_IIS, warning=FALSE, message=FALSE}
+
+mat_cibersort_IIS.heat = sapply(unique(df_cibersort$Project), function(x){
+    mat = filter(df_cibersort, Project == x)
+    mat = mat[, -1]
+    cor_mat = cor(mat, method = "spearman", use = "pairwise.complete.obs")
+    cor_mat[,1]
+})
+
+pheatmap(heat_mat2[-1, ], 
+         color = colorRampPalette(c("blue", "white", "red"))(length(breaksList)),
+         breaks = breaksList)
+```
+
+Compare with timer, the relationship between IIS and immune cell subsets is more variable. 
+I think this can be explained by several reasons:
+
+* CIBERSORT and TIMER target different aspects of tumor immune infiltrates. CIBERSORT infers the relative fractions of immune subsets in the total leukocyte population, while TIMER predicts the abundance of immune cells in the overall tumor microenvironment. Currently both methods are limited by the assumption that transcriptomes of tumor-infiltrating immune cells do not significantly differ from those collected from peripheral blood of healthy donors. (This is from [Revisit linear regression-based deconvolution methods for tumor gene expression data](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-017-1256-5))
+* Many cibersort values are equal to 0 or close to 0, this reduce the power to calculate correlation
+* CIBERSORT predicts 22 immune cell subsets while TIMER obtains 6 cell types, it is not unexpected to observe a more variable result using CIBERSORT.
+
 
 ## Exploration of APS, TMB, TIGS at pan-cancer level
 
@@ -569,6 +639,24 @@ cox_TMB = full_join(model_TMB, N_TMB)
 cox_TIGS = full_join(model_TIGS, N_TIGS)
 ```
 
+**UPDATE**: Adjust p values and order them by median APM/TMB/TIGS.
+
+
+```{r}
+cox_APM = cox_APM %>% 
+  mutate(Pvalue = p.adjust(Pvalue, method = "fdr")) %>% 
+  arrange(factor(Project, levels = arrange(df_summary, medianAPM) %>% .$Project))
+
+cox_TMB = cox_TMB %>% 
+  mutate(Pvalue = p.adjust(Pvalue, method = "fdr")) %>% 
+  arrange(factor(Project, levels = arrange(df_summary, medianTMB) %>% .$Project)) 
+
+cox_TIGS = cox_TIGS %>% 
+  mutate(Pvalue = p.adjust(Pvalue, method = "fdr")) %>% 
+  arrange(factor(Project, levels = arrange(df_summary, medianTIGS) %>% .$Project)) 
+```
+
+
 Secondly, we generate forest plot.
 
 ```{r, fig.width=10, fig.height=10}
@@ -578,10 +666,10 @@ library(forestplot)
 
 #------ APM
 options(digits = 2)
-forest_APM = rbind(c("Project", NA, NA, NA, "p.value", "No."),
+forest_APM = rbind(c("Project", NA, NA, NA, "fdr", "No."),
                        cox_APM) %>% as.data.frame()
 forest_APM$HR = c("HR", format(as.numeric(forest_APM$Coef[-1]), digits = 2))
-forest_APM$Pvalue = c("p.value", format(as.numeric(forest_APM$Pvalue[-1]), digits = 2))
+forest_APM$Pvalue = c("fdr", format(as.numeric(forest_APM$Pvalue[-1]), digits = 2))
 
 forestplot(fn.ci_norm = fpDrawCircleCI,
            forest_APM[,c("Project", "N", "HR", "Pvalue")],
@@ -598,10 +686,10 @@ forestplot(fn.ci_norm = fpDrawCircleCI,
 
 
 #----- TMB
-forest_TMB = rbind(c("Project", NA, NA, NA, "p.value", "No."),
+forest_TMB = rbind(c("Project", NA, NA, NA, "fdr", "No."),
                     cox_TMB) %>% as.data.frame()
 forest_TMB$HR = c("HR", format(as.numeric(forest_TMB$Coef[-1]), digits = 2))
-forest_TMB$Pvalue = c("p.value", format(as.numeric(forest_TMB$Pvalue[-1]), digits = 2))
+forest_TMB$Pvalue = c("fdr", format(as.numeric(forest_TMB$Pvalue[-1]), digits = 2))
 
 
 forestplot(fn.ci_norm = fpDrawCircleCI,
@@ -619,10 +707,10 @@ forestplot(fn.ci_norm = fpDrawCircleCI,
 
 
 #---------- TIGS
-forest_TIGS = rbind(c("Project", NA, NA, NA, "p.value", "No."),
+forest_TIGS = rbind(c("Project", NA, NA, NA, "fdr", "No."),
                    cox_TIGS) %>% as.data.frame()
 forest_TIGS$HR = c("HR", format(as.numeric(forest_TIGS$Coef[-1]), digits = 2))
-forest_TIGS$Pvalue = c("p.value", format(as.numeric(forest_TIGS$Pvalue[-1]), digits = 2))
+forest_TIGS$Pvalue = c("fdr", format(as.numeric(forest_TIGS$Pvalue[-1]), digits = 2))
 
 
 forestplot(fn.ci_norm = fpDrawCircleCI,
@@ -647,6 +735,7 @@ To identify the __specific gene sets/pathway__ associated with high APS, we firs
 The code below is runned on linux server (need much time), thus if reader wanna reproduce it, you may need to download gene sets from [__Molecular Signature Database v6.2__](http://software.broadinstitute.org/gsea/downloads.jsp) and modify some file path.
 
 ```{r eval=FALSE}
+rm(list = ls())
 #----------------------------------------
 # APM DEG and Pathway Enrichment Analysis
 #----------------------------------------
@@ -675,7 +764,6 @@ findDEGs = function(info_df=NULL, expr_df=NULL, col_sample="Tumor_Sample_Barcode
                     col_subset = "Project", method="limma", threshold = 0.25, 
                     save=FALSE, filename=NULL){
     
-    # method=c("DESeq2", "limma", "edgeR", "voom")
     stopifnot(!is.null(info_df), !is.null(expr_df))
     stopifnot(threshold >=0 & threshold <=1)
     
@@ -732,14 +820,6 @@ findDEGs = function(info_df=NULL, expr_df=NULL, col_sample="Tumor_Sample_Barcode
         if(!length(sample_tb) < 2  & all(sample_tb >= 5)){
             group_list = input$DEGroup
             
-        #-- make sure packages are installed
-        if(!all(require("DESeq2"), require("limma"), require("edgeR"))){
-            source("https://bioconductor.org/biocLite.R")
-            if(!require("DESeq2")) biocLite("DESeq2", dependencies = TRUE)
-            if(!require("limma"))  biocLite("limma", dependencies = TRUE)
-            if(!require("edgeR"))  biocLite("edgeR", dependencies = TRUE)
-        }
-            
         if("limma" %in% method){
             suppressMessages(library(limma))    
             design=model.matrix(~0+factor(group_list))
@@ -759,7 +839,11 @@ findDEGs = function(info_df=NULL, expr_df=NULL, col_sample="Tumor_Sample_Barcode
     return(res)
 }
 
-DEG_pancan2 = findDEGs(info_df = tcga_info, expr_df = RNASeq_pancan)
+# threshold = 0.25 is used in manuscript
+# DEG_pancan2 = findDEGs(info_df = tcga_info, expr_df = RNASeq_pancan)
+# Here we use threshold = 0.5 to do this analysis to respond 
+# reviewer's comment
+DEG_pancan2 = findDEGs(info_df = tcga_info, expr_df = RNASeq_pancan, threshold = 0.5)
 save(DEG_pancan2, file = "results/DEG_pancan.RData")
 
 #----------------------------------------------------
@@ -779,19 +863,19 @@ adj.pvalue = 0.05
 ##- process
 
 #------- Reading GSEA genesets files
-hallmark = read.gmt("~/biodata/MsigDB/h.all.v6.2.symbols.gmt")
-c1 = read.gmt("~/biodata/MsigDB/c1.all.v6.2.symbols.gmt")
-c2_kegg = read.gmt("~/biodata/MsigDB/c2.cp.kegg.v6.2.symbols.gmt")
-c2_reactome = read.gmt("~/biodata/MsigDB/c2.cp.reactome.v6.2.symbols.gmt")
-c3 = read.gmt("~/biodata/MsigDB/c3.all.v6.2.symbols.gmt")
-c4 = read.gmt("~/biodata/MsigDB/c4.all.v6.2.symbols.gmt")
-c5_mf = read.gmt("~/biodata/MsigDB/c5.mf.v6.2.symbols.gmt")
-c5_bp = read.gmt("~/biodata/MsigDB/c5.bp.v6.2.symbols.gmt")
-c6 = read.gmt("~/biodata/MsigDB/c6.all.v6.2.symbols.gmt")
-c7 = read.gmt("~/biodata/MsigDB/c7.all.v6.2.symbols.gmt")
+hallmark = read.gmt("/public/data/VM_backup/biodata/MsigDB/h.all.v6.2.symbols.gmt")
+c1 = read.gmt("/public/data/VM_backup/biodata/MsigDB/c1.all.v6.2.symbols.gmt")
+c2_kegg = read.gmt("/public/data/VM_backup/biodata/MsigDB/c2.cp.kegg.v6.2.symbols.gmt")
+c2_reactome = read.gmt("/public/data/VM_backup/biodata/MsigDB/c2.cp.reactome.v6.2.symbols.gmt")
+c3 = read.gmt("/public/data/VM_backup/biodata/MsigDB/c3.all.v6.2.symbols.gmt")
+c4 = read.gmt("/public/data/VM_backup/biodata/MsigDB/c4.all.v6.2.symbols.gmt")
+c5_mf = read.gmt("/public/data/VM_backup/biodata/MsigDB/c5.mf.v6.2.symbols.gmt")
+c5_bp = read.gmt("/public/data/VM_backup/biodata/MsigDB/c5.bp.v6.2.symbols.gmt")
+c6 = read.gmt("/public/data/VM_backup/biodata/MsigDB/c6.all.v6.2.symbols.gmt")
+c7 = read.gmt("/public/data/VM_backup/biodata/MsigDB/c7.all.v6.2.symbols.gmt")
 #-=---------
 
-goGSEA = function(DEG, prefix=NULL, pvalue=0.01, adj.pvalue=0.05, destdir="~/projects/APM/results/GSEA_results"){
+goGSEA = function(DEG, prefix=NULL, pvalue=0.01, adj.pvalue=0.05, destdir="~/projects/tumor-immunogenicity-score/report/results/GSEA_results"){
     library(clusterProfiler)
     library(openxlsx)
     library(tidyverse)
@@ -864,7 +948,7 @@ summariseGSEA = function(pathway = NULL){
 
 gsea_summary = list()
 gsea_summary$hallmark = summariseGSEA(pathway = "hallmark")
-gsea_summary$c2_kegg = summariseGSEA(pathway = "c2_kegg")
+#gsea_summary$c2_kegg = summariseGSEA(pathway = "c2_kegg")
 gsea_summary$c2_reactome = summariseGSEA(pathway = "c2_reactome")
 gsea_summary$c5_mf = summariseGSEA(pathway = "c5_mf")
 gsea_summary$c5_bp = summariseGSEA(pathway = "c5_bp")
@@ -874,7 +958,7 @@ gsea_summary$c7 = summariseGSEA(pathway = "c7")
 save(gsea_summary, file ="results/GSEA_summary_notEnriched.RData")
 
 ## plot really
-load("data/df_combine_gsva_clinical.RData")
+load("../data/df_combine_gsva_clinical.RData")
 
 df.gsva %>% 
     filter(!is.na(APM)) %>% 
@@ -908,14 +992,14 @@ plotPathway = function(df, save=FALSE, path=NULL, silent=FALSE){
 }
 
 gg = plotPathway(gsea_summary$hallmark, silent = F, path = "results/GSEA_results_plot/Hallmark_Enriched.pdf", save = TRUE)
-gg = plotPathway(gsea_summary$c2_kegg, silent = F, path = "results/GSEA_results_plot/KEGG_Enriched.pdf", save = TRUE)
+#gg = plotPathway(gsea_summary$c2_kegg, silent = F, path = "results/GSEA_results_plot/KEGG_Enriched.pdf", save = TRUE)
 gg = plotPathway(gsea_summary$c2_reactome, silent = F, path = "results/GSEA_results_plot/Reactome_Enriched.pdf", save = TRUE)
 gg = plotPathway(gsea_summary$c5_mf, silent = F, path = "results/GSEA_results_plot/GO_MolecuFunction_Enriched.pdf", save = TRUE)
 gg = plotPathway(gsea_summary$c5_bp, silent = F, path = "results/GSEA_results_plot/GO_BiologicalProcess_Enriched.pdf", save = TRUE)
 gg = plotPathway(gsea_summary$c6, silent = F, path = "results/GSEA_results_plot/C6_oncogenicsignatures_Enriched.pdf", save = TRUE)
 gg = plotPathway(gsea_summary$c7, silent = F, path = "results/GSEA_results_plot/C7_immunologicsignatures_Enriched.pdf", save = TRUE)
 
-gg
+#gg
 
 
 #_-------- rank pheatmap by NES value
