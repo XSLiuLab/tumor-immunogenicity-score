@@ -1,6 +1,6 @@
 ---
 title: "Antigen presentation and tumor immunogenicity in cancer immunotherapy response prediction"
-author: "Shixiang Wang, Xue-Song Liu"
+author: ["Shixiang Wang", "Xue-Song Liu (Corresponding author)"]
 date: "`r Sys.Date()`"
 output:
   rmdformats::readthedown:
