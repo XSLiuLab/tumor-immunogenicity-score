@@ -401,7 +401,7 @@ rm(list = ls())
 
 ### Calculation of APS7
 
-According to reviewers' comment, here we update a new analysis about calculating APS based on 7 APM gene signature from Senbabaoglu, Y. et al. We name this score as 'APS7'.
+Here we update a new analysis about calculating APS based on 7 APM gene signature from Senbabaoglu, Y. et al. We name this score as 'APS7'.
 
 ```{r, eval=FALSE}
 source("../code/functions.R")

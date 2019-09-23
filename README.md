@@ -81,7 +81,7 @@ For readers who want to reproduce analysis shown in manuscript, please [install 
 
 If you use data, results or conclusion from this work, please cite:
 
-*Antigen presentation and tumor immunogenicity in cancer immunotherapy response prediction (**Current stage: Revising**)*
+*Antigen presentation and tumor immunogenicity in cancer immunotherapy response prediction*
 
 ## Acknowledgement
 
