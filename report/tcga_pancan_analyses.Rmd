@@ -12,7 +12,7 @@ output:
 
 ```{r include=FALSE}
 options(max.print="75")
-knitr::opts_chunk$set(echo = TRUE, comment = "#>", eval = TRUE, collapse = TRUE, cache = FALSE)
+knitr::opts_chunk$set(echo = TRUE, comment = "#>", eval = TRUE, collapse = TRUE)
 knitr::opts_knit$set(width=75)
 ```
 
@@ -726,6 +726,97 @@ forestplot(fn.ci_norm = fpDrawCircleCI,
            # graph.pos = 3,
            xlab = "log Hazard Ratio")
 
+```
+
+## APS, TIGS and B2M mutation
+
+Obtain B2M mutation status.
+
+```{r, eval=FALSE}
+rm(list = ls())
+
+# load package
+require(TCGAmutations)
+
+
+study_list = tcga_available()$Study_Abbreviation[-34]
+cohorts = system.file('extdata', 'cohorts.txt', package = 'TCGAmutations')
+cohorts = data.table::fread(input = cohorts)
+
+# calculate TMB
+lapply(study_list, function(study){
+    require(maftools)
+        TCGAmutations::tcga_load(study)
+        maf = eval(as.symbol(tolower(paste0("TCGA_", study, "_mc3"))))
+    maf@data %>% group_by(Tumor_Sample_Barcode) %>% 
+      summarise(B2M = sum(grepl("^B2M$", Hugo_Symbol)))
+      
+    
+}) -> tcga_b2m
+names(tcga_b2m) = study_list
+
+# 33 study available, merge them
+TCGA_B2M = purrr::reduce(tcga_b2m, dplyr::bind_rows)
+
+if (!file.exists("results/TCGA_B2M.RData")){
+    save(TCGA_B2M, file = "results/TCGA_B2M.RData")
+}
+
+rm(list = grep("tcga_*", ls(), value = TRUE))
+rm(list = ls())
+```
+
+```{r}
+rm(list = ls())
+load(file = "results/TCGA_B2M.RData")
+load(file = "results/TCGA_ALL.RData")
+
+tcga_all = tcga_all %>% 
+    mutate(nAPM = (APM - min(APM, na.rm = TRUE))/ (max(APM, na.rm = TRUE) - min(APM, na.rm = TRUE)),
+           nTMB = TMB_NonsynVariants / 38, 
+           TIGS = log(nTMB+1) * nAPM)
+
+df_b2m = 
+  dplyr::inner_join(tcga_all, TCGA_B2M, by = "Tumor_Sample_Barcode")
+
+table(df_b2m$B2M)
+
+df_b2m = df_b2m %>% 
+  dplyr::mutate(
+    B2M_Status = ifelse(B2M > 0, "Mutant", "WT")
+  ) %>% 
+  dplyr::filter(!is.na(APM), !is.na(TIGS), !is.na(B2M))
+```
+
+
+```{r}
+table(df_b2m$B2M_Status)
+```
+
+
+```{r}
+ggpubr::ggboxplot(
+  df_b2m, x = "B2M_Status", y = "APM", 
+  ylab = "APS", xlab = "B2M mutation status"
+) + 
+  ggpubr::stat_compare_means(method = "t.test", label.x = 1.3)
+```
+
+```{r}
+ggpubr::ggboxplot(
+  df_b2m, x = "B2M_Status", y = "TIGS",
+  xlab = "B2M mutation status"
+) +
+  ggpubr::stat_compare_means(method = "t.test", label.x = 1.3)
+
+```
+
+```{r}
+ggpubr::ggboxplot(
+  df_b2m, x = "B2M_Status", y = "TMB_NonsynVariants",
+  ylab = "TMB", xlab = "B2M mutation status"
+) + 
+  ggpubr::stat_compare_means(method = "wilcox.test", label.x = 1.3)
 ```
 
 ## Gene sets enriched in patients with high APM score
