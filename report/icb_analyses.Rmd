@@ -108,11 +108,10 @@ DT::datatable(sm_data,
               options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE)
 ```
 
->**Of note, a reviewer (#4) at second round review in *Nature Communication* found a problem about our data. **
+
+> DLBCL has high APM and TIGS, yet the response rate in Figure 4 of over 50% is incorrect. This 50%+ response rate is for Hodgkin lymphoma, not DLBCL.
 >
->> DLBCL has high APM and TIGS, yet the response rate in Figure 4 of over 50% is incorrect. This 50%+ response rate is for Hodgkin lymphoma, not DLBCL.
->
->Thanks for his/her comment, we did mix the DLBC and Hodgkin lymphoma, thus we remove it and update our analyses.
+> We did mix the DLBC and Hodgkin lymphoma, thus we remove it and update our analyses.
 
 
 Focus on cancer type with APS, fit data with linear model.
@@ -326,8 +325,12 @@ However, some other biomarkers can predict immunotherapy response have been stud
 * CD8 - gene expression level of CD8A + CD8B
 * PDL1 - an immunohistochemistry (IHC) biomarker approved by FDA. This study we use *PD-L1* gene expression as the IHC surrogate
 * [TIDE](https://www.nature.com/articles/s41591-018-0136-1) - TIDE signature which integrates the expression signatures of T cell dysfunction and T cell exclusion to model tumor immune evasion.
+* ISG.RS and IFNG.GS signatures described in Benci et al, Cell 2019
+* PHBR scores from MHC-I Genotype Restricts the Oncogenic Mutational Landscape and Evolutionary Pressure against MHC Class II Binding Cancer Mutations
 
-The predicted values of gene expression biomarkers (i.e. IFNG, CD8, PDL1) are the average values among all members defined by the original publications. 
+The predicted values of gene expression biomarkers (i.e. IFNG, CD8, PDL1) are the average values among all members defined by the original publications. For ISG.RS and IFNG.GS, we follow the reference to calculate normlized score.
+
+We will also try to combine these gene expression based signatures with TMB to see their performance.
 
 ### Preprocessing of immunotherapy datasets
 
@@ -352,6 +355,7 @@ source("../code/functions.R")
 ```{r prep_Hugo2016, eval=FALSE, message=FALSE}
 ## Data source: Genomic and Transcriptomic Features of Response to Anti-PD-1 Therapy in Metastatic Melanoma. Cell 2016 Mar 24;165(1):35-44. PMID: 26997480
 suppressPackageStartupMessages(library(GEOquery))
+library(tidyverse)
 library(readxl)
 geo_dir = "../data/GEOdata"
 
@@ -627,9 +631,7 @@ save(gsva.hugo2016.random, gsva.Snyder.random, gsva.VanAllen2015.random,
 ```
 
 
-### Gene expression biomarkers for response to immune checkpoint blockade
-
-This section we will describe how to calculate predicted value of gene signature biomarker using gene expression data.
+### Prepare work for calculating other predictors
 
 Load data firstly.
 
@@ -640,6 +642,51 @@ load("results/Hugo2016_RNA.RData")
 load("results/VanAllen2015_RNA.RData")
 load("results/Snyder2017_RNA.RData")
 ```
+
+### Add APS7 and APS_MHC_II
+
+
+```{r, eval=FALSE}
+APS7.genes = c("B2M", "HLA-A", "HLA-B", "HLA-C",
+               "TAP1", "TAP2", "TAPBP")
+
+APS7 = merged_geneList %>% 
+  dplyr::filter(Symbol %in% APS7.genes)
+
+load(file = "../data/APS_MHC_II_genes.RData")
+
+APS7.GSVA = applyGSVA(APS7, group_col = "Cell_type", gene_col = "Symbol", ExprMatList = list(rna_hugo, rna_Snyder, rna_VanAllen), method = "gsva")
+
+APS_MHC_II.GSVA = applyGSVA(APM_MHC_II, group_col = "Cell_type", gene_col = "Symbol", ExprMatList = list(rna_hugo, rna_Snyder, rna_VanAllen), method = "gsva")
+
+
+APS7.GSVA = APS7.GSVA %>%
+  setNames(c("Hugo2016", "Snyder2017", "VanAllen2015")) %>%
+  purrr::map_df(function(x) {
+    x %>% tibble::rownames_to_column() %>% 
+      dplyr::mutate(
+        APM = scales::rescale(APM)
+      )
+    }, .id = "Study") %>% 
+  dplyr::rename(APS7 = APM)
+
+APS_MHC_II.GSVA = APS_MHC_II.GSVA %>%
+  setNames(c("Hugo2016", "Snyder2017", "VanAllen2015")) %>%
+  purrr::map_df(function(x) {
+    x %>% tibble::rownames_to_column() %>% 
+      dplyr::mutate(
+        APM_MHC_II = scales::rescale(APM_MHC_II)
+      )
+    }, .id = "Study") %>% 
+  dplyr::rename(APS_MHC_II = APM_MHC_II)
+
+save(APS7.GSVA, APS_MHC_II.GSVA, file = "results/APS_alternative.GSVA.RData")
+```
+
+
+### Gene expression biomarkers for response to immune checkpoint blockade
+
+This section we will describe how to calculate predicted value of gene signature biomarker using gene expression data.
 
 Check if all gene signatures are in data.
 

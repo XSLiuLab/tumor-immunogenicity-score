@@ -104,6 +104,9 @@ Show heatmap.
 
 ```{r}
 breaksList = seq(-1, 1, by = 0.01)
+colnames(cor_mat1)[colnames(cor_mat1) == "APM"] = "APS"
+rownames(cor_mat1)[rownames(cor_mat1) == "APM"] = "APS"
+
 pheatmap::pheatmap(cor_mat1, display_numbers = TRUE, 
                    color = colorRampPalette(c("blue", "white", "red"))(length(breaksList)),
          breaks = breaksList)
@@ -127,12 +130,14 @@ cor_mat2
 
 Output the result pheatmaps to PDF is a good option to observe results.
 
-```{r include=FALSE}
+```{r eval=FALSE}
 #old.par <- par(mfrow=c(1, 2))
 pdf("Score_correlation_matrix.pdf")
 
 for (i in seq_len(nrow(cor_mat2))) {
   message("Processing ", cor_mat2$Project[i])
+  colnames(cor_mat2$cor[[i]])[colnames(cor_mat2$cor[[i]]) == "APM"] = "APS"
+  rownames(cor_mat2$cor[[i]])[rownames(cor_mat2$cor[[i]]) == "APM"] = "APS"
   print(pheatmap::pheatmap(cor_mat2$cor[[i]], display_numbers = TRUE,
                            cluster_rows = FALSE, cluster_cols = FALSE, 
                            main = cor_mat2$Project[i], 
