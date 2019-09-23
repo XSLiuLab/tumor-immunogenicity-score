@@ -36,7 +36,7 @@ applyGSVA = function(group_df, group_col, gene_col, ExprMatList,
             
             res = gsva(expr=expr_mat, gset.idx.list=gset_list, method = method, kcdf = kcdf)
             res = as.data.frame(t(res))
-            colnames(res)[1] = 'tsb'
+            #colnames(res)[1] = 'tsb'
             resList[[i]] = res
             names(resList)[i] = names(ExprMatList)[i]
             i = i + 1

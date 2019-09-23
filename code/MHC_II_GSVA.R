@@ -40,4 +40,5 @@ res_MHCII.GSVA = applyGSVA(APM_MHC_II, group_col = "Cell_type", gene_col = "Symb
 
 res_MHCII.GSVA = res_MHCII.GSVA[[1]]
 
+save(APM_MHC_II, file = "data/APS_MHC_II_genes.RData")
 save(res_MHCII.GSVA, file = "report/results/res_APS_MHC_II.GSVA.RData")
