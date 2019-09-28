@@ -515,7 +515,7 @@ p_tigs
 ### Correlation between TMB and IIS 
 
 ```{r}
-df_TMB = tcga_all %>% filter(!is.na(IIS), !is.na(TMB_NonsynVariants)) %>% 
+df_TMB = df_os %>% filter(!is.na(IIS), !is.na(TMB_NonsynVariants)) %>% 
     mutate(logTMB = log(nTMB + 1))
 
 ggstatsplot::ggscatterstats(
@@ -569,7 +569,7 @@ plot_scatter(df_project, x="TMB_median", y="IIS_median",
 
 ```{r}
 ggstatsplot::ggscatterstats(
-    data = tcga_all %>% filter(!is.na(APM)), 
+    data = df_os %>% filter(!is.na(APM)), 
     x = APM, 
     y = IIS,
     xlab = "APM Score",
@@ -578,7 +578,7 @@ ggstatsplot::ggscatterstats(
     messages = FALSE, type = "spearman"
 ) 
 
-df_project2 = tcga_all %>%
+df_project2 = df_os %>%
     filter(!is.na(APM)) %>% 
     group_by(Project) %>% 
     summarise(APM_median = median(APM), 
@@ -590,6 +590,33 @@ plot_scatter(df_project2, x="APM_median", y="IIS_median",
 ```
 
 ### Survival analysis
+
+Check pan-cancer level influence of APS, TMB and TIGS using unvariable cox model.
+
+```{r}
+library(survival)
+fit_APS = coxph(Surv(Time, Event) ~ nAPM, data = filter(df_os, !is.na(nAPM)))
+fit_TMB = coxph(Surv(Time, Event) ~ log(nTMB), data = filter(df_os, !is.na(nTMB)))
+fit_TIGS = coxph(Surv(Time, Event) ~ TIGS, data = filter(df_os, !is.na(TIGS)))
+```
+
+```{r}
+fit_APS
+fit_TMB
+fit_TIGS
+```
+
+```{r}
+dplyr::tibble(
+  Variable = c("APS", "TMB", "TIGS"),
+  N = c(summary(fit_APS)$n, summary(fit_TMB)$n, summary(fit_TIGS)$n),
+  Coef = c(summary(fit_APS)$conf.int[1], summary(fit_TMB)$conf.int[1], summary(fit_TIGS)$conf.int[1]),
+  Lower = c(summary(fit_APS)$conf.int[3], summary(fit_TMB)$conf.int[3], summary(fit_TIGS)$conf.int[3]),
+  Upper = c(summary(fit_APS)$conf.int[4], summary(fit_TMB)$conf.int[4], summary(fit_TIGS)$conf.int[4]),
+  P.value = c(summary(fit_APS)$logtest[3], summary(fit_TMB)$logtest[3], summary(fit_TIGS)$logtest[3])
+)
+```
+
 
 We access survival effects of APS, TMB and TIGS across TCGA studies using unvariable cox model.
 
@@ -642,6 +669,9 @@ N_TIGS = df_os %>% filter(!is.na(TIGS)) %>%
 cox_APM = full_join(model_APM, N_APM)
 cox_TMB = full_join(model_TMB, N_TMB)
 cox_TIGS = full_join(model_TIGS, N_TIGS)
+
+
+save(cox_APM, cox_TMB, cox_TIGS, df_summary, file = "results/unicox.RData")
 ```
 
 **UPDATE**: Adjust p values and order them by median APM/TMB/TIGS.
