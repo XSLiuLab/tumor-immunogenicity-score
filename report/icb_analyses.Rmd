@@ -641,6 +641,8 @@ sigList = read_csv("../data/ICBbiomarkerSignature.csv", comment = "#", col_types
 load("results/Hugo2016_RNA.RData")
 load("results/VanAllen2015_RNA.RData")
 load("results/Snyder2017_RNA.RData")
+
+ISG_IFNG = read_csv("../data/ISG.RS_and_IFNG.GS.csv", comment = "#")
 ```
 
 ### Add APS7 and APS_MHC_II
@@ -1356,7 +1358,7 @@ theme_set(cowplot::theme_cowplot())
 ##-------- ROC
 
 # Van Allen 
-p_roc_1 = ggroc(list(TMB=roc_df$TMB[[2]], TIDE=roc_df$TIDE[[2]], TIGS=roc_df$TIGS[[2]]), legacy.axes = TRUE) + 
+p_roc_1 = ggroc(list(TMB=roc_df$TMB[[2]], TIGS=roc_df$TIGS[[2]], TIDE=roc_df$TIDE[[2]]), legacy.axes = TRUE) + 
   labs(color = "") + scale_color_manual(values = c("blue", "red", "black")) +  
   theme(legend.position = c(0.8,0.4)) 
 # Hugo      
