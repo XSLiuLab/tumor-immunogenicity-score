@@ -696,9 +696,22 @@ Check if all gene signatures are in data.
 all(sigList$Genes %in% rna_hugo$Gene)
 all(sigList$Genes %in% rna_Snyder$gene_name)
 all(sigList$Genes %in% rna_VanAllen$symbol)
+all(ISG_IFNG$GeneSymbol %in% rna_hugo$Gene)
+all(ISG_IFNG$GeneSymbol %in% rna_Snyder$gene_name)
+all(ISG_IFNG$GeneSymbol %in% rna_VanAllen$symbol)
 ```
 
-We got all `TRUE`. Next we retrieve all gene expression values and then calculate average.
+```{r}
+sigList = ISG_IFNG %>% 
+  rename(Signature = Type, 
+         Genes = GeneSymbol) %>% # make consistent
+  dplyr::filter(Genes %in% purrr::reduce(list(rna_hugo$Gene, rna_Snyder$gene_name, rna_VanAllen$symbol), intersect)) %>%  # 3 genes removed in this operation
+  dplyr::bind_rows(sigList)
+  
+```
+
+
+Next we retrieve all gene expression values and then calculate average.
 
 ```{r}
 rna_hugo_df = rna_hugo %>% 
@@ -722,7 +735,8 @@ rna_hugo_sigExpr = rna_hugo_df %>%
     dplyr::group_by(sample, Signature) %>% 
     dplyr::summarise(expression = mean(expression)) %>% 
     tidyr::spread(key=Signature, value=expression) %>% 
-    dplyr::mutate(study = "Hugo2016")
+    dplyr::mutate(study = "Hugo2016") %>% 
+    dplyr::ungroup()
 
 rna_VanAllen_sigExpr = rna_VanAllen_df %>% 
     dplyr::right_join(sigList, by=c("Gene"="Genes")) %>% 
@@ -730,7 +744,8 @@ rna_VanAllen_sigExpr = rna_VanAllen_df %>%
     dplyr::group_by(sample, Signature) %>% 
     dplyr::summarise(expression = mean(expression)) %>% 
     tidyr::spread(key=Signature, value=expression) %>% 
-    dplyr::mutate(study = "VanAllen2015")
+    dplyr::mutate(study = "VanAllen2015") %>% 
+    dplyr::ungroup()
 
 rna_Snyder_sigExpr = rna_Snyder_df %>% 
     dplyr::right_join(sigList, by=c("Gene"="Genes")) %>% 
@@ -738,8 +753,25 @@ rna_Snyder_sigExpr = rna_Snyder_df %>%
     dplyr::group_by(sample, Signature) %>% 
     dplyr::summarise(expression = mean(expression)) %>% 
     tidyr::spread(key=Signature, value=expression) %>% 
-    dplyr::mutate(study = "Snyder2017")
+    dplyr::mutate(study = "Snyder2017") %>% 
+    dplyr::ungroup()
 ```
+
+
+Scale "IFNG.GS", "ISG.RS" signature expression as origin paper said.
+
+```{r}
+rna_hugo_sigExpr = rna_hugo_sigExpr %>% 
+  dplyr::mutate(IFNG.GS = scale(IFNG.GS) %>% as.numeric(), 
+                ISG.RS = scale(ISG.RS) %>% as.numeric())
+rna_VanAllen_sigExpr = rna_VanAllen_sigExpr %>% 
+  dplyr::mutate(IFNG.GS = scale(IFNG.GS), 
+                ISG.RS = scale(ISG.RS))
+rna_Snyder_sigExpr = rna_Snyder_sigExpr %>% 
+  dplyr::mutate(IFNG.GS = scale(IFNG.GS), 
+                ISG.RS = scale(ISG.RS))
+```
+
 
 Show results as tables.
 
