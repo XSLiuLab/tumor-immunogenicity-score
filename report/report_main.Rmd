@@ -22,6 +22,7 @@ opts_chunk$set(
   cache = TRUE, dpi = 300
 )
 opts_knit$set(width = 75)
+Sys.setenv("LANGUAGE"="EN")
 ```
 
 

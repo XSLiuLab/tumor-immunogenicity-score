@@ -17,6 +17,7 @@ knitr::opts_chunk$set(
   dpi = 300
 )
 knitr::opts_knit$set(width = 75)
+Sys.setenv("LANGUAGE"="EN")
 ```
 
 This part will clearly describe how to analyze APS, TMB and TIGS in immunotherapy datasets, including cancer type level and individual level. Raw data used for these analyses have been preprocessed, detail please read preprocessing part or TCGA pan-cancer analyses of this analysis report.
@@ -804,28 +805,6 @@ rna_Snyder_sigExpr <- rna_Snyder_df %>%
   dplyr::ungroup()
 ```
 
-
-Scale "IFNG.GS", "ISG.RS" signature expression as origin paper said.
-
-```{r}
-rna_hugo_sigExpr <- rna_hugo_sigExpr %>%
-  dplyr::mutate(
-    IFNG.GS = scale(IFNG.GS) %>% as.numeric(),
-    ISG.RS = scale(ISG.RS) %>% as.numeric()
-  )
-rna_VanAllen_sigExpr <- rna_VanAllen_sigExpr %>%
-  dplyr::mutate(
-    IFNG.GS = scale(IFNG.GS),
-    ISG.RS = scale(ISG.RS)
-  )
-rna_Snyder_sigExpr <- rna_Snyder_sigExpr %>%
-  dplyr::mutate(
-    IFNG.GS = scale(IFNG.GS),
-    ISG.RS = scale(ISG.RS)
-  )
-```
-
-
 Show results as tables.
 
 ```{r}
@@ -862,7 +841,7 @@ TIDE is developed by Shirley Liu lab, software website is available at (<http://
 
 Following suggestions provided at TIDE website, we firstly generate input files for three immunotherapy datasets .
 
-```{r}
+```{r, eval=FALSE}
 rna_Snyder <- rna_Snyder %>%
   rename(Gene = gene_name)
 
@@ -914,6 +893,7 @@ load("results/Snyder2017_Info.RData")
 load("results/randomAPS.RData")
 
 load("results/GEBiomarker.RData")
+load("results/APS_alternative.GSVA.RData")
 
 # Of note, output csv from TIDE website has extra "" in last line
 #          please remove it before load data
@@ -925,13 +905,28 @@ TIDE_VanAllen <- read_csv("results/TIDE_output_VanAllen.csv", col_types = cols()
 # Merge datasets
 info_hugo <- info_hugo %>%
   dplyr::left_join(dplyr::filter(GEBiomarker, study == "Hugo2016") %>%
-    dplyr::select(-study), by = c("PatientID" = "sample")) %>%
-  dplyr::left_join(TIDE_hugo %>% dplyr::select(Patient, TIDE), by = c("PatientID" = "Patient"))
+                     dplyr::select(-study), by = c("PatientID" = "sample")) %>%
+  dplyr::left_join(TIDE_hugo %>% dplyr::select(Patient, TIDE), by = c("PatientID" = "Patient")) %>%  # Combine APS7
+  dplyr::left_join(APS7.GSVA %>% 
+                     dplyr::select(rowname, APS7), 
+                   by = c("PatientID" = "rowname")) %>% 
+  dplyr::rename(APS7_Sig = APS7) %>%  # differ from APS random
+  dplyr::left_join(APS_MHC_II.GSVA %>% 
+                     dplyr::select(rowname, APS_MHC_II), 
+                   by = c("PatientID" = "rowname"))
+  
 
 # combine random data
 gsva.hugo2016.random %>%
   rownames_to_column(var = "PatientID") %>%
   full_join(info_hugo, by = "PatientID") -> info_hugo
+
+# Because less TIDE shows better outcome
+# We need reverse this score
+# Then combine TMB with gene expression based markers
+# info_hugo$TIDE = -info_hugo$TIDE
+
+
 
 #------------------------------------------
 # Hugo 2016
@@ -972,8 +967,15 @@ auc_random_hugo_mean <- mean(auc_random_hugo)
 
 info_VanAllen <- info_VanAllen %>%
   dplyr::left_join(dplyr::filter(GEBiomarker, study == "VanAllen2015") %>%
-    dplyr::select(-study), by = c("patient" = "sample")) %>%
-  dplyr::left_join(TIDE_VanAllen %>% dplyr::select(Patient, TIDE), by = c("patient" = "Patient"))
+                     dplyr::select(-study), by = c("patient" = "sample")) %>%
+  dplyr::left_join(TIDE_VanAllen %>% dplyr::select(Patient, TIDE), by = c("patient" = "Patient")) %>% 
+  dplyr::left_join(APS7.GSVA %>% 
+                     dplyr::select(rowname, APS7), 
+                   by = c("PatientID" = "rowname")) %>% 
+  dplyr::rename(APS7_Sig = APS7) %>%  # differ from APS random
+  dplyr::left_join(APS_MHC_II.GSVA %>% 
+                     dplyr::select(rowname, APS_MHC_II), 
+                   by = c("PatientID" = "rowname"))
 
 info_VanAllen2 <- info_VanAllen %>%
   mutate(Response = case_when(
@@ -1040,8 +1042,15 @@ auc_random_VanAllen_mean <- mean(auc_random_VanAllen)
 
 info_Snyder <- info_Snyder %>%
   dplyr::left_join(dplyr::filter(GEBiomarker, study == "Snyder2017") %>%
-    dplyr::select(-study), by = c("patient_id" = "sample")) %>%
-  dplyr::left_join(TIDE_Snyder %>% dplyr::select(Patient, TIDE), by = c("patient_id" = "Patient"))
+                     dplyr::select(-study), by = c("patient_id" = "sample")) %>%
+  dplyr::left_join(TIDE_Snyder %>% dplyr::select(Patient, TIDE), by = c("patient_id" = "Patient")) %>% 
+  dplyr::left_join(APS7.GSVA %>% 
+                     dplyr::select(rowname, APS7), 
+                   by = c("PatientID" = "rowname")) %>% 
+  dplyr::rename(APS7_Sig = APS7) %>%  # differ from APS random
+  dplyr::left_join(APS_MHC_II.GSVA %>% 
+                     dplyr::select(rowname, APS_MHC_II), 
+                   by = c("PatientID" = "rowname"))
 
 # combine random data
 gsva.Snyder.random %>%
