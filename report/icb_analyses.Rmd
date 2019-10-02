@@ -901,8 +901,8 @@ TIDE_hugo <- read_csv("results/TIDE_output_hugo.csv", col_types = cols())
 TIDE_Snyder <- read_csv("results/TIDE_output_Snyder.csv", col_types = cols())
 TIDE_VanAllen <- read_csv("results/TIDE_output_VanAllen.csv", col_types = cols())
 
-#-----------------------------------------
-# Merge datasets
+#------------------------------------------
+# Hugo 2016
 info_hugo <- info_hugo %>%
   dplyr::left_join(dplyr::filter(GEBiomarker, study == "Hugo2016") %>%
                      dplyr::select(-study), by = c("PatientID" = "sample")) %>%
@@ -921,46 +921,37 @@ gsva.hugo2016.random %>%
   rownames_to_column(var = "PatientID") %>%
   full_join(info_hugo, by = "PatientID") -> info_hugo
 
-# Because less TIDE shows better outcome
-# We need reverse this score
+# Because less TIDE shows better outcome and
+# Ref says ISG resistance signature (ISG.RS) is also associated with resistance to ICB
+# We need reverse their score
+# scale them to [0, 1]
 # Then combine TMB with gene expression based markers
-# info_hugo$TIDE = -info_hugo$TIDE
+info_hugo = info_hugo %>% 
+  dplyr::mutate(
+    TIDE = -TIDE,
+    ISG.RS = -ISG.RS
+  ) %>% 
+  dplyr::mutate_at(c("CD8", "IFNG", "IFNG.GS", "ISG.RS", 
+                     "PDL1", "TIDE", "APS7_Sig", "APS_MHC_II"), scales::rescale) %>% 
+  dplyr::mutate_at(c("CD8", "IFNG", "IFNG.GS", "ISG.RS", 
+                     "PDL1", "TIDE", "APS7_Sig", "APS_MHC_II"),
+                   list(comb_TMB= ~ . * log(nTMB)))
 
-
-
-#------------------------------------------
-# Hugo 2016
-hugo2016_roc_TMB <- roc(info_hugo$Response, info_hugo$nTMB, direction = "<")
-hugo2016_roc_APS <- roc(info_hugo$Response, info_hugo$APS, direction = "<")
-hugo2016_roc_TIGS <- roc(info_hugo$Response, info_hugo$TIGS, direction = "<")
-hugo2016_roc_IIS <- roc(info_hugo$Response, info_hugo$IIS, direction = "<")
-hugo2016_roc_CD8 <- roc(info_hugo$Response, info_hugo$CD8, direction = "<")
-hugo2016_roc_IFNG <- roc(info_hugo$Response, info_hugo$IFNG, direction = "<")
-hugo2016_roc_PDL1 <- roc(info_hugo$Response, info_hugo$PDL1, direction = "<")
-hugo2016_roc_TIDE <- roc(info_hugo$Response, info_hugo$TIDE, direction = ">") # less TIDE, better outcome
-
-ggroc(list(TMB = hugo2016_roc_TMB, TIGS = hugo2016_roc_TIGS, TIDE = hugo2016_roc_TIDE), legacy.axes = TRUE) +
-  labs(color = "Predictor") + ggpubr::theme_classic2(base_size = 12, base_family = "Arial")
-
-# AUC of predictors
-auc(hugo2016_roc_TMB) # AUC of TMB
-auc(hugo2016_roc_APS) # AUC of APS
-auc(hugo2016_roc_TIGS) # AUC of TIGS
-auc(hugo2016_roc_IIS) # AUC of IIS
-auc(hugo2016_roc_CD8) # AUC of CD8
-auc(hugo2016_roc_IFNG) # AUC of IFNG
-auc(hugo2016_roc_PDL1) # AUC of PDL1
-auc(hugo2016_roc_TIDE) # AUC of TIDE
-
-# AUC of random APS genes
-auc_random_hugo <- c()
-for (i in 1:100) {
-  t <- as.numeric(auc(roc(info_hugo$Response, info_hugo[[paste0("APS", i)]], direction = "<")))
-  auc_random_hugo <- c(auc_random_hugo, t)
+genROC = function(info, markers, response="Response", direction="<", APSrandom=1:100) {
+  ROC_LIST = list()
+  # Calc APS random
+  APSrandom_list = paste0("APS", APSrandom)
+  for (i in c(markers,APSrandom_list)) {
+    message(i)
+    ROC_LIST[[i]] = roc(info[[response]], info[[i]], direction="<")
+  }
+  ROC_LIST
 }
 
-auc_random_hugo
-auc_random_hugo_mean <- mean(auc_random_hugo)
+suppressMessages(
+  hugo2016_roc <- genROC(info_hugo, markers = setdiff(colnames(info_hugo)[106:126], 
+                                                   "Treatment"))
+)
 
 #---------------------------
 # VanAllen 2015
@@ -971,11 +962,11 @@ info_VanAllen <- info_VanAllen %>%
   dplyr::left_join(TIDE_VanAllen %>% dplyr::select(Patient, TIDE), by = c("patient" = "Patient")) %>% 
   dplyr::left_join(APS7.GSVA %>% 
                      dplyr::select(rowname, APS7), 
-                   by = c("PatientID" = "rowname")) %>% 
+                   by = c("patient" = "rowname")) %>% 
   dplyr::rename(APS7_Sig = APS7) %>%  # differ from APS random
   dplyr::left_join(APS_MHC_II.GSVA %>% 
                      dplyr::select(rowname, APS_MHC_II), 
-                   by = c("PatientID" = "rowname"))
+                   by = c("patient" = "rowname"))
 
 info_VanAllen2 <- info_VanAllen %>%
   mutate(Response = case_when(
@@ -1000,42 +991,23 @@ gsva.VanAllen2015.random %>%
   rownames_to_column(var = "patient") %>%
   full_join(info_VanAllen2, by = "patient") -> info_VanAllen2
 
+info_VanAllen2 = info_VanAllen2 %>% 
+  dplyr::mutate(
+    TIDE = -TIDE,
+    ISG.RS = -ISG.RS
+  ) %>% 
+  dplyr::mutate_at(c("CD8", "IFNG", "IFNG.GS", "ISG.RS", 
+                     "PDL1", "TIDE", "APS7_Sig", "APS_MHC_II"), scales::rescale) %>% 
+  dplyr::mutate_at(c("CD8", "IFNG", "IFNG.GS", "ISG.RS", 
+                     "PDL1", "TIDE", "APS7_Sig", "APS_MHC_II"),
+                   list(comb_TMB= ~ . * log(nTMB)))
 
-VanAllen2015_roc_TMB <- roc(info_VanAllen2$Response, info_VanAllen2$nTMB, direction = "<")
-VanAllen2015_roc_APS <- roc(info_VanAllen2$Response, info_VanAllen2$APS, direction = "<")
-VanAllen2015_roc_TIGS <- roc(info_VanAllen2$Response, info_VanAllen2$TIGS, direction = "<")
-VanAllen2015_roc_IIS <- roc(info_VanAllen2$Response, info_VanAllen2$IIS, direction = "<")
-VanAllen2015_roc_CD8 <- roc(info_VanAllen2$Response, info_VanAllen2$CD8, direction = "<")
-VanAllen2015_roc_IFNG <- roc(info_VanAllen2$Response, info_VanAllen2$IFNG, direction = "<")
-VanAllen2015_roc_PDL1 <- roc(info_VanAllen2$Response, info_VanAllen2$PDL1, direction = "<")
-VanAllen2015_roc_TIDE <- roc(info_VanAllen2$Response, info_VanAllen2$TIDE, direction = ">")
 
-ggroc(list(TMB = VanAllen2015_roc_TMB, TIGS = VanAllen2015_roc_TIGS, TIDE = VanAllen2015_roc_TIDE),
-  legacy.axes = TRUE
-) +
-  labs(color = "Predictor") +
-  ggpubr::theme_classic2(base_size = 12, base_family = "Arial")
-
-# AUC of predictors
-auc(VanAllen2015_roc_TMB) # AUC of TMB
-auc(VanAllen2015_roc_APS) # AUC of APS
-auc(VanAllen2015_roc_TIGS) # AUC of TIGS
-auc(VanAllen2015_roc_IIS) # AUC of IIS
-auc(VanAllen2015_roc_CD8) # AUC of CD8
-auc(VanAllen2015_roc_PDL1) # AUC of PDL1
-auc(VanAllen2015_roc_IFNG) # AUC of IFNG
-auc(VanAllen2015_roc_TIDE) # AUC of TIDE
-
-# AUC of random APS genes
-auc_random_VanAllen <- c()
-for (i in 1:100) {
-  t <- as.numeric(auc(roc(info_VanAllen2$Response, info_VanAllen2[[paste0("APS", i)]], didirection = "<")))
-  auc_random_VanAllen <- c(auc_random_VanAllen, t)
-}
-
-auc_random_VanAllen
-auc_random_VanAllen_mean <- mean(auc_random_VanAllen)
-
+suppressMessages(
+  van2015_roc <- genROC(info_VanAllen2, 
+                     markers = setdiff(colnames(info_VanAllen2)[114:136],
+                                       c("TotalMutation", "TotalNonSyn", "Response")))
+)
 
 #---------------------------------------
 # Snyder 2017
@@ -1046,52 +1018,53 @@ info_Snyder <- info_Snyder %>%
   dplyr::left_join(TIDE_Snyder %>% dplyr::select(Patient, TIDE), by = c("patient_id" = "Patient")) %>% 
   dplyr::left_join(APS7.GSVA %>% 
                      dplyr::select(rowname, APS7), 
-                   by = c("PatientID" = "rowname")) %>% 
+                   by = c("patient_id" = "rowname")) %>% 
   dplyr::rename(APS7_Sig = APS7) %>%  # differ from APS random
   dplyr::left_join(APS_MHC_II.GSVA %>% 
                      dplyr::select(rowname, APS_MHC_II), 
-                   by = c("PatientID" = "rowname"))
+                   by = c("patient_id" = "rowname"))
 
 # combine random data
 gsva.Snyder.random %>%
   rownames_to_column(var = "patient_id") %>%
   full_join(info_Snyder, by = "patient_id") -> info_Snyder
 
-Snyder2017_roc_TMB <- roc(info_Snyder$is_benefit, info_Snyder$nTMB, direction = "<")
-Snyder2017_roc_APS <- roc(info_Snyder$is_benefit, info_Snyder$APS, direction = "<")
-Snyder2017_roc_TIGS <- roc(info_Snyder$is_benefit, info_Snyder$TIGS, direction = "<")
-Snyder2017_roc_IIS <- roc(info_Snyder$is_benefit, info_Snyder$IIS, direction = "<")
-Snyder2017_roc_CD8 <- roc(info_Snyder$is_benefit, info_Snyder$CD8, direction = "<")
-Snyder2017_roc_PDL1 <- roc(info_Snyder$is_benefit, info_Snyder$PDL1, direction = "<")
-Snyder2017_roc_IFNG <- roc(info_Snyder$is_benefit, info_Snyder$IFNG, direction = "<")
-Snyder2017_roc_TIDE <- roc(info_Snyder$is_benefit, info_Snyder$TIDE, direction = ">")
+info_Snyder = info_Snyder %>% 
+  dplyr::mutate(
+    TIDE = -TIDE,
+    ISG.RS = -ISG.RS
+  ) %>% 
+  dplyr::mutate_at(c("CD8", "IFNG", "IFNG.GS", "ISG.RS", 
+                     "PDL1", "TIDE", "APS7_Sig", "APS_MHC_II"), scales::rescale) %>% 
+  dplyr::mutate_at(c("CD8", "IFNG", "IFNG.GS", "ISG.RS", 
+                     "PDL1", "TIDE", "APS7_Sig", "APS_MHC_II"),
+                   list(comb_TMB= ~ . * log(nTMB)))
+
+suppressMessages(
+  snyder2017_roc <- genROC(info_Snyder, 
+                     markers = colnames(info_Snyder)[111:130], response = "is_benefit")
+)
 
 
-
-ggroc(list(TMB = Snyder2017_roc_TMB, TIGS = Snyder2017_roc_TIGS, TIDE = Snyder2017_roc_TIDE),
+ggroc(list(TMB = van2015_roc$nTMB, TIGS = van2015_roc$TIGS, TIDE = van2015_roc$TIDE),
   legacy.axes = TRUE
 ) +
-  labs(color = "Predictor") + ggpubr::theme_classic2(base_size = 12, base_family = "Arial")
+  labs(color = "Predictor") + 
+  ggpubr::theme_classic2(base_size = 12)
 
-# AUC of predictors
-auc(Snyder2017_roc_TMB) # AUC of TMB
-auc(Snyder2017_roc_APS) # AUC of APS
-auc(Snyder2017_roc_TIGS) # AUC of TIGS
-auc(Snyder2017_roc_IIS) # AUC of IIS
-auc(Snyder2017_roc_CD8) # AUC of CD8
-auc(Snyder2017_roc_PDL1) # AUC of PDL1
-auc(Snyder2017_roc_IFNG) # AUC of IFNG
-auc(Snyder2017_roc_TIDE) # AUC of TIDE
+ggroc(list(TMB = hugo2016_roc$nTMB, TIGS = hugo2016_roc$TIGS, TIDE = hugo2016_roc$TIDE),
+  legacy.axes = TRUE
+) +
+  labs(color = "Predictor") + 
+  ggpubr::theme_classic2(base_size = 12)
 
-# AUC of random APS genes
-auc_random_Snyder <- c()
-for (i in 1:100) {
-  t <- as.numeric(auc(roc(info_Snyder$is_benefit, info_Snyder[[paste0("APS", i)]], direction = "<")))
-  auc_random_Snyder <- c(auc_random_Snyder, t)
-}
+ggroc(list(TMB = snyder2017_roc$nTMB, TIGS = snyder2017_roc$TIGS, TIDE = snyder2017_roc$TIDE),
+  legacy.axes = TRUE
+) +
+  labs(color = "Predictor") + 
+  ggpubr::theme_classic2(base_size = 12)
 
-auc_random_Snyder
-auc_random_Snyder_mean <- mean(auc_random_Snyder)
+save(van2015_roc, hugo2016_roc, snyder2017_roc, file = "results/ROC_ObjList.RData")
 ```
 
 From comparison of AUC value above, we can conclude that:
