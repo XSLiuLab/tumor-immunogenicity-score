@@ -1078,111 +1078,19 @@ Next, we summary results above for final visualization.
 
 ```{r}
 # summary AUC
-auc_df <- tibble(
-  Group = c("Hugo2016", "VanAllen2015", "Snyder2017"),
-  TIGS = c(
-    as.numeric(auc(hugo2016_roc_TIGS)),
-    as.numeric(auc(VanAllen2015_roc_TIGS)),
-    as.numeric(auc(Snyder2017_roc_TIGS))
-  ),
-  TIDE = c(
-    as.numeric(auc(hugo2016_roc_TIDE)),
-    as.numeric(auc(VanAllen2015_roc_TIDE)),
-    as.numeric(auc(Snyder2017_roc_TIDE))
-  ),
-  TMB = c(
-    as.numeric(auc(hugo2016_roc_TMB)),
-    as.numeric(auc(VanAllen2015_roc_TMB)),
-    as.numeric(auc(Snyder2017_roc_TMB))
-  ),
-  APS = c(
-    as.numeric(auc(hugo2016_roc_APS)),
-    as.numeric(auc(VanAllen2015_roc_APS)),
-    as.numeric(auc(Snyder2017_roc_APS))
-  ),
-  IIS = c(
-    as.numeric(auc(hugo2016_roc_IIS)),
-    as.numeric(auc(VanAllen2015_roc_IIS)),
-    as.numeric(auc(Snyder2017_roc_IIS))
-  ),
-  IFNG = c(
-    as.numeric(auc(hugo2016_roc_IFNG)),
-    as.numeric(auc(VanAllen2015_roc_IFNG)),
-    as.numeric(auc(Snyder2017_roc_IFNG))
-  ),
-  PDL1 = c(
-    as.numeric(auc(hugo2016_roc_PDL1)),
-    as.numeric(auc(VanAllen2015_roc_PDL1)),
-    as.numeric(auc(Snyder2017_roc_PDL1))
-  ),
-  CD8 = c(
-    as.numeric(auc(hugo2016_roc_CD8)),
-    as.numeric(auc(VanAllen2015_roc_CD8)),
-    as.numeric(auc(Snyder2017_roc_CD8))
-  ),
-  APSr = c(
-    auc_random_hugo_mean,
-    auc_random_VanAllen_mean,
-    auc_random_Snyder_mean
-  )
-)
+van2015_auc = lapply(van2015_roc, function(x) as.numeric(auc(x)))
+hugo2016_auc = lapply(hugo2016_roc, function(x) as.numeric(auc(x)))
+snyder2017_auc = lapply(snyder2017_roc, function(x) as.numeric(auc(x)))
+auc_df = list(van2015_auc, hugo2016_auc, snyder2017_auc) %>% 
+  dplyr::bind_rows() %>% 
+  dplyr::mutate(Group = c("VanAllen2015", "Hugo2016", "Snyder2017"), 
+                APSr = rowMeans(select(., paste0("APS", 1:100))))
 
 # Show AUC table
 DT::datatable(auc_df,
   options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE,
   caption = "AUC of biomarkers for response prediction in three ICB datasets"
 )
-```
-
-```{r}
-# summary ROC object
-roc_df <- tibble(
-  Group = c("Hugo2016", "VanAllen2015", "Snyder2017"),
-  TIGS = c(
-    list(hugo2016_roc_TIGS),
-    list(VanAllen2015_roc_TIGS),
-    list(Snyder2017_roc_TIGS)
-  ),
-  TIDE = c(
-    list(hugo2016_roc_TIDE),
-    list(VanAllen2015_roc_TIDE),
-    list(Snyder2017_roc_TIDE)
-  ),
-  TMB = c(
-    list(hugo2016_roc_TMB),
-    list(VanAllen2015_roc_TMB),
-    list(Snyder2017_roc_TMB)
-  ),
-  APS = c(
-    list(hugo2016_roc_APS),
-    list(VanAllen2015_roc_APS),
-    list(Snyder2017_roc_APS)
-  ),
-  IIS = c(
-    list(hugo2016_roc_IIS),
-    list(VanAllen2015_roc_IIS),
-    list(Snyder2017_roc_IIS)
-  ),
-  IFNG = c(
-    list(hugo2016_roc_IFNG),
-    list(VanAllen2015_roc_IFNG),
-    list(Snyder2017_roc_IFNG)
-  ),
-  PDL1 = c(
-    list(hugo2016_roc_PDL1),
-    list(VanAllen2015_roc_PDL1),
-    list(Snyder2017_roc_PDL1)
-  ),
-  CD8 = c(
-    list(hugo2016_roc_CD8),
-    list(VanAllen2015_roc_CD8),
-    list(Snyder2017_roc_CD8)
-  )
-)
-
-if (!file.exists("results/roc_comparison_result.RData")) {
-  save(auc_df, roc_df, file = "results/roc_comparison_result.RData")
-}
 ```
 
 
@@ -1491,34 +1399,40 @@ theme_set(cowplot::theme_cowplot())
 ## -------- ROC
 
 # Van Allen
-p_roc_1 <- ggroc(list(TMB = roc_df$TMB[[2]], TIGS = roc_df$TIGS[[2]], TIDE = roc_df$TIDE[[2]]), legacy.axes = TRUE) +
+p_roc_1 <- ggroc(list(TMB = van2015_roc$nTMB,
+                      TIGS = van2015_roc$TIGS,
+                      TIDE = van2015_roc$TIDE), legacy.axes = TRUE) +
   labs(color = "") + scale_color_manual(values = c("blue", "red", "black")) +
   theme(legend.position = c(0.8, 0.4))
 # Hugo
-p_roc_2 <- ggroc(list(TMB = roc_df$TMB[[1]], TIGS = roc_df$TIGS[[1]], TIDE = roc_df$TIDE[[1]]), legacy.axes = TRUE) +
+p_roc_2 <- ggroc(list(TMB = hugo2016_roc$nTMB,
+                      TIGS = hugo2016_roc$TIGS,
+                      TIDE = hugo2016_roc$TIDE), legacy.axes = TRUE) +
   labs(color = "") + scale_color_manual(values = c("blue", "red", "black")) +
   theme(legend.position = c(0.8, 0.4))
 # Snyder
-p_roc_3 <- ggroc(list(TMB = roc_df$TMB[[3]], TIGS = roc_df$TIGS[[3]], TIDE = roc_df$TIDE[[3]]), legacy.axes = TRUE) +
+p_roc_3 <- ggroc(list(TMB = snyder2017_roc$nTMB,
+                      TIGS = snyder2017_roc$TIGS,
+                      TIDE = snyder2017_roc$TIDE), legacy.axes = TRUE) +
   labs(color = "") + scale_color_manual(values = c("blue", "red", "black")) +
   theme(legend.position = c(0.8, 0.4))
 
 p_roc_4 <- ggroc(list(
-  TIGS = roc_df$TIGS[[2]], APS = roc_df$APS[[2]], PDL1 = roc_df$PDL1[[2]],
-  CD8 = roc_df$CD8[[2]], IFNG = roc_df$IFNG[[2]], IIS = roc_df$IIS[[2]]
-), legacy.axes = TRUE) +
+  TIGS = van2015_roc$TIGS, APS = van2015_roc$APS, PDL1 = van2015_roc$PDL1,
+  CD8 = van2015_roc$CD8, IFNG = van2015_roc$IFNG, IIS = van2015_roc$IIS),
+  legacy.axes = TRUE) +
   labs(color = "") +
   theme(legend.position = c(0.8, 0.4))
 p_roc_5 <- ggroc(list(
-  TIGS = roc_df$TIGS[[1]], APS = roc_df$APS[[1]], PDL1 = roc_df$PDL1[[1]],
-  CD8 = roc_df$CD8[[1]], IFNG = roc_df$IFNG[[1]], IIS = roc_df$IIS[[1]]
-), legacy.axes = TRUE) +
+  TIGS = hugo2016_roc$TIGS, APS = hugo2016_roc$APS, PDL1 = hugo2016_roc$PDL1,
+  CD8 = hugo2016_roc$CD8, IFNG = hugo2016_roc$IFNG, IIS = hugo2016_roc$IIS),
+  legacy.axes = TRUE) +
   labs(color = "") +
   theme(legend.position = c(0.8, 0.4))
 p_roc_6 <- ggroc(list(
-  TIGS = roc_df$TIGS[[3]], APS = roc_df$APS[[3]], PDL1 = roc_df$PDL1[[3]],
-  CD8 = roc_df$CD8[[3]], IFNG = roc_df$IFNG[[3]], IIS = roc_df$IIS[[3]]
-), legacy.axes = TRUE) +
+  TIGS = snyder2017_roc$TIGS, APS = snyder2017_roc$APS, PDL1 = snyder2017_roc$PDL1,
+  CD8 = snyder2017_roc$CD8, IFNG = snyder2017_roc$IFNG, IIS = snyder2017_roc$IIS),
+  legacy.axes = TRUE) +
   labs(color = "") +
   theme(legend.position = c(0.8, 0.4))
 
@@ -1530,6 +1444,7 @@ save_plot(filename = "extra_roc_comparison.pdf", plot = p_extra, nrow = 1, ncol 
 ```{r}
 ## -------- AUC values
 auc_df_long <- auc_df %>%
+  dplyr::select(c(colnames(auc_df)[1:20], "APSr", "Group")) %>% 
   tidyr::gather(key = "biomarker", value = "auc", -Group)
 
 # p_auc_1 =
@@ -1541,7 +1456,7 @@ auc_df_long %>%
   geom_bar(stat = "identity", fill = "lightblue") +
   geom_text(aes(label = auc), hjust = 1) +
   geom_hline(yintercept = 0.5, linetype = 2) +
-  ylim(0, 0.8) + ylab("AUC") + theme(axis.title.y = element_blank()) +
+  ylim(0, 0.85) + ylab("AUC") + theme(axis.title.y = element_blank()) +
   coord_flip() -> p_auc_1
 
 auc_df_long %>%
