@@ -15,11 +15,13 @@ library(knitr)
 library(rmdformats)
 
 ## Global options
-options(max.print="75")
-opts_chunk$set(echo=TRUE,
-               comment="#>",
-               cache = TRUE, dpi = 300)
-opts_knit$set(width=75)
+options(max.print = "75")
+opts_chunk$set(
+  echo = TRUE,
+  comment = "#>",
+  cache = TRUE, dpi = 300
+)
+opts_knit$set(width = 75)
 ```
 
 
@@ -34,8 +36,10 @@ R packages:
 * [UCSCXenaTools](https://github.com/ShixiangWang/UCSCXenaTools) - download data from UCSC Xena
 * GEOquery - download data from NCBI GEO database
 * [tidyverse](https://www.tidyverse.org/) - operate data, plot
-* data.table - operate data
+* data.table - read and operate data
 * survival - built in R, used to do survival analysis 
+* pheatmap - create pheatmap
+* corrplot - create correlation plot
 * forestplot - plot forestplot
 * survminer - plot survival fit
 * pROC - ROC analysis and visualization
@@ -46,23 +50,27 @@ R packages:
 * [corrplot](https://cran.r-project.org/web/packages/corrplot/) - plot correlation 
 * knitr, rmdformats - used to compile this file
 * readxl - read xlsx data
+* Some other dependent packages
 
-These R packages are easily searched by internet and have no strict version requirements to reproduce the following analyses.
+These R packages are easily searched by internet and installed from either CRAN or Bioconductor, they have no strict version requirements to reproduce the following analyses.
 
 # Data download and preprocessing
 
 ```{r child = 'preprocessing.Rmd'}
+
 ```
 
 
 # TCGA Pan-cancer analyses 
 
 ```{r child = 'tcga_pancan_analyses.Rmd'}
+
 ```
 
 # Immunotherapy datasets analyses 
 
 ```{r child = 'icb_analyses.Rmd'}
+
 ```
 
 # Supplementary analyses
@@ -88,35 +96,35 @@ load("results/randomRes/random_res.RData")
 
 ```{r}
 source("../code/functions.R")
-cor_res = data.frame(stringsAsFactors = FALSE)
-for (i in 1:100){
-    normal = normal_res[[i]][[1]]
-    normal = calc_TisIIs(normal)
-    
-    r1 = as.numeric(cor.test(normal$APM, normal$IIS, method = "spearman")$estimate)
-    
-    r2 = c() # normal APM, random IIS
-    r3 = c() # random APM, normal IIS
-    for (j in 1:10){
-        random = random_res[[i]][[j]][[1]]
-        tryCatch(
-            {
-                random = calc_TisIIs(random)
-                r_random1 = as.numeric(cor.test(normal$APM, random$IIS, method = "spearman")$estimate)
-                r2 = c(r2, r_random1)
-                r_random2 = as.numeric(cor.test(random$APM, normal$IIS, method = "spearman")$estimate)
-                r3 = c(r3, r_random2)
-            },
-            error = function(e) {
-                NA
-            })
+cor_res <- data.frame(stringsAsFactors = FALSE)
+for (i in 1:100) {
+  normal <- normal_res[[i]][[1]]
+  normal <- calc_TisIIs(normal)
+
+  r1 <- as.numeric(cor.test(normal$APM, normal$IIS, method = "spearman")$estimate)
+
+  r2 <- c() # normal APM, random IIS
+  r3 <- c() # random APM, normal IIS
+  for (j in 1:10) {
+    random <- random_res[[i]][[j]][[1]]
+    tryCatch({
+      random <- calc_TisIIs(random)
+      r_random1 <- as.numeric(cor.test(normal$APM, random$IIS, method = "spearman")$estimate)
+      r2 <- c(r2, r_random1)
+      r_random2 <- as.numeric(cor.test(random$APM, normal$IIS, method = "spearman")$estimate)
+      r3 <- c(r3, r_random2)
+    },
+    error = function(e) {
+      NA
     }
-    r2 = mean(r2, na.rm = TRUE)
-    r3 = mean(r3, na.rm = TRUE)
-    cor_res = rbind(cor_res, c(r1, r2, r3))
+    )
+  }
+  r2 <- mean(r2, na.rm = TRUE)
+  r3 <- mean(r3, na.rm = TRUE)
+  cor_res <- rbind(cor_res, c(r1, r2, r3))
 }
 
-colnames(cor_res) = c("normal", "random_IIS", "random_APS")
+colnames(cor_res) <- c("normal", "random_IIS", "random_APS")
 
 write_tsv(cor_res, "results/randomGSVA.tsv")
 ```
@@ -126,16 +134,16 @@ Now, we plot spearman correlation efficient of 3 types.
 ```{r}
 library(tidyverse)
 library(cowplot)
-cor_res = read_tsv("results/randomGSVA.tsv", col_types = cols())
+cor_res <- read_tsv("results/randomGSVA.tsv", col_types = cols())
 
-cor_res_long = gather(cor_res, key="Type", value="SpearmanCoeff")
-cor_res_long$Type = factor(cor_res_long$Type)
+cor_res_long <- gather(cor_res, key = "Type", value = "SpearmanCoeff")
+cor_res_long$Type <- factor(cor_res_long$Type)
 
-p = ggplot(cor_res_long, aes(x=SpearmanCoeff, color=Type))  + 
-    stat_density(geom = "line") + 
-    xlab("Spearman correlation coefficient") + ylab("Density") +
-    guides(color=guide_legend(title = NULL)) + 
-    scale_color_discrete(labels=c("r(APS, IIS)", "r(APSr, IIS)", "r(APS, IISr"))
+p <- ggplot(cor_res_long, aes(x = SpearmanCoeff, color = Type)) +
+  stat_density(geom = "line") +
+  xlab("Spearman correlation coefficient") + ylab("Density") +
+  guides(color = guide_legend(title = NULL)) +
+  scale_color_discrete(labels = c("r(APS, IIS)", "r(APSr, IIS)", "r(APS, IISr"))
 p
 ```
 
@@ -161,21 +169,25 @@ Firstly we load TCGA data and calculate TIGS score.
 library(dplyr)
 load("results/TCGA_ALL.RData")
 
-tcga_all = tcga_all %>% 
-    mutate(nAPM = (APM - min(APM, na.rm = TRUE))/ (max(APM, na.rm = TRUE) - min(APM, na.rm = TRUE)),
-           nTMB = TMB_NonsynVariants / 38, 
-           TIGS = log(nTMB+1) * nAPM)
+tcga_all <- tcga_all %>%
+  mutate(
+    nAPM = (APM - min(APM, na.rm = TRUE)) / (max(APM, na.rm = TRUE) - min(APM, na.rm = TRUE)),
+    nTMB = TMB_NonsynVariants / 38,
+    TIGS = log(nTMB + 1) * nAPM
+  )
 ```
 
 Next we calculate median of APS, TMB, TIGS and their corresponding sample counts for each tumor type.
 
 ```{r}
-tcga_tigs = tcga_all %>% 
-  dplyr::filter(!is.na(Project)) %>% 
-  group_by(Project) %>% 
-  summarise(Patients_TIGS=sum(!is.na(TIGS)), TIGS=median(TIGS, na.rm = TRUE),
-            Patients_APS=sum(!is.na(nAPM)), APS=median(nAPM, na.rm = TRUE),
-            Patients_TMB=sum(!is.na(nTMB)), TMB=median(nTMB, na.rm = TRUE))
+tcga_tigs <- tcga_all %>%
+  dplyr::filter(!is.na(Project)) %>%
+  group_by(Project) %>%
+  summarise(
+    Patients_TIGS = sum(!is.na(TIGS)), TIGS = median(TIGS, na.rm = TRUE),
+    Patients_APS = sum(!is.na(nAPM)), APS = median(nAPM, na.rm = TRUE),
+    Patients_TMB = sum(!is.na(nTMB)), TMB = median(nTMB, na.rm = TRUE)
+  )
 DT::datatable(tcga_tigs)
 ```
 
@@ -188,7 +200,7 @@ readr::write_csv(tcga_tigs, path = "results/TCGA_TIGS_byProject2.csv")
 After merging data, we load data into R.
 
 ```{r}
-tcga_orr = readr:::read_csv("results/TCGA_TIGS_byProject2.csv")
+tcga_orr <- readr:::read_csv("results/TCGA_TIGS_byProject2.csv")
 ```
 
 Now we plot figures.
@@ -202,54 +214,21 @@ require(scales)
 ### APS
 
 ```{r}
-ggplot(filter(tcga_orr, !is.na(ORR)), aes(x=APS, y=ORR)) + 
-    geom_point(aes(color=Patients_APS, size=Patients_ORR)) + 
-    geom_smooth(method="lm", se=T)  + 
-    geom_text_repel(aes(label=Project), size=3)  +
-    labs(x="Median Normalized APM Score ", y="Objective Response Rate (%)",
-         size="Objective Response Rate\n(no. of patients evaluated)", 
-         color = "APM Score\n(no. of tumor analyzed)") +
-    scale_size_continuous(breaks = c(50, 100, 500, 1000)) +
-    scale_color_gradientn(colours = RColorBrewer::brewer.pal(5, name="OrRd")[-1],
-                          breaks = c(50, 200, 500, 1000)) +
-    theme_bw() +
-    guides(
-    color = guide_colorbar(order = 1)
-  )
-```
-
-Significant correlation is observed.
-
-```{r}
-lm(ORR ~ APS, filter(tcga_orr, !is.na(ORR))) %>% summary() 
-```
-
-R and R square can be given as:
-
-```{r}
-# R
-filter(tcga_orr, !is.na(ORR)) %>% summarise(r = cor(ORR, APS)) %>% pull(r)
-# R square
-lm(ORR ~ APS, filter(tcga_orr, !is.na(ORR))) %>% summary()  %>% .$r.squared
-```
-
-### TMB
-
-```{r}
-ggplot(filter(tcga_orr, !is.na(ORR)), aes(x=TMB, y=ORR)) + 
-    geom_point(aes(color=Patients_TMB, size=Patients_ORR)) + 
-    geom_smooth(method="lm", se=T)  + 
-    geom_text_repel(aes(label=Project), size=3)  +
-    labs(x="Median No. of Coding Somatic Mutation per MB", y="Objective Response Rate (%)",
-         size="Objective Response Rate\n(no. of patients evaluated)",
-         color = "Tumor Mutational Burden\n(no. of tumor analyzed)") +
-    scale_x_continuous(trans = log_trans(),
-                       breaks = c(2, 10, 20, 30, 40, 50),
-                       labels = c(2, 10, 20, 30, 40, 50)) +
-    scale_size_continuous(breaks = c(50, 100, 500, 1000)) +
-    scale_color_gradientn(colours = RColorBrewer::brewer.pal(5, name="OrRd")[-1],
-                          breaks = c(100, 1000, 5000, 10000)) +
-    theme_bw() + 
+ggplot(filter(tcga_orr, !is.na(ORR)), aes(x = APS, y = ORR)) +
+  geom_point(aes(color = Patients_APS, size = Patients_ORR)) +
+  geom_smooth(method = "lm", se = T) +
+  geom_text_repel(aes(label = Project), size = 3) +
+  labs(
+    x = "Median Normalized APM Score ", y = "Objective Response Rate (%)",
+    size = "Objective Response Rate\n(no. of patients evaluated)",
+    color = "APM Score\n(no. of tumor analyzed)"
+  ) +
+  scale_size_continuous(breaks = c(50, 100, 500, 1000)) +
+  scale_color_gradientn(
+    colours = RColorBrewer::brewer.pal(5, name = "OrRd")[-1],
+    breaks = c(50, 200, 500, 1000)
+  ) +
+  theme_bw() +
   guides(
     color = guide_colorbar(order = 1)
   )
@@ -258,45 +237,102 @@ ggplot(filter(tcga_orr, !is.na(ORR)), aes(x=TMB, y=ORR)) +
 Significant correlation is observed.
 
 ```{r}
-lm(ORR ~ TMB, filter(tcga_orr, !is.na(ORR))) %>% summary() 
+lm(ORR ~ APS, filter(tcga_orr, !is.na(ORR))) %>% summary()
 ```
 
 R and R square can be given as:
 
 ```{r}
 # R
-filter(tcga_orr, !is.na(ORR)) %>% summarise(r = cor(ORR, TMB)) %>% pull(r)
+filter(tcga_orr, !is.na(ORR)) %>%
+  summarise(r = cor(ORR, APS)) %>%
+  pull(r)
 # R square
-lm(ORR ~ TMB, filter(tcga_orr, !is.na(ORR))) %>% summary()  %>% .$r.squared
+lm(ORR ~ APS, filter(tcga_orr, !is.na(ORR))) %>%
+  summary() %>%
+  .$r.squared
+```
+
+### TMB
+
+```{r}
+ggplot(filter(tcga_orr, !is.na(ORR)), aes(x = TMB, y = ORR)) +
+  geom_point(aes(color = Patients_TMB, size = Patients_ORR)) +
+  geom_smooth(method = "lm", se = T) +
+  geom_text_repel(aes(label = Project), size = 3) +
+  labs(
+    x = "Median No. of Coding Somatic Mutation per MB", y = "Objective Response Rate (%)",
+    size = "Objective Response Rate\n(no. of patients evaluated)",
+    color = "Tumor Mutational Burden\n(no. of tumor analyzed)"
+  ) +
+  scale_x_continuous(
+    trans = log_trans(),
+    breaks = c(2, 10, 20, 30, 40, 50),
+    labels = c(2, 10, 20, 30, 40, 50)
+  ) +
+  scale_size_continuous(breaks = c(50, 100, 500, 1000)) +
+  scale_color_gradientn(
+    colours = RColorBrewer::brewer.pal(5, name = "OrRd")[-1],
+    breaks = c(100, 1000, 5000, 10000)
+  ) +
+  theme_bw() +
+  guides(
+    color = guide_colorbar(order = 1)
+  )
+```
+
+Significant correlation is observed.
+
+```{r}
+lm(ORR ~ TMB, filter(tcga_orr, !is.na(ORR))) %>% summary()
+```
+
+R and R square can be given as:
+
+```{r}
+# R
+filter(tcga_orr, !is.na(ORR)) %>%
+  summarise(r = cor(ORR, TMB)) %>%
+  pull(r)
+# R square
+lm(ORR ~ TMB, filter(tcga_orr, !is.na(ORR))) %>%
+  summary() %>%
+  .$r.squared
 ```
 
 ### TIGS
 
 
 ```{r}
-ggplot(filter(tcga_orr, !is.na(ORR)), aes(x=TIGS, y=ORR)) + 
-    geom_point(aes(size=Patients_ORR)) + 
-    geom_smooth(method="lm", se=T)  + 
-    geom_text_repel(aes(label=Project), size=3)  +
-    labs(x="Tumor Immunogenicity Score ", y="Objective Response Rate (%)",
-         size="Objective Response Rate\n(no. of patients evaluated)") +
-    scale_size_continuous(breaks = c(50, 100, 500, 1000)) +
-    theme_bw() 
+ggplot(filter(tcga_orr, !is.na(ORR)), aes(x = TIGS, y = ORR)) +
+  geom_point(aes(size = Patients_ORR)) +
+  geom_smooth(method = "lm", se = T) +
+  geom_text_repel(aes(label = Project), size = 3) +
+  labs(
+    x = "Tumor Immunogenicity Score ", y = "Objective Response Rate (%)",
+    size = "Objective Response Rate\n(no. of patients evaluated)"
+  ) +
+  scale_size_continuous(breaks = c(50, 100, 500, 1000)) +
+  theme_bw()
 ```
 
 Significant correlation is observed.
 
 ```{r}
-lm(ORR ~ TIGS, filter(tcga_orr, !is.na(ORR))) %>% summary() 
+lm(ORR ~ TIGS, filter(tcga_orr, !is.na(ORR))) %>% summary()
 ```
 
 R and R square can be given as:
 
 ```{r}
 # R
-filter(tcga_orr, !is.na(ORR)) %>% summarise(r = cor(ORR, TIGS)) %>% pull(r)
+filter(tcga_orr, !is.na(ORR)) %>%
+  summarise(r = cor(ORR, TIGS)) %>%
+  pull(r)
 # R square
-lm(ORR ~ TIGS, filter(tcga_orr, !is.na(ORR))) %>% summary()  %>% .$r.squared
+lm(ORR ~ TIGS, filter(tcga_orr, !is.na(ORR))) %>%
+  summary() %>%
+  .$r.squared
 ```
 
 
@@ -308,10 +344,10 @@ These data are consistent with our previous results and even better, which may b
 Using constructed linear formula, we can predict ORR of tumor types which (median) TIGS available.
 
 ```{r}
-sm_data = read_csv("../data/summary_data_new_20190411.csv", col_types = cols())
-sm_data$TIGS = sm_data$Pool_APM * log(sm_data$Pool_TMB + 1)
+sm_data <- read_csv("../data/summary_data_new_20190411.csv", col_types = cols())
+sm_data$TIGS <- sm_data$Pool_APM * log(sm_data$Pool_TMB + 1)
 
-fit = lm(Pool_ORR ~ TIGS, filter(sm_data, !is.na(Pool_ORR)))
+fit <- lm(Pool_ORR ~ TIGS, filter(sm_data, !is.na(Pool_ORR)))
 fit
 ```
 
@@ -319,7 +355,7 @@ For example , we can predict ORR for uterine corpus endometrial carcinoma (UCEC)
 
 
 ```{r}
-nd = data.frame(TIGS = c(0.7))
+nd <- data.frame(TIGS = c(0.7))
 predict(fit, newdata = nd, interval = "confidence")
 ```
 
