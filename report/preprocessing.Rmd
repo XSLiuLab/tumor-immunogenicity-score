@@ -11,9 +11,9 @@ output:
 ---
 
 ```{r pre-process-setup, include=FALSE}
-options(max.print="75")
+options(max.print = "75")
 knitr::opts_chunk$set(echo = TRUE, comment = "#>", eval = TRUE, collapse = TRUE)
-knitr::opts_knit$set(width=75)
+knitr::opts_knit$set(width = 75)
 ```
 
 This part will clearly describe how to process raw data but not provide an easy script for re-running all preprocess steps just by a click due to the complexity of data preprocessing.
@@ -43,7 +43,7 @@ library(dplyr)
 Obtain datasets information available at [TCGA data hubs of UCSC Xena](https://xenabrowser.net/datapages/?host=https%3A%2F%2Ftcga.xenahubs.net&removeHub=https%3A%2F%2Fxena.treehouse.gi.ucsc.edu%3A443):
 
 ```{r}
-xe = XenaGenerate(subset = XenaHostNames == "tcgaHub")
+xe <- XenaGenerate(subset = XenaHostNames == "tcgaHub")
 xe
 ```
 
@@ -65,24 +65,28 @@ xe_rna_pancan
 Create data queries and download them:
 
 ```{r download_xena_pancan, eval=FALSE}
-xe_clinical.query = XenaQuery(xe_clinical)
-xe_clinical.download = XenaDownload(xe_clinical.query, 
-                                    destdir = "UCSC_Xena/TCGA/Clinical", trans_slash = TRUE)
+xe_clinical.query <- XenaQuery(xe_clinical)
+xe_clinical.download <- XenaDownload(xe_clinical.query,
+  destdir = "UCSC_Xena/TCGA/Clinical", trans_slash = TRUE, force = TRUE
+)
 
-xe_rna_pancan.query = XenaQuery(xe_rna_pancan)
-xe_rna_pancan.download = XenaDownload(xe_rna_pancan.query, 
-                                      destdir = "UCSC_Xena/TCGA/RNAseq_Pancan", trans_slash = TRUE)
+xe_rna_pancan.query <- XenaQuery(xe_rna_pancan)
+xe_rna_pancan.download <- XenaDownload(xe_rna_pancan.query,
+  destdir = "UCSC_Xena/TCGA/RNAseq_Pancan", trans_slash = TRUE
+)
 ```
 
 ```{r hide_download_pancan, include=FALSE}
-if (!dir.exists("UCSC_Xena")){
-    xe_clinical.query = XenaQuery(xe_clinical)
-    xe_clinical.download = XenaDownload(xe_clinical.query, 
-                                        destdir = "UCSC_Xena/TCGA/Clinical", trans_slash = TRUE)
-    
-    xe_rna_pancan.query = XenaQuery(xe_rna_pancan)
-    xe_rna_pancan.download = XenaDownload(xe_rna_pancan.query, 
-                                          destdir = "UCSC_Xena/TCGA/RNAseq_Pancan", trans_slash = TRUE)
+if (!dir.exists("UCSC_Xena")) {
+  xe_clinical.query <- XenaQuery(xe_clinical)
+  xe_clinical.download <- XenaDownload(xe_clinical.query,
+    destdir = "UCSC_Xena/TCGA/Clinical", trans_slash = TRUE
+  )
+
+  xe_rna_pancan.query <- XenaQuery(xe_rna_pancan)
+  xe_rna_pancan.download <- XenaDownload(xe_rna_pancan.query,
+    destdir = "UCSC_Xena/TCGA/RNAseq_Pancan", trans_slash = TRUE
+  )
 }
 ```
 
@@ -101,13 +105,13 @@ First, clean filenames.
 
 ```{r clean_filenames}
 # set data directory where TCGA clinical and pancan RNAseq data stored
-TCGA_DIR = "UCSC_Xena/TCGA" 
+TCGA_DIR <- "UCSC_Xena/TCGA"
 # obtain filenames of rna-seq data
-dir(paste0(TCGA_DIR,"/RNAseq_Pancan")) -> RNAseq_filelist
+dir(paste0(TCGA_DIR, "/RNAseq_Pancan")) -> RNAseq_filelist
 # obtain tcga project code
 sub("TCGA\\.(.*)\\.sampleMap.*", "\\1", RNAseq_filelist) -> project_code
 # obtain filenames of clinical datasets
-dir(paste0(TCGA_DIR,"/Clinical")) -> Clinical_filelist
+dir(paste0(TCGA_DIR, "/Clinical")) -> Clinical_filelist
 ```
 
 Check.
@@ -124,7 +128,7 @@ Obtain TCGA project abbreviations from <https://gdc.cancer.gov/resources-tcga-us
 
 ```{r}
 library(readr)
-TCGA_Study = read_tsv("
+TCGA_Study <- read_tsv("
                       LAML	Acute Myeloid Leukemia
                       ACC	Adrenocortical carcinoma
                       BLCA	Bladder Urothelial Carcinoma
@@ -161,15 +165,15 @@ TCGA_Study = read_tsv("
                       THCA	Thyroid carcinoma
                       UCS	Uterine Carcinosarcoma
                       UCEC	Uterine Corpus Endometrial Carcinoma
-                      UVM	Uveal Melanoma")
-colnames(TCGA_Study) = c("StudyAbbreviation", "StudyName")
+                      UVM	Uveal Melanoma", col_names = FALSE)
+colnames(TCGA_Study) <- c("StudyAbbreviation", "StudyName")
 ```
 
 Compare difference.
 
 ```{r}
 intersect(project_code, TCGA_Study$StudyAbbreviation) -> project_code
-Clinical_filelist[rowSums(sapply(paste0("__",project_code,"_"), function(x) grepl(x, Clinical_filelist)))>0] -> Clinical_filelist2
+Clinical_filelist[rowSums(sapply(paste0("__", project_code, "_"), function(x) grepl(x, Clinical_filelist))) > 0] -> Clinical_filelist2
 
 setdiff(Clinical_filelist, Clinical_filelist2)
 ```
@@ -184,38 +188,40 @@ Now, we read TCGA clinical datasets and clean them.
 ```{r clean_tcga_cli}
 library(tidyverse)
 # keep valuable columns of clinical datasets
-select_cols = c("sampleID", "OS", "OS.time", "OS.unit", "RFS", "RFS.time", "RFS.unit", 
-                "age_at_initial_pathologic_diagnosis", "gender", "tobacco_smoking_history",
-                "tobacco_smoking_history_indicator", "sample_type", "pathologic_M",
-                "pathologic_N", "pathologic_T", "pathologic_stage")
+select_cols <- c(
+  "sampleID", "OS", "OS.time", "OS.unit", "RFS", "RFS.time", "RFS.unit",
+  "age_at_initial_pathologic_diagnosis", "gender", "tobacco_smoking_history",
+  "tobacco_smoking_history_indicator", "sample_type", "pathologic_M",
+  "pathologic_N", "pathologic_T", "pathologic_stage"
+)
 
 # read clinical files
-Cli_DIR = paste0(TCGA_DIR,"/Clinical")
+Cli_DIR <- paste0(TCGA_DIR, "/Clinical")
 
 #----------------------------------
 # Load and preprocess clinical data
 #----------------------------------
-Clinical_List = XenaPrepare(paste0(Cli_DIR,"/",Clinical_filelist2))
+Clinical_List <- XenaPrepare(paste0(Cli_DIR, "/", Clinical_filelist2))
 names(Clinical_List)
 sub("TCGA\\.(.*)\\.sampleMap.*", "\\1", names(Clinical_List)) -> project_code
 
-TCGA_Clinical = tibble()
+TCGA_Clinical <- tibble()
 # for loop
-for (i in 1:length(project_code)){
-    clinical = names(Clinical_List)[i]
-    project = project_code[i]
-    df = Clinical_List[[clinical]]
-    col_exist = select_cols %in% colnames(df)
-    res = tibble()
-    if(!all(col_exist)){
-        res = df[, select_cols[col_exist]]
-        res[, select_cols[!col_exist]] = NA
-    }else{
-        res = df[, select_cols]
-    }
-    res$Project = project
-    res %>% select(Project, select_cols) -> res
-    TCGA_Clinical = bind_rows(TCGA_Clinical, res)
+for (i in 1:length(project_code)) {
+  clinical <- names(Clinical_List)[i]
+  project <- project_code[i]
+  df <- Clinical_List[[clinical]]
+  col_exist <- select_cols %in% colnames(df)
+  res <- tibble()
+  if (!all(col_exist)) {
+    res <- df[, select_cols[col_exist]]
+    res[, select_cols[!col_exist]] <- NA
+  } else {
+    res <- df[, select_cols]
+  }
+  res$Project <- project
+  res %>% select(Project, select_cols) -> res
+  TCGA_Clinical <- bind_rows(TCGA_Clinical, res)
 }
 
 rm(res, df, i, clinical, project, col_exist) # remove temp variables
@@ -224,14 +230,15 @@ rm(res, df, i, clinical, project, col_exist) # remove temp variables
 View the clinical data, check variables.
 
 ```{r view_pan_cli, warning=FALSE}
-DT::datatable(TCGA_Clinical, 
-              options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE)
+DT::datatable(TCGA_Clinical,
+  options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE
+)
 ```
 
 All unit are same in days, remove two column with redundant information.
 
 ```{r}
-TCGA_Clinical = TCGA_Clinical %>% select(-c(OS.unit, RFS.unit))
+TCGA_Clinical <- TCGA_Clinical %>% select(-c(OS.unit, RFS.unit))
 ```
 
 
@@ -239,32 +246,39 @@ Continue to tidy clinical datasets: rename variables, filter 14 samples with unu
 
 ```{r, eval=FALSE}
 # create a new tidy dataframe
-TCGA_Clinical.tidy = TCGA_Clinical %>%
-    rename(Age = age_at_initial_pathologic_diagnosis, Gender = gender, 
-                         Smoking_history = tobacco_smoking_history,
-                         Smoking_indicator = tobacco_smoking_history_indicator,
-                         Tumor_Sample_Barcode = sampleID) %>% 
-    filter(sample_type %in% c("Solid Tissue Normal", "Primary Tumor", "Metastatic", "Recurrent Tumor",
-                              "Primary Blood Derived Cancer - Peripheral Blood")) %>% # Additional - New Primary, Additional Metastatic, FFPE Scrolls total 14 sample removed
-    mutate(Gender = case_when(
-        Gender == "FEMALE" ~ "Female",
-        Gender == "MALE"   ~ "Male",
-        TRUE               ~ NA_character_
-    ), Tumor_stage = case_when(
-        pathologic_stage == "Stage 0" ~ "0",
-        pathologic_stage %in% c("Stage I", "Stage IA", "Stage IB") ~ "I",
-        pathologic_stage %in% c("Stage II", "Stage IIA", "Stage IIB", "Stage IIC") ~ "II",
-        pathologic_stage %in% c("Stage IIIA", "Stage IIIB", "Stage IIIC") ~ "III",
-        pathologic_stage %in% c("Stage IV", "Stage IVA", "Stage IVB", "Stage IVC") ~ "IV",
-        pathologic_stage == "Stage X" ~ "X",
-        TRUE ~ NA_character_)) %>% 
-    mutate(Gender = factor(Gender, levels = c("Male", "Female")), 
-           Tumor_stage = factor(Tumor_stage, levels = c("0", "I", "II", "III", "IV", "X"))) 
+TCGA_Clinical.tidy <- TCGA_Clinical %>%
+  rename(
+    Age = age_at_initial_pathologic_diagnosis, Gender = gender,
+    Smoking_history = tobacco_smoking_history,
+    Smoking_indicator = tobacco_smoking_history_indicator,
+    Tumor_Sample_Barcode = sampleID
+  ) %>%
+  filter(sample_type %in% c(
+    "Solid Tissue Normal", "Primary Tumor", "Metastatic", "Recurrent Tumor",
+    "Primary Blood Derived Cancer - Peripheral Blood"
+  )) %>% # Additional - New Primary, Additional Metastatic, FFPE Scrolls total 14 sample removed
+  mutate(Gender = case_when(
+    Gender == "FEMALE" ~ "Female",
+    Gender == "MALE" ~ "Male",
+    TRUE ~ NA_character_
+  ), Tumor_stage = case_when(
+    pathologic_stage == "Stage 0" ~ "0",
+    pathologic_stage %in% c("Stage I", "Stage IA", "Stage IB") ~ "I",
+    pathologic_stage %in% c("Stage II", "Stage IIA", "Stage IIB", "Stage IIC") ~ "II",
+    pathologic_stage %in% c("Stage IIIA", "Stage IIIB", "Stage IIIC") ~ "III",
+    pathologic_stage %in% c("Stage IV", "Stage IVA", "Stage IVB", "Stage IVC") ~ "IV",
+    pathologic_stage == "Stage X" ~ "X",
+    TRUE ~ NA_character_
+  )) %>%
+  mutate(
+    Gender = factor(Gender, levels = c("Male", "Female")),
+    Tumor_stage = factor(Tumor_stage, levels = c("0", "I", "II", "III", "IV", "X"))
+  )
 
-if(!file.exists("results/TCGA_tidy_Clinical.RData")){
-    dir.create("results", showWarnings = FALSE)
-    save(TCGA_Clinical.tidy, file = "results/TCGA_tidy_Clinical.RData")
-}   
+if (!file.exists("results/TCGA_tidy_Clinical.RData")) {
+  dir.create("results", showWarnings = FALSE)
+  save(TCGA_Clinical.tidy, file = "results/TCGA_tidy_Clinical.RData")
+}
 ```
 
 ### Clean RNASeq datasets
@@ -272,23 +286,23 @@ if(!file.exists("results/TCGA_tidy_Clinical.RData")){
 Now, we read TCGA pan-cancer RNASeq datasets and clean them.
 
 ```{r clean_pan_rnaseq, eval=FALSE}
-dir(paste0(TCGA_DIR,"/RNAseq_Pancan")) -> RNAseq_filelist.Pancan
-RNAseq_filelist.Pancan[rowSums(sapply(paste0("TCGA.",project_code,".sampleMap"), function(x) grepl(x, RNAseq_filelist.Pancan)))>0] -> RNAseq_filelist.Pancan2
+dir(paste0(TCGA_DIR, "/RNAseq_Pancan")) -> RNAseq_filelist.Pancan
+RNAseq_filelist.Pancan[rowSums(sapply(paste0("TCGA.", project_code, ".sampleMap"), function(x) grepl(x, RNAseq_filelist.Pancan))) > 0] -> RNAseq_filelist.Pancan2
 
-RNASeqDIR.pancan = paste0(TCGA_DIR,"/RNAseq_Pancan")
-RNASeq_List.pancan = XenaPrepare(paste0(RNASeqDIR.pancan,"/",RNAseq_filelist.Pancan2))
+RNASeqDIR.pancan <- paste0(TCGA_DIR, "/RNAseq_Pancan")
+RNASeq_List.pancan <- XenaPrepare(paste0(RNASeqDIR.pancan, "/", RNAseq_filelist.Pancan2))
 names(RNASeq_List.pancan)
-sapply(RNASeq_List.pancan, function(x)nrow(x))
+sapply(RNASeq_List.pancan, function(x) nrow(x))
 
-names(RNASeq_List.pancan) = sub("TCGA\\.(.*)\\.sampleMap.*", "\\1", names(RNASeq_List.pancan))
+names(RNASeq_List.pancan) <- sub("TCGA\\.(.*)\\.sampleMap.*", "\\1", names(RNASeq_List.pancan))
 
-RNASeq_pancan = purrr::reduce(RNASeq_List.pancan, full_join)
-if(!file.exists("results/TCGA_RNASeq_PanCancer.RData")){
-    save(RNASeq_pancan, file = "results/TCGA_RNASeq_PanCancer.RData")
+RNASeq_pancan <- purrr::reduce(RNASeq_List.pancan, full_join)
+if (!file.exists("results/TCGA_RNASeq_PanCancer.RData")) {
+  save(RNASeq_pancan, file = "results/TCGA_RNASeq_PanCancer.RData")
 }
 
 
-#class(RNASeq_pancan)
+# class(RNASeq_pancan)
 rm(RNASeq_List.pancan)
 ```
 
@@ -299,15 +313,19 @@ The result object `RNASeq_pancan` is very huge, it needs about 1.5GB space to st
 Marker genes for immune cell types were obtained from [Senbabaoglu, Y. et al](https://www.ncbi.nlm.nih.gov/pubmed/27855702), selection of genes involved in processing and presentation of antigen (APM) was also inspired by this paper and finally 18 genes were selected based on [literature review of APM](https://academic.oup.com/jnci/article-lookup/doi/10.1093/jnci/djt184) and some facts that mutations or deletions affecting genes encoding APM (HLA, beta2-microglobulin, TAP1/2 etc.) may lead to __reduced presentation of neoantigens__ by a cancer cell.
 
 ```{r immune_genes, message=FALSE}
-APM_genes = read_csv("../data/APM.csv", skip = 1)
+APM_genes <- read_csv("../data/APM.csv", skip = 1)
 
-immune_cellType = read_csv("../data/Immune_Cell_type_List.csv", skip=1)
-immune_cellType = immune_cellType %>% filter(inRNAseq == "YES")
+immune_cellType <- read_csv("../data/Immune_Cell_type_List.csv", skip = 1)
+immune_cellType <- immune_cellType %>% filter(inRNAseq == "YES")
 
 # merge two gene list
-merged_geneList = bind_rows(immune_cellType,
-          tibble(Cell_type="APM", Symbol=APM_genes$Gene_Name,
-                                 Name = APM_genes$Protein_Name, inRNAseq = "YES")) 
+merged_geneList <- bind_rows(
+  immune_cellType,
+  tibble(
+    Cell_type = "APM", Symbol = APM_genes$Gene_Name,
+    Name = APM_genes$Protein_Name, inRNAseq = "YES"
+  )
+)
 
 # save data
 if (!file.exists("results/merged_geneList.RData")) {
@@ -318,15 +336,16 @@ if (!file.exists("results/merged_geneList.RData")) {
 View gene list.
 
 ```{r view_merged_genelist}
-DT::datatable(merged_geneList, 
-              options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE)
+DT::datatable(merged_geneList,
+  options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE
+)
 ```
 
 
 Remove all variables.
 
 ```{r}
-rm(list=ls())
+rm(list = ls())
 ```
 
 
@@ -355,45 +374,48 @@ load("results/TCGA_RNASeq_PanCancer.RData")
 
 applyGSVA(merged_geneList, group_col = "Cell_type", gene_col = "Symbol", ExprMatList = list(RNASeq_pancan), method = "gsva") -> res_pancan.GSVA
 
-save(res_pancan.GSVA, file="results/res_pancan.GSVA.RData")
+save(res_pancan.GSVA, file = "results/res_pancan.GSVA.RData")
 ```
 
 Calculate TIS and IIS.
 
 ```{r calc_TIS_IIS}
 if (!exists("res_pancan.GSVA")) {
-    load("results/res_pancan.GSVA.RData")
+  load("results/res_pancan.GSVA.RData")
 }
 
-res_pancan.GSVA = res_pancan.GSVA[[1]]
+res_pancan.GSVA <- res_pancan.GSVA[[1]]
 
-calc_TisIIs = function(df){
-    df %>% 
-        mutate(TIS = (`CD8 T cells` + `T helper cells` + `T cells` + `Tcm cells` + `Tem cells` + `Th1 cells` + `Th2 cells` + `Th17 cells` + `Treg cells`) / 9,
-               IIS = (`CD8 T cells` + `T helper cells` + `T cells` + `Tcm cells` + `Tem cells` + `Th1 cells` + `Th2 cells` + `Th17 cells` + `Treg cells` + aDC + `B cells` + `Cytotoxic cells` + DC + Eosinophils + iDC + Macrophages + `Mast cells` + Neutrophils + `NK CD56bright cells` + `NK CD56dim cells` + `NK cells` + pDC) / 22) -> df
+calc_TisIIs <- function(df) {
+  df %>%
+    mutate(
+      TIS = (`CD8 T cells` + `T helper cells` + `T cells` + `Tcm cells` + `Tem cells` + `Th1 cells` + `Th2 cells` + `Th17 cells` + `Treg cells`) / 9,
+      IIS = (`CD8 T cells` + `T helper cells` + `T cells` + `Tcm cells` + `Tem cells` + `Th1 cells` + `Th2 cells` + `Th17 cells` + `Treg cells` + aDC + `B cells` + `Cytotoxic cells` + DC + Eosinophils + iDC + Macrophages + `Mast cells` + Neutrophils + `NK CD56bright cells` + `NK CD56dim cells` + `NK cells` + pDC) / 22
+    ) -> df
 }
 
 # tidy res_pancan.GSVA
-res_pancan.GSVA = rownames_to_column(res_pancan.GSVA, var = "tsb")
+res_pancan.GSVA <- rownames_to_column(res_pancan.GSVA, var = "tsb")
 
 # calculate TIS and IIS
-gsva.pac = calc_TisIIs(res_pancan.GSVA)
+gsva.pac <- calc_TisIIs(res_pancan.GSVA)
 ```
 
 
 View this table (head 100 rows).
 
 ```{r view_GSVA}
-DT::datatable(head(gsva.pac, 100), 
-              options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE)
+DT::datatable(head(gsva.pac, 100),
+  options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE
+)
 ```
 
 
 save GSVA scores of APM and immune cell types, TIS and IIS.
 
 ```{r}
-if (!file.exists("results/gsva_tcga_pancan.RData")){
-    save(gsva.pac, file ="results/gsva_tcga_pancan.RData")
+if (!file.exists("results/gsva_tcga_pancan.RData")) {
+  save(gsva.pac, file = "results/gsva_tcga_pancan.RData")
 }
 
 rm(list = ls())
@@ -406,19 +428,21 @@ Here we update a new analysis about calculating APS based on 7 APM gene signatur
 ```{r, eval=FALSE}
 source("../code/functions.R")
 load("results/merged_geneList.RData")
-APS7.genes = c("B2M", "HLA-A", "HLA-B", "HLA-C",
-               "TAP1", "TAP2", "TAPBP")
+APS7.genes <- c(
+  "B2M", "HLA-A", "HLA-B", "HLA-C",
+  "TAP1", "TAP2", "TAPBP"
+)
 
-APS7 = merged_geneList %>% 
+APS7 <- merged_geneList %>%
   dplyr::filter(Symbol %in% APS7.genes)
 ```
 
 ```{r, eval=FALSE}
 load("results/TCGA_RNASeq_PanCancer.RData")
 
-res_APS7.GSVA = applyGSVA(APS7, group_col = "Cell_type", gene_col = "Symbol", ExprMatList = list(RNASeq_pancan), method = "gsva")
+res_APS7.GSVA <- applyGSVA(APS7, group_col = "Cell_type", gene_col = "Symbol", ExprMatList = list(RNASeq_pancan), method = "gsva")
 
-res_APS7.GSVA = res_APS7.GSVA[[1]]
+res_APS7.GSVA <- res_APS7.GSVA[[1]]
 
 save(res_APS7.GSVA, file = "results/res_APS7.GSVA.RData")
 ```
@@ -432,19 +456,27 @@ TIMER is a method that can accurately resolve relative fractions of diverse cell
 Load TIMER result and clean it for use.
 
 ```{r clean_timer_result, message=FALSE}
-timer = read_tsv("../data/TCGA_sixcell_population_TIMER.txt")
+timer <- read_tsv("../data/TCGA_sixcell_population_TIMER.txt")
 timer$sample %>% length()
-timer$sample %>% unique() %>% length()
-timer$sample %>% substr(start=1, stop=12) %>% unique() %>% length()
+timer$sample %>%
+  unique() %>%
+  length()
+timer$sample %>%
+  substr(start = 1, stop = 12) %>%
+  unique() %>%
+  length()
 
 # keep only tumor samples
-timer %>% filter(as.numeric(substr(sample, 14, 15)) %in% seq(1,9)) %>% 
-    mutate(sample = substr(sample, 1, 15)) -> timer_clean
-timer_clean %>% arrange(desc(T_cell.CD8)) %>% distinct(sample, .keep_all = TRUE) -> timer_clean
+timer %>%
+  filter(as.numeric(substr(sample, 14, 15)) %in% seq(1, 9)) %>%
+  mutate(sample = substr(sample, 1, 15)) -> timer_clean
+timer_clean %>%
+  arrange(desc(T_cell.CD8)) %>%
+  distinct(sample, .keep_all = TRUE) -> timer_clean
 
 # save
-if (!file.exists("results/timer.RData")){
-    save(timer_clean, file = "results/timer.RData")
+if (!file.exists("results/timer.RData")) {
+  save(timer_clean, file = "results/timer.RData")
 }
 
 rm(list = ls())
@@ -467,33 +499,35 @@ Load mutations of TCGA studies and merge them into one.
 require(TCGAmutations)
 
 
-study_list = tcga_available()$Study_Abbreviation[-34]
-cohorts = system.file('extdata', 'cohorts.txt', package = 'TCGAmutations')
-cohorts = data.table::fread(input = cohorts)
+study_list <- tcga_available()$Study_Abbreviation[-34]
+cohorts <- system.file("extdata", "cohorts.txt", package = "TCGAmutations")
+cohorts <- data.table::fread(input = cohorts)
 
 # calculate TMB
-lapply(study_list, function(study){
-    require(maftools)
-        TCGAmutations::tcga_load(study)
-        maf = eval(as.symbol(tolower(paste0("TCGA_", study, "_mc3"))))
-        maf.silent <- maf@maf.silent
-        sample.silent <- maf.silent[,.N, .(Tumor_Sample_Barcode)]
-        sample.nonsilent <- getSampleSummary(maf)
-        res <- dplyr::full_join(sample.silent, sample.nonsilent, by="Tumor_Sample_Barcode")
-        res = res %>% dplyr::mutate(TMB_Total=ifelse(!is.na(N), N+total, total), 
-                              TMB_NonsynSNP=Missense_Mutation+Nonsense_Mutation,
-                              TMB_NonsynVariants=total) %>% 
-            dplyr::select(TMB_Total:TMB_NonsynVariants, Tumor_Sample_Barcode)   
-        res
-    
+lapply(study_list, function(study) {
+  require(maftools)
+  TCGAmutations::tcga_load(study)
+  maf <- eval(as.symbol(tolower(paste0("TCGA_", study, "_mc3"))))
+  maf.silent <- maf@maf.silent
+  sample.silent <- maf.silent[, .N, .(Tumor_Sample_Barcode)]
+  sample.nonsilent <- getSampleSummary(maf)
+  res <- dplyr::full_join(sample.silent, sample.nonsilent, by = "Tumor_Sample_Barcode")
+  res <- res %>%
+    dplyr::mutate(
+      TMB_Total = ifelse(!is.na(N), N + total, total),
+      TMB_NonsynSNP = Missense_Mutation + Nonsense_Mutation,
+      TMB_NonsynVariants = total
+    ) %>%
+    dplyr::select(TMB_Total:TMB_NonsynVariants, Tumor_Sample_Barcode)
+  res
 }) -> tcga_tmb
-names(tcga_tmb) = study_list
+names(tcga_tmb) <- study_list
 
 # 33 study available, merge them
-TCGA_TMB = purrr::reduce(tcga_tmb, bind_rows)
+TCGA_TMB <- purrr::reduce(tcga_tmb, bind_rows)
 
-if (!file.exists("results/TCGA_TMB.RData")){
-    save(TCGA_TMB, file = "results/TCGA_TMB.RData")
+if (!file.exists("results/TCGA_TMB.RData")) {
+  save(TCGA_TMB, file = "results/TCGA_TMB.RData")
 }
 
 # rm(list = grep("tcga_*", ls(), value = TRUE))
@@ -515,17 +549,17 @@ We also tried our best to collect gene expression data to extend APM score (APS)
 library(GEOquery)
 library(tidyverse)
 
-if(!dir.exists("../data/GEOdata")){
-    dir.create("../data/GEOdata")
+if (!dir.exists("../data/GEOdata")) {
+  dir.create("../data/GEOdata")
 }
 
-geo_dir = "../data/GEOdata"
+geo_dir <- "../data/GEOdata"
 
-GSE_39612 = getGEO("GSE39612", GSEMatrix = TRUE, AnnotGPL = TRUE, destdir = geo_dir)
-GSE_22396 = getGEO("GSE22396", GSEMatrix = TRUE, AnnotGPL = TRUE, destdir = geo_dir)
-GSE_36150 = getGEO("GSE36150", GSEMatrix = TRUE, AnnotGPL = TRUE, destdir = geo_dir)
-GSE_50451 = getGEO("GSE50451", GSEMatrix = TRUE, AnnotGPL = TRUE, destdir = geo_dir)
-GSE_99316 = getGEO("GSE99316", GSEMatrix = TRUE, AnnotGPL = TRUE, destdir = geo_dir)
+GSE_39612 <- getGEO("GSE39612", GSEMatrix = TRUE, AnnotGPL = TRUE, destdir = geo_dir)
+GSE_22396 <- getGEO("GSE22396", GSEMatrix = TRUE, AnnotGPL = TRUE, destdir = geo_dir)
+GSE_36150 <- getGEO("GSE36150", GSEMatrix = TRUE, AnnotGPL = TRUE, destdir = geo_dir)
+GSE_50451 <- getGEO("GSE50451", GSEMatrix = TRUE, AnnotGPL = TRUE, destdir = geo_dir)
+GSE_99316 <- getGEO("GSE99316", GSEMatrix = TRUE, AnnotGPL = TRUE, destdir = geo_dir)
 
 exprs(GSE_22396$GSE22396_series_matrix.txt.gz) %>% nrow()
 pData(GSE_22396$GSE22396_series_matrix.txt.gz)
@@ -533,38 +567,38 @@ fData(GSE_22396$GSE22396_series_matrix.txt.gz) %>% nrow()
 
 #---------------------------------------------------------
 # process GSE_39612
-gset1 = GSE_39612$GSE39612_series_matrix.txt.gz
+gset1 <- GSE_39612$GSE39612_series_matrix.txt.gz
 View(pData(gset1))
 
-gset1_mcc = gset1[, grep("MCC", gset1$title)]
-gset1_scc = gset1[, grep("SCC", gset1$title)]
+gset1_mcc <- gset1[, grep("MCC", gset1$title)]
+gset1_scc <- gset1[, grep("SCC", gset1$title)]
 
 rm(gset1)
 # process GSE_22396
-gset2 = GSE_22396$GSE22396_series_matrix.txt.gz
+gset2 <- GSE_22396$GSE22396_series_matrix.txt.gz
 View(pData(gset2))
 
 # process GSE_36150
-gset3 = GSE_36150$GSE36150_series_matrix.txt.gz
+gset3 <- GSE_36150$GSE36150_series_matrix.txt.gz
 View(pData(gset3))
 
 # process GSE_50451
-gset4_1 = GSE_50451$`GSE50451-GPL570_series_matrix.txt.gz`
-gset4_2 = GSE_50451$`GSE50451-GPL571_series_matrix.txt.gz`
+gset4_1 <- GSE_50451$`GSE50451-GPL570_series_matrix.txt.gz`
+gset4_2 <- GSE_50451$`GSE50451-GPL571_series_matrix.txt.gz`
 
 View(pData(gset4_1))
 View(pData(gset4_2))
-#gset4_1 all cell_lines, not use it
+# gset4_1 all cell_lines, not use it
 #
-gset4_mcc = gset4_2[, grep("MCC tumor", gset4_2$source_name_ch1)]
-gset4_sclc = gset4_2[, grep("SCLC tumor", gset4_2$source_name_ch1)]
+gset4_mcc <- gset4_2[, grep("MCC tumor", gset4_2$source_name_ch1)]
+gset4_sclc <- gset4_2[, grep("SCLC tumor", gset4_2$source_name_ch1)]
 
 rm(gset4_1, gset4_2)
 # process GSE_99316
-gset5_1 = GSE_99316$`GSE99316-GPL10999_series_matrix.txt.gz`
-gset5_2 = GSE_99316$`GSE99316-GPL570_series_matrix.txt.gz`
-gset5_3 = GSE_99316$`GSE99316-GPL96_series_matrix.txt.gz`
-gset5_4 = GSE_99316$`GSE99316-GPL97_series_matrix.txt.gz`
+gset5_1 <- GSE_99316$`GSE99316-GPL10999_series_matrix.txt.gz`
+gset5_2 <- GSE_99316$`GSE99316-GPL570_series_matrix.txt.gz`
+gset5_3 <- GSE_99316$`GSE99316-GPL96_series_matrix.txt.gz`
+gset5_4 <- GSE_99316$`GSE99316-GPL97_series_matrix.txt.gz`
 
 View(pData(gset5_1))
 View(pData(gset5_2))
@@ -572,133 +606,142 @@ View(pData(gset5_3))
 View(pData(gset5_4))
 
 # only gset5_2 has data we need
-gset5_sclc = gset5_2[, grep("SCLC", gset5_2$title)]
+gset5_sclc <- gset5_2[, grep("SCLC", gset5_2$title)]
 
 rm(gset5_1, gset5_2, gset5_3, gset5_4)
 
 #-------------------------------------------------
 # Now summary data
-merkel_data = list(gset1_mcc, gset2, gset3, gset4_mcc)
-scc_data = list(gset1_scc)
-sclc_data = list(gset4_sclc, gset5_sclc)
+merkel_data <- list(gset1_mcc, gset2, gset3, gset4_mcc)
+scc_data <- list(gset1_scc)
+sclc_data <- list(gset4_sclc, gset5_sclc)
 
 #--------------------
 # apply GSVA method
 load("results/merged_geneList.RData")
 
 # transform exprset to tibble
-genTibbleList = function(gsetList){
-    stopifnot(is.list(gsetList), require("Biobase"), require("tidyverse"), class(gsetList[[1]]) == "ExpressionSet")
-    
-    res = list()
-    i = 1
-    for (gset in gsetList){
-        eset = exprs(gset)
-        # find gene symbol column
-        fdata = fData(gset)
-        symbol_col = grep("^gene.?symbol", colnames(fdata) , value = TRUE, ignore.case = TRUE)
-        
-        if(length(symbol_col) == 0) {
-            message("Find nothing about gene symbol in fData, try search it...")
-            symbol_col2 = grep("^gene_assignment", colnames(fdata) , value = TRUE, ignore.case = TRUE)
-            message("find ", symbol_col2)
-            
-            message("processing...")
-            strlist = strsplit(fdata[, symbol_col2], split = " // ")
-            rowname = sapply(strlist, function(x) trimws(x[2]))
-            rownames(eset) = rowname
-            
-           # stop("Something wrong with your fData of input List, please check it")
-        }
-        if(length(symbol_col) > 1) {
-            warning("Multiple columns of fData matach gene symbol, only use the first one")
-            symbol_col = symbol_col[1]
-            rownames(eset) = fdata[, symbol_col]
-        }else{
-            rownames(eset) = fdata[, symbol_col]
-        }
-        
-        
-        
-        # remove duplicate rows, keep the one with biggest mean value
-        eset %>% 
-            as.data.frame() %>% 
-            rownames_to_column() %>% 
-            mutate(mean_expr = rowMeans(.[, -1], na.rm = TRUE), 
-                   rowname = sub("^(\\w+)\\..*", "\\1", rowname)) %>% 
-            arrange(rowname, desc(mean_expr)) %>%
-                distinct(rowname, .keep_all = TRUE) %>% 
-            select(-mean_expr) %>% 
-            as.tibble() -> res[[i]]
-            
-            
-        i = i + 1    
+genTibbleList <- function(gsetList) {
+  stopifnot(is.list(gsetList), require("Biobase"), require("tidyverse"), class(gsetList[[1]]) == "ExpressionSet")
+
+  res <- list()
+  i <- 1
+  for (gset in gsetList) {
+    eset <- exprs(gset)
+    # find gene symbol column
+    fdata <- fData(gset)
+    symbol_col <- grep("^gene.?symbol", colnames(fdata), value = TRUE, ignore.case = TRUE)
+
+    if (length(symbol_col) == 0) {
+      message("Find nothing about gene symbol in fData, try search it...")
+      symbol_col2 <- grep("^gene_assignment", colnames(fdata), value = TRUE, ignore.case = TRUE)
+      message("find ", symbol_col2)
+
+      message("processing...")
+      strlist <- strsplit(fdata[, symbol_col2], split = " // ")
+      rowname <- sapply(strlist, function(x) trimws(x[2]))
+      rownames(eset) <- rowname
+
+      # stop("Something wrong with your fData of input List, please check it")
     }
-    return(res)
+    if (length(symbol_col) > 1) {
+      warning("Multiple columns of fData matach gene symbol, only use the first one")
+      symbol_col <- symbol_col[1]
+      rownames(eset) <- fdata[, symbol_col]
+    } else {
+      rownames(eset) <- fdata[, symbol_col]
+    }
+
+
+
+    # remove duplicate rows, keep the one with biggest mean value
+    eset %>%
+      as.data.frame() %>%
+      rownames_to_column() %>%
+      mutate(
+        mean_expr = rowMeans(.[, -1], na.rm = TRUE),
+        rowname = sub("^(\\w+)\\..*", "\\1", rowname)
+      ) %>%
+      arrange(rowname, desc(mean_expr)) %>%
+      distinct(rowname, .keep_all = TRUE) %>%
+      select(-mean_expr) %>%
+      as.tibble() -> res[[i]]
+
+
+    i <- i + 1
+  }
+  return(res)
 }
 
 # apply GSVA method
-applyGSVA = function(group_df, group_col, gene_col, ExprMatList, 
-                     method=c("ssgsea", "gsva", "zscore", "plage"),
-                     kcdf=c("Gaussian", "Poisson")){
-    stopifnot(inherits(group_df, "tbl_df") &
-                  inherits(group_col, "character") &
-                  inherits(gene_col, "character") &
-                  inherits(ExprMatList, "list"))
-    if(!require(GSVA)){
-        stop("GSVA package need to be installed!")
+applyGSVA <- function(group_df, group_col, gene_col, ExprMatList,
+                      method = c("ssgsea", "gsva", "zscore", "plage"),
+                      kcdf = c("Gaussian", "Poisson")) {
+  stopifnot(inherits(group_df, "tbl_df") &
+    inherits(group_col, "character") &
+    inherits(gene_col, "character") &
+    inherits(ExprMatList, "list"))
+  if (!require(GSVA)) {
+    stop("GSVA package need to be installed!")
+  }
+
+  method <- match.arg(method)
+  kcdf <- match.arg(kcdf)
+
+  require(dplyr)
+
+  i <- 1
+  resList <- list()
+  groups <- names(table(group_df[, group_col]))
+  gset_list <- lapply(groups, function(x) {
+    group_df[group_df[, group_col] == x, gene_col] %>%
+      unlist() %>%
+      as.character()
+  })
+
+  names(gset_list) <- groups
+
+  for (expr_mat in ExprMatList) {
+    if (!inherits(expr_mat, "tbl_df")) {
+      stop("element of ExprMatList should be tibble!")
     }
-    
-    method = match.arg(method)
-    kcdf = match.arg(kcdf)
-    
-    require(dplyr)
-    
-    i = 1
-    resList = list()
-    groups = names(table(group_df[, group_col]))
-    gset_list = lapply(groups, function(x){
-        group_df[group_df[,group_col] == x, gene_col] %>% unlist %>% as.character()
-    })
-    
-    names(gset_list) = groups
-    
-    for(expr_mat in ExprMatList){
-        if(!inherits(expr_mat, "tbl_df")){
-            stop("element of ExprMatList should be tibble!")
-        }
-        expr_mat = as.data.frame(expr_mat)
-        rownames(expr_mat) = expr_mat[, 1]
-        expr_mat = expr_mat[, -1] %>% as.matrix()
-        
-        res = gsva(expr=expr_mat, gset.idx.list=gset_list, method = method, kcdf = kcdf)
-        res = as.data.frame(t(res))
-        colnames(res)[1] = 'tsb'
-        resList[[i]] = res
-        names(resList)[i] = names(ExprMatList)[i]
-        i = i + 1
-    }   
-    return(resList)
+    expr_mat <- as.data.frame(expr_mat)
+    rownames(expr_mat) <- expr_mat[, 1]
+    expr_mat <- expr_mat[, -1] %>% as.matrix()
+
+    res <- gsva(expr = expr_mat, gset.idx.list = gset_list, method = method, kcdf = kcdf)
+    res <- as.data.frame(t(res))
+    colnames(res)[1] <- "tsb"
+    resList[[i]] <- res
+    names(resList)[i] <- names(ExprMatList)[i]
+    i <- i + 1
+  }
+  return(resList)
 }
 
 
 ## scc
-tibble.scc = genTibbleList(scc_data)
-gsva.scc = applyGSVA(merged_geneList, group_col = "Cell_type", 
-                     gene_col = "Symbol", ExprMatList = tibble.scc, method = "gsva")
+tibble.scc <- genTibbleList(scc_data)
+gsva.scc <- applyGSVA(merged_geneList,
+  group_col = "Cell_type",
+  gene_col = "Symbol", ExprMatList = tibble.scc, method = "gsva"
+)
 ## sclc
-tibble.sclc = genTibbleList(sclc_data)
-gsva.sclc = applyGSVA(merged_geneList, group_col = "Cell_type", 
-                      gene_col = "Symbol", ExprMatList = tibble.sclc, method = "gsva")
+tibble.sclc <- genTibbleList(sclc_data)
+gsva.sclc <- applyGSVA(merged_geneList,
+  group_col = "Cell_type",
+  gene_col = "Symbol", ExprMatList = tibble.sclc, method = "gsva"
+)
 
 ## merkel1
-tibble.merkel = genTibbleList(merkel_data)
+tibble.merkel <- genTibbleList(merkel_data)
 
-gsva.merkel = applyGSVA(merged_geneList, group_col = "Cell_type",
-                                         gene_col = "Symbol", ExprMatList = tibble.merkel, method = "gsva")
+gsva.merkel <- applyGSVA(merged_geneList,
+  group_col = "Cell_type",
+  gene_col = "Symbol", ExprMatList = tibble.merkel, method = "gsva"
+)
 
 save(gsva.scc, gsva.sclc, gsva.merkel, file = "results/Add_gsva_scc_sclc_merkel.RData")
-
 ```
 
 

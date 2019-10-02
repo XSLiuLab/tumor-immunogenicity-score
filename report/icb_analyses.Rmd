@@ -11,10 +11,12 @@ output:
 ---
 
 ```{r include=FALSE}
-options(max.print="75")
-knitr::opts_chunk$set(echo = TRUE, comment = "#>", eval = TRUE, collapse = TRUE, cache = FALSE,
-                      dpi = 300)
-knitr::opts_knit$set(width=75)
+options(max.print = "75")
+knitr::opts_chunk$set(
+  echo = TRUE, comment = "#>", eval = TRUE, collapse = TRUE, cache = FALSE,
+  dpi = 300
+)
+knitr::opts_knit$set(width = 75)
 ```
 
 This part will clearly describe how to analyze APS, TMB and TIGS in immunotherapy datasets, including cancer type level and individual level. Raw data used for these analyses have been preprocessed, detail please read preprocessing part or TCGA pan-cancer analyses of this analysis report.
@@ -31,63 +33,61 @@ In code implementation, we firstly combine APM score, TIGS score from TCGA studi
 
 ```{r}
 library(tidyverse)
-## retrieve APM score 
+## retrieve APM score
 load("results/Add_gsva_scc_sclc_merkel.RData")
 
-buildDF = function(x, tumor_type = NULL){
-    stopifnot(!is.null(tumor_type))
-    res = x %>% 
-      dplyr::mutate(Project = tumor_type) %>% 
-      as.data.frame()
-    res
+buildDF <- function(x, tumor_type = NULL) {
+  stopifnot(!is.null(tumor_type))
+  res <- x %>%
+    dplyr::mutate(Project = tumor_type) %>%
+    as.data.frame()
+  res
 }
 
-lapply(gsva.merkel, FUN = buildDF, tumor_type = "Merkel Cell Carcinoma") %>% 
+lapply(gsva.merkel, FUN = buildDF, tumor_type = "Merkel Cell Carcinoma") %>%
   purrr::reduce(dplyr::bind_rows) -> df_merkel
-lapply(gsva.scc, FUN = buildDF, tumor_type = "Cutaneous Squamous Cell Carcinoma") %>% 
+lapply(gsva.scc, FUN = buildDF, tumor_type = "Cutaneous Squamous Cell Carcinoma") %>%
   purrr::reduce(dplyr::bind_rows) -> df_scc
-lapply(gsva.sclc, FUN = buildDF, tumor_type = "Small-Cell Lung Cancer") %>% 
+lapply(gsva.sclc, FUN = buildDF, tumor_type = "Small-Cell Lung Cancer") %>%
   purrr::reduce(dplyr::bind_rows) -> df_sclc
-
 ```
 
 ```{r, include=FALSE}
-df_merkel = df_merkel %>% rename(aDC = tsb)
-df_scc = df_scc %>% rename(aDC = tsb)
-df_sclc = df_sclc %>% rename(aDC = tsb)
+df_merkel <- df_merkel %>% rename(aDC = tsb)
+df_scc <- df_scc %>% rename(aDC = tsb)
+df_sclc <- df_sclc %>% rename(aDC = tsb)
 ```
 
 ```{r, include=FALSE}
 source("../code/functions.R")
-df_merkel = calc_TisIIs(df_merkel)
-df_scc = calc_TisIIs(df_scc)
-df_sclc = calc_TisIIs(df_sclc)
+df_merkel <- calc_TisIIs(df_merkel)
+df_scc <- calc_TisIIs(df_scc)
+df_sclc <- calc_TisIIs(df_sclc)
 
-df_merkel = df_merkel %>% dplyr:::select(Project, APM, TIS, IIS)
-df_scc = df_scc %>% dplyr:::select(Project, APM, TIS, IIS)
-df_sclc = df_sclc %>% dplyr:::select(Project, APM, TIS, IIS)
+df_merkel <- df_merkel %>% dplyr:::select(Project, APM, TIS, IIS)
+df_scc <- df_scc %>% dplyr:::select(Project, APM, TIS, IIS)
+df_sclc <- df_sclc %>% dplyr:::select(Project, APM, TIS, IIS)
 ```
 
 
 ```{r}
 ## combine datasets
 load("results/TCGA_ALL.RData")
-df_list = list(tcga_all %>% filter(!is.na(APM)), df_merkel, df_scc, df_sclc)
+df_list <- list(tcga_all %>% filter(!is.na(APM)), df_merkel, df_scc, df_sclc)
 purrr::reduce(df_list, bind_rows) -> df_all
 
 if (!file.exists("results/df_all.RData")) {
-    save(df_all, file = "results/df_all.RData")
+  save(df_all, file = "results/df_all.RData")
 }
-
 ```
 
 Using the combined dataset `df_all`, we can normalize APM score to [0, 1] region, then we calculate median APM score for each tumor type.
 
 ```{r}
 df_all %>%
-    mutate(N.APM = (APM - min(APM)) / (max(APM) - min(APM))) %>% 
-    group_by(Project) %>% 
-    summarise(MedianAPM = median(N.APM), NumberOfPatient = n()) -> sm_APM
+  mutate(N.APM = (APM - min(APM)) / (max(APM) - min(APM))) %>%
+  group_by(Project) %>%
+  summarise(MedianAPM = median(N.APM), NumberOfPatient = n()) -> sm_APM
 
 sm_APM
 ```
@@ -102,10 +102,11 @@ We plot ORR against APS, TMB respectively, and fit their relationship with linea
 Load pan-cancer ORR data and show it as a table.
 
 ```{r}
-sm_data = read_csv("../data/summary_data_new_20190411.csv", col_types = cols())
+sm_data <- read_csv("../data/summary_data_new_20190411.csv", col_types = cols())
 
-DT::datatable(sm_data, 
-              options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE)
+DT::datatable(sm_data,
+  options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE
+)
 ```
 
 
@@ -117,11 +118,11 @@ DT::datatable(sm_data,
 Focus on cancer type with APS, fit data with linear model.
 
 ```{r}
-sm_data = sm_data %>% filter(!is.na(Pool_APM))
+sm_data <- sm_data %>% filter(!is.na(Pool_APM))
 
 lm(Pool_ORR ~ Pool_APM, data = sm_data) -> fit1
 
-lm(Pool_ORR ~ log(Pool_TMB), data = sm_data)  -> fit2
+lm(Pool_ORR ~ log(Pool_TMB), data = sm_data) -> fit2
 
 summary(fit1)
 
@@ -138,33 +139,43 @@ Next we plot the linear model.
 require(ggrepel)
 require(scales)
 
-ggplot(sm_data, aes(x=Pool_APM, y=Pool_ORR)) + 
-    geom_point(aes(color=Patients_APM, size=Patients_ORR)) + 
-    geom_smooth(method="lm", se=T)  + 
-    geom_text_repel(aes(label=Cancer_Type), size=3)  +
-    labs(x="Median Normalized APM Score ", y="Objective Response Rate (%)",
-         size="Objective Response Rate\n(no. of patients evaluated)", 
-         color = "APM Score\n(no. of tumor analyzed)") +
-    scale_size_continuous(breaks = c(50, 100, 500, 1000)) +
-    scale_color_gradientn(colours = RColorBrewer::brewer.pal(5, name="OrRd")[-1],
-                          breaks = c(50, 200, 500, 1000)) +
-    theme_bw() 
+ggplot(sm_data, aes(x = Pool_APM, y = Pool_ORR)) +
+  geom_point(aes(color = Patients_APM, size = Patients_ORR)) +
+  geom_smooth(method = "lm", se = T) +
+  geom_text_repel(aes(label = Cancer_Type), size = 3) +
+  labs(
+    x = "Median Normalized APM Score ", y = "Objective Response Rate (%)",
+    size = "Objective Response Rate\n(no. of patients evaluated)",
+    color = "APM Score\n(no. of tumor analyzed)"
+  ) +
+  scale_size_continuous(breaks = c(50, 100, 500, 1000)) +
+  scale_color_gradientn(
+    colours = RColorBrewer::brewer.pal(5, name = "OrRd")[-1],
+    breaks = c(50, 200, 500, 1000)
+  ) +
+  theme_bw()
 
 
-ggplot(sm_data, aes(x=Pool_TMB, y=Pool_ORR)) + 
-    geom_point(aes(color=Patients_TMB, size=Patients_ORR)) + 
-    geom_smooth(method="lm", se=T)  + 
-    geom_text_repel(aes(label=Cancer_Type), size=3)  +
-    labs(x="Median No. of Coding Somatic Mutation per MB", y="Objective Response Rate (%)",
-         size="Objective Response Rate\n(no. of patients evaluated)",
-         color = "Tumor Mutational Burden\n(no. of tumor analyzed)") +
-    scale_x_continuous(trans = log_trans(),
-                       breaks = c(2, 10, 20, 30, 40, 50),
-                       labels = c(2, 10, 20, 30, 40, 50)) +
-    scale_size_continuous(breaks = c(50, 100, 500, 1000)) +
-    scale_color_gradientn(colours = RColorBrewer::brewer.pal(5, name="OrRd")[-1],
-                          breaks = c(100, 1000, 5000, 10000)) +
-    theme_bw() + 
+ggplot(sm_data, aes(x = Pool_TMB, y = Pool_ORR)) +
+  geom_point(aes(color = Patients_TMB, size = Patients_ORR)) +
+  geom_smooth(method = "lm", se = T) +
+  geom_text_repel(aes(label = Cancer_Type), size = 3) +
+  labs(
+    x = "Median No. of Coding Somatic Mutation per MB", y = "Objective Response Rate (%)",
+    size = "Objective Response Rate\n(no. of patients evaluated)",
+    color = "Tumor Mutational Burden\n(no. of tumor analyzed)"
+  ) +
+  scale_x_continuous(
+    trans = log_trans(),
+    breaks = c(2, 10, 20, 30, 40, 50),
+    labels = c(2, 10, 20, 30, 40, 50)
+  ) +
+  scale_size_continuous(breaks = c(50, 100, 500, 1000)) +
+  scale_color_gradientn(
+    colours = RColorBrewer::brewer.pal(5, name = "OrRd")[-1],
+    breaks = c(100, 1000, 5000, 10000)
+  ) +
+  theme_bw() +
   guides(
     color = guide_colorbar(order = 1)
   )
@@ -199,7 +210,7 @@ $$
 Now we construct a linear model by integrate TMB and APM.
 
 ```{r}
-lm(Pool_ORR ~ log(Pool_TMB +1):Pool_APM, data = sm_data)  -> fit3
+lm(Pool_ORR ~ log(Pool_TMB + 1):Pool_APM, data = sm_data) -> fit3
 
 summary(fit3)
 ```
@@ -208,16 +219,18 @@ We observe that 60.1% variance of ORR can be explained by TIGS, this result is i
 
 
 ```{r}
-sm_data$tigs = sm_data$Pool_APM * log(sm_data$Pool_TMB + 1)
+sm_data$tigs <- sm_data$Pool_APM * log(sm_data$Pool_TMB + 1)
 
-ggplot(sm_data, aes(x=tigs, y=Pool_ORR)) + 
-    geom_point(aes(size=Patients_ORR)) + 
-    geom_smooth(method="lm", se=T)  + 
-    geom_text_repel(aes(label=Cancer_Type), size=3)  +
-    labs(x="Tumor Immunogenicity Score ", y="Objective Response Rate (%)",
-         size="Objective Response Rate\n(no. of patients evaluated)") +
-    scale_size_continuous(breaks = c(50, 100, 500, 1000)) +
-    theme_bw() 
+ggplot(sm_data, aes(x = tigs, y = Pool_ORR)) +
+  geom_point(aes(size = Patients_ORR)) +
+  geom_smooth(method = "lm", se = T) +
+  geom_text_repel(aes(label = Cancer_Type), size = 3) +
+  labs(
+    x = "Tumor Immunogenicity Score ", y = "Objective Response Rate (%)",
+    size = "Objective Response Rate\n(no. of patients evaluated)"
+  ) +
+  scale_size_continuous(breaks = c(50, 100, 500, 1000)) +
+  theme_bw()
 ```
 
 
@@ -239,9 +252,9 @@ Now, let's observe the results.
 
 ```{r}
 # Model 1
-lm(Pool_ORR ~ log(Pool_TMB+1):Pool_APM, data = sm_data)  %>% summary() 
+lm(Pool_ORR ~ log(Pool_TMB + 1):Pool_APM, data = sm_data) %>% summary()
 # Model 2
-lm(Pool_ORR ~ log(Pool_TMB+1)*Pool_APM, data = sm_data)  %>% summary() 
+lm(Pool_ORR ~ log(Pool_TMB + 1) * Pool_APM, data = sm_data) %>% summary()
 ```
 
 Model 2 is a little better than model 1, however model 1 is much simpler (all terms of model 1 is included in model 2!).  Following __Occam's razor__, we choose model 1 when compare it with model 2. 
@@ -267,36 +280,35 @@ $$
 Implementation:
 
 ```{r}
-df = sm_data
-df$APS = df$Pool_APM
-df$TMB = df$Pool_TMB * 38 # transform back to whole exome nonsynonymous mutation number
-df$ORR = df$Pool_ORR
+df <- sm_data
+df$APS <- df$Pool_APM
+df$TMB <- df$Pool_TMB * 38 # transform back to whole exome nonsynonymous mutation number
+df$ORR <- df$Pool_ORR
 
-df = dplyr::select(df, APS, TMB, ORR) 
+df <- dplyr::select(df, APS, TMB, ORR)
 
 
-calcTrends = function(df, a){
-    sapply(a, function(x, data){
-        summary(lm(ORR ~ APS : log((TMB/x + 1)), data = df) )$r.squared
-    }, data = df)
+calcTrends <- function(df, a) {
+  sapply(a, function(x, data) {
+    summary(lm(ORR ~ APS:log((TMB / x + 1)), data = df))$r.squared
+  }, data = df)
 }
-
 ```
 
 ```{r}
-a = seq(0.1,10000,0.1)
-res = calcTrends(df, a)
+a <- seq(0.1, 10000, 0.1)
+res <- calcTrends(df, a)
 
-res_df = data.frame(a = a, Rsquare = res)
+res_df <- data.frame(a = a, Rsquare = res)
 ```
 
 Plot the simulation result.
 
 ```{r, fig.width=10}
-opar = par(no.readonly = TRUE)
-par(mfrow=c(1,2))
+opar <- par(no.readonly = TRUE)
+par(mfrow = c(1, 2))
 plot(res_df, las = 1, xlab = "a", ylab = "R Square", type = "l")
-plot(res_df[1:1000,], las = 1, xlab = "a", ylab = "R Square", type = "l")
+plot(res_df[1:1000, ], las = 1, xlab = "a", ylab = "R Square", type = "l")
 abline(v = 38, lty = 2, col = "red")
 par(opar)
 ```
@@ -339,8 +351,8 @@ The first step is to preprocess 3 immunotherapy datasets with gene expression, T
 ```{r get_APS_min_max}
 # get min and max APM value based on TCGA and GEO pan-cancer data
 load("results/df_all.RData")
-min_APS = min(df_all$APM)
-max_APS = max(df_all$APM)
+min_APS <- min(df_all$APM)
+max_APS <- max(df_all$APM)
 rm(df_all)
 
 # load gene list
@@ -357,87 +369,91 @@ source("../code/functions.R")
 suppressPackageStartupMessages(library(GEOquery))
 library(tidyverse)
 library(readxl)
-geo_dir = "../data/GEOdata"
+geo_dir <- "../data/GEOdata"
 
-gse = "GSE78220"
-GSE_78220 = getGEO(gse, GSEMatrix = TRUE, AnnotGPL = TRUE, destdir = geo_dir)
-GSE_78220 = GSE_78220$GSE78220_series_matrix.txt.gz
+gse <- "GSE78220"
+GSE_78220 <- getGEO(gse, GSEMatrix = TRUE, AnnotGPL = TRUE, destdir = geo_dir)
+GSE_78220 <- GSE_78220$GSE78220_series_matrix.txt.gz
 
 #### Download gene expression using following command
 # download.file(url = "https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE78220&format=file&file=GSE78220%5FPatientFPKM%2Exlsx", destfile = "../data/GSE78220_FPKM.xlsx")
 
-GSE78220_FPKM = readxl::read_xlsx("../data/GSE78220_FPKM.xlsx")
+GSE78220_FPKM <- readxl::read_xlsx("../data/GSE78220_FPKM.xlsx")
 
-GSE78220_FPKM = GSE78220_FPKM %>% 
-    as.data.frame() %>% 
-    mutate(mean_expr = rowMeans(.[, -1], na.rm = TRUE)) %>% 
-    arrange(Gene, desc(mean_expr)) %>%
-    distinct(Gene, .keep_all = TRUE) %>% 
-    dplyr::select(-mean_expr) %>% 
-    as.tibble()
+GSE78220_FPKM <- GSE78220_FPKM %>%
+  as.data.frame() %>%
+  mutate(mean_expr = rowMeans(.[, -1], na.rm = TRUE)) %>%
+  arrange(Gene, desc(mean_expr)) %>%
+  distinct(Gene, .keep_all = TRUE) %>%
+  dplyr::select(-mean_expr) %>%
+  as.tibble()
 
 # pData(GSE_78220) %>% View()
 
 # normalize gene expression as log(x + 1)
-GSE78220_Norm = GSE78220_FPKM
-GSE78220_Norm[,-1] = log2(GSE78220_Norm[,-1] + 1)
+GSE78220_Norm <- GSE78220_FPKM
+GSE78220_Norm[, -1] <- log2(GSE78220_Norm[, -1] + 1)
 
 # apply gsva
-applyGSVA(merged_geneList, group_col = "Cell_type", 
-          gene_col = "Symbol", ExprMatList = list(GSE78220_Norm), method = "gsva") -> gsva.hugo2016
+applyGSVA(merged_geneList,
+  group_col = "Cell_type",
+  gene_col = "Symbol", ExprMatList = list(GSE78220_Norm), method = "gsva"
+) -> gsva.hugo2016
 
-gsva.hugo2016 = calc_TisIIs(gsva.hugo2016[[1]])
+gsva.hugo2016 <- calc_TisIIs(gsva.hugo2016[[1]])
 
 # normalize APS
-APS_hugo = gsva.hugo2016$APM
-APS_hugo = (APS_hugo - min_APS) / (max_APS - min_APS) 
+APS_hugo <- gsva.hugo2016$APM
+APS_hugo <- (APS_hugo - min_APS) / (max_APS - min_APS)
 
-names(APS_hugo) = colnames(GSE78220_Norm)[-1]
+names(APS_hugo) <- colnames(GSE78220_Norm)[-1]
 APS_hugo
-names(APS_hugo) = sub(pattern = "(Pt.*)\\.baseline", "\\1", names(APS_hugo))
+names(APS_hugo) <- sub(pattern = "(Pt.*)\\.baseline", "\\1", names(APS_hugo))
 
 
 # keep biggest value
-APS_hugo = APS_hugo[-21]
-names(APS_hugo)[c(14, 20)] = c("Pt16", "Pt27")
+APS_hugo <- APS_hugo[-21]
+names(APS_hugo)[c(14, 20)] <- c("Pt16", "Pt27")
 APS_hugo
 
 # keep corresponding expression data for downstream analysis
-rna_hugo = GSE78220_Norm[, -22]
-colnames(rna_hugo)[-1] = names(APS_hugo)
+rna_hugo <- GSE78220_Norm[, -22]
+colnames(rna_hugo)[-1] <- names(APS_hugo)
 
 if (!file.exists("results/Hugo2016_RNA.RData")) {
   save(rna_hugo, file = "results/Hugo2016_RNA.RData")
 }
 
-GSE78220.APS = tibble(PatientID = names(APS_hugo), APS=APS_hugo, IIS = gsva.hugo2016$IIS[-21])
+GSE78220.APS <- tibble(PatientID = names(APS_hugo), APS = APS_hugo, IIS = gsva.hugo2016$IIS[-21])
 
 # generate results for random selected APS genes
 set.seed(123456)
-apm_gens = merged_geneList %>% dplyr::filter(Cell_type == "APM")
-sapply(1:100, function(i){
-  tempGens = sample(GSE78220_Norm$Gene, 18)
-  apm_gens$Symbol = tempGens
-  applyGSVA(apm_gens, group_col = "Cell_type", 
-          gene_col = "Symbol", ExprMatList = list(GSE78220_Norm), method = "gsva")
+apm_gens <- merged_geneList %>% dplyr::filter(Cell_type == "APM")
+sapply(1:100, function(i) {
+  tempGens <- sample(GSE78220_Norm$Gene, 18)
+  apm_gens$Symbol <- tempGens
+  applyGSVA(apm_gens,
+    group_col = "Cell_type",
+    gene_col = "Symbol", ExprMatList = list(GSE78220_Norm), method = "gsva"
+  )
 }) -> gsva.hugo2016.random
 
-gsva.hugo2016.random = as.data.frame(sapply(gsva.hugo2016.random, function(x){
-  (x$APM - min_APS) / (max_APS - min_APS) 
+gsva.hugo2016.random <- as.data.frame(sapply(gsva.hugo2016.random, function(x) {
+  (x$APM - min_APS) / (max_APS - min_APS)
 }))
-colnames(gsva.hugo2016.random) = paste0("APS", 1:100)
-gsva.hugo2016.random = gsva.hugo2016.random[-21, ]
-rownames(gsva.hugo2016.random) = names(APS_hugo)
+colnames(gsva.hugo2016.random) <- paste0("APS", 1:100)
+gsva.hugo2016.random <- gsva.hugo2016.random[-21, ]
+rownames(gsva.hugo2016.random) <- names(APS_hugo)
 
 # read clincal and tmb data
-GSE_78220.TMB = read_csv("../data/Cell2016.csv", col_types = cols())
-GSE_78220.TMB$nTMB = GSE_78220.TMB$TotalNonSyn / 38
+GSE_78220.TMB <- read_csv("../data/Cell2016.csv", col_types = cols())
+GSE_78220.TMB$nTMB <- GSE_78220.TMB$TotalNonSyn / 38
 
-info_hugo = full_join(GSE_78220.TMB, GSE78220.APS, by = "PatientID")
-info_hugo = info_hugo[,c(1:5, 14:16, 13)]
+info_hugo <- full_join(GSE_78220.TMB, GSE78220.APS, by = "PatientID")
+info_hugo <- info_hugo[, c(1:5, 14:16, 13)]
 
 # calculate TIGS score
-info_hugo$TIGS = log(info_hugo$nTMB) * info_hugo$APS
+info_hugo$TIGS <- log(info_hugo$nTMB) * info_hugo$APS
 
 save(info_hugo, file = "results/Hugo2016_Info.RData")
 ```
@@ -451,94 +467,112 @@ save(info_hugo, file = "results/Hugo2016_Info.RData")
 #--------------------------
 library(readxl)
 suppressPackageStartupMessages(library(tidyverse))
-science2015_TMB = read_xlsx("../data/Science2015_TMB_List_AllPatients.xlsx")
-science2015_cli1 = read_xlsx("../data/Science2015_Clinical.xlsx", sheet = 1)
-science2015_cli2 = read_xlsx("../data/Science2015_Clinical.xlsx", sheet = 2)
-science2015_rna = read_tsv("../data/MEL-IPI-Share.rpkm.gct", col_types = cols())
+science2015_TMB <- read_xlsx("../data/Science2015_TMB_List_AllPatients.xlsx")
+science2015_cli1 <- read_xlsx("../data/Science2015_Clinical.xlsx", sheet = 1)
+science2015_cli2 <- read_xlsx("../data/Science2015_Clinical.xlsx", sheet = 2)
+science2015_rna <- read_tsv("../data/MEL-IPI-Share.rpkm.gct", col_types = cols())
 
 #---- Preprocess
-vc.nonSilent = c("Frame_Shift_Del", "Frame_Shift_Ins", "Splice_Site", "Translation_Start_Site",
-                 "Nonsense_Mutation", "Nonstop_Mutation", "In_Frame_Del",
-                 "In_Frame_Ins", "Missense_Mutation")
+vc.nonSilent <- c(
+  "Frame_Shift_Del", "Frame_Shift_Ins", "Splice_Site", "Translation_Start_Site",
+  "Nonsense_Mutation", "Nonstop_Mutation", "In_Frame_Del",
+  "In_Frame_Ins", "Missense_Mutation"
+)
 
-science2015_TMB %>% group_by(patient) %>% 
-    summarise(TotalMutation=n(), 
-              TotalNonSyn=sum(Variant_Classification %in% vc.nonSilent), 
-             nTMB = TotalNonSyn / 38) -> science2015_TMB_summary
+science2015_TMB %>%
+  group_by(patient) %>%
+  summarise(
+    TotalMutation = n(),
+    TotalNonSyn = sum(Variant_Classification %in% vc.nonSilent),
+    nTMB = TotalNonSyn / 38
+  ) -> science2015_TMB_summary
 
 #---- remove duplicate symbols of rna data
-science2015_rna %>% mutate(symbol = sub("(.*)\\..*$", "\\1", Description)) %>% 
-    dplyr::select(-Name, -Description) %>% 
-    dplyr::select(symbol, everything()) %>% 
-    as.data.frame() %>% 
-    mutate(mean_expr = rowMeans(.[, -1], na.rm = TRUE)) %>% 
-    arrange(symbol, desc(mean_expr)) %>%
-    distinct(symbol, .keep_all = TRUE) %>% 
-    dplyr::select(-mean_expr) %>% 
-    as.tibble() -> science2015_ge
+science2015_rna %>%
+  mutate(symbol = sub("(.*)\\..*$", "\\1", Description)) %>%
+  dplyr::select(-Name, -Description) %>%
+  dplyr::select(symbol, everything()) %>%
+  as.data.frame() %>%
+  mutate(mean_expr = rowMeans(.[, -1], na.rm = TRUE)) %>%
+  arrange(symbol, desc(mean_expr)) %>%
+  distinct(symbol, .keep_all = TRUE) %>%
+  dplyr::select(-mean_expr) %>%
+  as.tibble() -> science2015_ge
 
 length(intersect(science2015_ge$symbol, GSE78220_Norm$Gene))
 # the gene number of science paper is bigger than hugo 2016
 # maybe miRNA and some other RNA included
 # keep them almost equal\
-science2015_ge = science2015_ge %>% 
-    filter(symbol %in% GSE78220_Norm$Gene)
+science2015_ge <- science2015_ge %>%
+  filter(symbol %in% GSE78220_Norm$Gene)
 
-science2015_ge[, -1] = log2(science2015_ge[, -1] + 1)
+science2015_ge[, -1] <- log2(science2015_ge[, -1] + 1)
 
-applyGSVA(merged_geneList, group_col = "Cell_type", 
-          gene_col = "Symbol", 
-          ExprMatList = list(science2015_ge), method = "gsva") -> gsva.VanAllen2015
+applyGSVA(merged_geneList,
+  group_col = "Cell_type",
+  gene_col = "Symbol",
+  ExprMatList = list(science2015_ge), method = "gsva"
+) -> gsva.VanAllen2015
 
-gsva.VanAllen2015 = calc_TisIIs(gsva.VanAllen2015[[1]])
+gsva.VanAllen2015 <- calc_TisIIs(gsva.VanAllen2015[[1]])
 
-APS_VanAllen = gsva.VanAllen2015$APM
-names(APS_VanAllen) = colnames(science2015_ge)[-1]
-APS_VanAllen = (APS_VanAllen - min_APS) / (max_APS - min_APS)
+APS_VanAllen <- gsva.VanAllen2015$APM
+names(APS_VanAllen) <- colnames(science2015_ge)[-1]
+APS_VanAllen <- (APS_VanAllen - min_APS) / (max_APS - min_APS)
 
 APS_VanAllen
-names(APS_VanAllen) = sub("^MEL.IPI_(.*)\\.Tumor.*$", "\\1", names(APS_VanAllen))
+names(APS_VanAllen) <- sub("^MEL.IPI_(.*)\\.Tumor.*$", "\\1", names(APS_VanAllen))
 APS_VanAllen
 
-rna_VanAllen = science2015_ge
-colnames(rna_VanAllen)[-1] = names(APS_VanAllen) 
+rna_VanAllen <- science2015_ge
+colnames(rna_VanAllen)[-1] <- names(APS_VanAllen)
 ## save gene experssion
-if (!file.exists("results/VanAllen2015_RNA.RData")){
+if (!file.exists("results/VanAllen2015_RNA.RData")) {
   save(rna_VanAllen, file = "results/VanAllen2015_RNA.RData")
 }
 
-APS_VanAllen_df = tibble(patient = names(APS_VanAllen), APS = APS_VanAllen, 
-                         IIS = gsva.VanAllen2015$IIS)
+APS_VanAllen_df <- tibble(
+  patient = names(APS_VanAllen), APS = APS_VanAllen,
+  IIS = gsva.VanAllen2015$IIS
+)
 
 
 # generate results for random selected APS genes
 set.seed(123456)
-#apm_gens = merged_geneList %>% dplyr::filter(Cell_type == "APM")
-sapply(1:100, function(i){
-  tempGens = sample(science2015_ge$symbol, 18)
-  apm_gens$Symbol = tempGens
-  applyGSVA(apm_gens, group_col = "Cell_type", 
-          gene_col = "Symbol", ExprMatList = list(science2015_ge), method = "gsva")
+# apm_gens = merged_geneList %>% dplyr::filter(Cell_type == "APM")
+sapply(1:100, function(i) {
+  tempGens <- sample(science2015_ge$symbol, 18)
+  apm_gens$Symbol <- tempGens
+  applyGSVA(apm_gens,
+    group_col = "Cell_type",
+    gene_col = "Symbol", ExprMatList = list(science2015_ge), method = "gsva"
+  )
 }) -> gsva.VanAllen2015.random
 
-gsva.VanAllen2015.random = as.data.frame(sapply(gsva.VanAllen2015.random, function(x){
-  (x$APM - min_APS) / (max_APS - min_APS) 
+gsva.VanAllen2015.random <- as.data.frame(sapply(gsva.VanAllen2015.random, function(x) {
+  (x$APM - min_APS) / (max_APS - min_APS)
 }))
-colnames(gsva.VanAllen2015.random) = paste0("APS", 1:100)
-rownames(gsva.VanAllen2015.random) = names(APS_VanAllen)
+colnames(gsva.VanAllen2015.random) <- paste0("APS", 1:100)
+rownames(gsva.VanAllen2015.random) <- names(APS_VanAllen)
 
 
-science2015_cli = bind_rows(
-    dplyr::select(science2015_cli1, patient, age_start, RECIST, overall_survival, progression_free, primary, group, 
-           histology, stage, gender, dead, progression, neos50),
-    dplyr::select(science2015_cli2, patient, age_start, RECIST, overall_survival, progression_free, primary,
-           group, histology, stage, gender, dead, progression) %>% filter(patient %in% c("Pat20", "Pat91"))
+science2015_cli <- bind_rows(
+  dplyr::select(
+    science2015_cli1, patient, age_start, RECIST, overall_survival, progression_free, primary, group,
+    histology, stage, gender, dead, progression, neos50
+  ),
+  dplyr::select(
+    science2015_cli2, patient, age_start, RECIST, overall_survival, progression_free, primary,
+    group, histology, stage, gender, dead, progression
+  ) %>% filter(patient %in% c("Pat20", "Pat91"))
 )
 # combine three datasets
-info_VanAllen = full_join(full_join(science2015_cli, APS_VanAllen_df, by = "patient"), 
-                         science2015_TMB_summary, by="patient")
+info_VanAllen <- full_join(full_join(science2015_cli, APS_VanAllen_df, by = "patient"),
+  science2015_TMB_summary,
+  by = "patient"
+)
 
-info_VanAllen$TIGS = info_VanAllen$APS * log(info_VanAllen$nTMB +1) # to avoid TIGS <0, TIGS = log(TMB +1) *APM for this dataset
+info_VanAllen$TIGS <- info_VanAllen$APS * log(info_VanAllen$nTMB + 1) # to avoid TIGS <0, TIGS = log(TMB +1) *APM for this dataset
 
 save(info_VanAllen, file = "results/VanAllen2015_Info.RData")
 ```
@@ -550,84 +584,92 @@ save(info_VanAllen, file = "results/VanAllen2015_Info.RData")
 #----------------------------------------------------------------
 # Contribution of systemic and somatic factors to clinical response and resistance in urothelial cancer: an exploratory multi-omic analysis
 #---------------------------------------------------------------
-# Data Source: https://github.com/XSLiuLab/multi-omic-urothelial-anti-pdl1 
+# Data Source: https://github.com/XSLiuLab/multi-omic-urothelial-anti-pdl1
 # This is a fork repository, original link can also be found in this link
 
 library(tidyverse)
-uro_cli = read_csv("../data/data_clinical.csv", col_types = cols())
-uro_counts = read_csv("../data/data_counts.csv", col_types = cols())
-uro_variants = read_csv("../data/data_variants.csv",
-                        col_types = "c??????")
-uro_rna = read_csv("../data/data_kallisto.csv", col_types = cols())
-uro_rna_wide = reshape2::dcast(uro_rna, gene_name ~ patient_id, value.var = "est_counts")
+uro_cli <- read_csv("../data/data_clinical.csv", col_types = cols())
+uro_counts <- read_csv("../data/data_counts.csv", col_types = cols())
+uro_variants <- read_csv("../data/data_variants.csv",
+  col_types = "c??????"
+)
+uro_rna <- read_csv("../data/data_kallisto.csv", col_types = cols())
+uro_rna_wide <- reshape2::dcast(uro_rna, gene_name ~ patient_id, value.var = "est_counts")
 
 # try remove duplicated genes
-uro_rna_wide %>% 
-    as.data.frame() %>% 
-    mutate(mean_expr = rowMeans(.[, -1], na.rm = TRUE)) %>% 
-    arrange(gene_name, desc(mean_expr)) %>%
-    distinct(gene_name, .keep_all = TRUE) %>% 
-    dplyr::select(-mean_expr) %>% 
-    as.tibble() -> uro_rna_ge
+uro_rna_wide %>%
+  as.data.frame() %>%
+  mutate(mean_expr = rowMeans(.[, -1], na.rm = TRUE)) %>%
+  arrange(gene_name, desc(mean_expr)) %>%
+  distinct(gene_name, .keep_all = TRUE) %>%
+  dplyr::select(-mean_expr) %>%
+  as.tibble() -> uro_rna_ge
 
 length(intersect(uro_rna_ge$gene_name, GSE78220_FPKM$Gene))
-uro_rna_ge = dplyr::filter(uro_rna_ge, gene_name %in% GSE78220_FPKM$Gene)
-uro_rna_ge_Norm = uro_rna_ge
-uro_rna_ge_Norm[, -1] = log2(uro_rna_ge_Norm[,-1]+1)
+uro_rna_ge <- dplyr::filter(uro_rna_ge, gene_name %in% GSE78220_FPKM$Gene)
+uro_rna_ge_Norm <- uro_rna_ge
+uro_rna_ge_Norm[, -1] <- log2(uro_rna_ge_Norm[, -1] + 1)
 
 ## apply GSVA
-applyGSVA(merged_geneList, group_col = "Cell_type", 
-          gene_col = "Symbol", ExprMatList = list(uro_rna_ge_Norm), method = "gsva") -> gsva.Snyder
+applyGSVA(merged_geneList,
+  group_col = "Cell_type",
+  gene_col = "Symbol", ExprMatList = list(uro_rna_ge_Norm), method = "gsva"
+) -> gsva.Snyder
 
-gsva.Snyder = calc_TisIIs(gsva.Snyder[[1]])
+gsva.Snyder <- calc_TisIIs(gsva.Snyder[[1]])
 
-APS_Snyder = gsva.Snyder$APM
-APS_Snyder = (APS_Snyder - min_APS) / (max_APS - min_APS)
+APS_Snyder <- gsva.Snyder$APM
+APS_Snyder <- (APS_Snyder - min_APS) / (max_APS - min_APS)
 
 ## save gene expression
-rna_Snyder = uro_rna_ge_Norm
+rna_Snyder <- uro_rna_ge_Norm
 if (!file.exists("results/Snyder2017_RNA.RData")) {
   save(rna_Snyder, file = "results/Snyder2017_RNA.RData")
 }
 
-APS_Snyder_df = tibble(patient_id = colnames(uro_rna_ge_Norm)[-1], 
-                       APS = APS_Snyder, 
-                       IIS = gsva.Snyder$IIS)
+APS_Snyder_df <- tibble(
+  patient_id = colnames(uro_rna_ge_Norm)[-1],
+  APS = APS_Snyder,
+  IIS = gsva.Snyder$IIS
+)
 
 # generate results for random selected APS genes
 set.seed(123456)
-#apm_gens = merged_geneList %>% dplyr::filter(Cell_type == "APM")
-sapply(1:100, function(i){
-  tempGens = sample(uro_rna_ge_Norm$gene_name, 18)
-  apm_gens$Symbol = tempGens
-  applyGSVA(apm_gens, group_col = "Cell_type", 
-          gene_col = "Symbol", ExprMatList = list(uro_rna_ge_Norm), method = "gsva")
+# apm_gens = merged_geneList %>% dplyr::filter(Cell_type == "APM")
+sapply(1:100, function(i) {
+  tempGens <- sample(uro_rna_ge_Norm$gene_name, 18)
+  apm_gens$Symbol <- tempGens
+  applyGSVA(apm_gens,
+    group_col = "Cell_type",
+    gene_col = "Symbol", ExprMatList = list(uro_rna_ge_Norm), method = "gsva"
+  )
 }) -> gsva.Snyder.random
 
-gsva.Snyder.random = as.data.frame(sapply(gsva.Snyder.random, function(x){
-  (x$APM - min_APS) / (max_APS - min_APS) 
+gsva.Snyder.random <- as.data.frame(sapply(gsva.Snyder.random, function(x) {
+  (x$APM - min_APS) / (max_APS - min_APS)
 }))
-colnames(gsva.Snyder.random) = paste0("APS", 1:100)
-rownames(gsva.Snyder.random) = colnames(uro_rna_ge_Norm)[-1]
+colnames(gsva.Snyder.random) <- paste0("APS", 1:100)
+rownames(gsva.Snyder.random) <- colnames(uro_rna_ge_Norm)[-1]
 
-uro_cli_2 = uro_cli %>% 
-    dplyr::select(patient_id, Age, Sex, is_benefit, is_benefit_os, os, `Alive Status`) %>% 
-    mutate(event = ifelse(`Alive Status` == 'Y', 0, 1))
+uro_cli_2 <- uro_cli %>%
+  dplyr::select(patient_id, Age, Sex, is_benefit, is_benefit_os, os, `Alive Status`) %>%
+  mutate(event = ifelse(`Alive Status` == "Y", 0, 1))
 
-uro_tmb = uro_variants %>% 
-    group_by(patient_id) %>% 
-    summarise(TMB = n(), Nonsyn = sum(!is.na(gene_name)), nTMB = TMB/38) %>% 
-    mutate(patient_id = as.character(patient_id))
+uro_tmb <- uro_variants %>%
+  group_by(patient_id) %>%
+  summarise(TMB = n(), Nonsyn = sum(!is.na(gene_name)), nTMB = TMB / 38) %>%
+  mutate(patient_id = as.character(patient_id))
 
-info_Snyder = dplyr::full_join(uro_cli_2, dplyr::full_join(uro_tmb, APS_Snyder_df))
-info_Snyder$TIGS = info_Snyder$APS * log(info_Snyder$nTMB)
- 
+info_Snyder <- dplyr::full_join(uro_cli_2, dplyr::full_join(uro_tmb, APS_Snyder_df))
+info_Snyder$TIGS <- info_Snyder$APS * log(info_Snyder$nTMB)
+
 save(info_Snyder, file = "results/Snyder2017_Info.RData")
 
 
 
-save(gsva.hugo2016.random, gsva.Snyder.random, gsva.VanAllen2015.random, 
-       file = "results/randomAPS.RData")
+save(gsva.hugo2016.random, gsva.Snyder.random, gsva.VanAllen2015.random,
+  file = "results/randomAPS.RData"
+)
 ```
 
 
@@ -637,49 +679,53 @@ Load data firstly.
 
 ```{r}
 # library(tidyverse)
-sigList = read_csv("../data/ICBbiomarkerSignature.csv", comment = "#", col_types = cols())
+sigList <- read_csv("../data/ICBbiomarkerSignature.csv", comment = "#", col_types = cols())
 load("results/Hugo2016_RNA.RData")
 load("results/VanAllen2015_RNA.RData")
 load("results/Snyder2017_RNA.RData")
 
-ISG_IFNG = read_csv("../data/ISG.RS_and_IFNG.GS.csv", comment = "#")
+ISG_IFNG <- read_csv("../data/ISG.RS_and_IFNG.GS.csv", comment = "#")
 ```
 
 ### Add APS7 and APS_MHC_II
 
 
 ```{r, eval=FALSE}
-APS7.genes = c("B2M", "HLA-A", "HLA-B", "HLA-C",
-               "TAP1", "TAP2", "TAPBP")
+APS7.genes <- c(
+  "B2M", "HLA-A", "HLA-B", "HLA-C",
+  "TAP1", "TAP2", "TAPBP"
+)
 
-APS7 = merged_geneList %>% 
+APS7 <- merged_geneList %>%
   dplyr::filter(Symbol %in% APS7.genes)
 
 load(file = "../data/APS_MHC_II_genes.RData")
 
-APS7.GSVA = applyGSVA(APS7, group_col = "Cell_type", gene_col = "Symbol", ExprMatList = list(rna_hugo, rna_Snyder, rna_VanAllen), method = "gsva")
+APS7.GSVA <- applyGSVA(APS7, group_col = "Cell_type", gene_col = "Symbol", ExprMatList = list(rna_hugo, rna_Snyder, rna_VanAllen), method = "gsva")
 
-APS_MHC_II.GSVA = applyGSVA(APM_MHC_II, group_col = "Cell_type", gene_col = "Symbol", ExprMatList = list(rna_hugo, rna_Snyder, rna_VanAllen), method = "gsva")
+APS_MHC_II.GSVA <- applyGSVA(APM_MHC_II, group_col = "Cell_type", gene_col = "Symbol", ExprMatList = list(rna_hugo, rna_Snyder, rna_VanAllen), method = "gsva")
 
 
-APS7.GSVA = APS7.GSVA %>%
+APS7.GSVA <- APS7.GSVA %>%
   setNames(c("Hugo2016", "Snyder2017", "VanAllen2015")) %>%
   purrr::map_df(function(x) {
-    x %>% tibble::rownames_to_column() %>% 
+    x %>%
+      tibble::rownames_to_column() %>%
       dplyr::mutate(
         APM = scales::rescale(APM)
       )
-    }, .id = "Study") %>% 
+  }, .id = "Study") %>%
   dplyr::rename(APS7 = APM)
 
-APS_MHC_II.GSVA = APS_MHC_II.GSVA %>%
+APS_MHC_II.GSVA <- APS_MHC_II.GSVA %>%
   setNames(c("Hugo2016", "Snyder2017", "VanAllen2015")) %>%
   purrr::map_df(function(x) {
-    x %>% tibble::rownames_to_column() %>% 
+    x %>%
+      tibble::rownames_to_column() %>%
       dplyr::mutate(
         APM_MHC_II = scales::rescale(APM_MHC_II)
       )
-    }, .id = "Study") %>% 
+  }, .id = "Study") %>%
   dplyr::rename(APS_MHC_II = APM_MHC_II)
 
 save(APS7.GSVA, APS_MHC_II.GSVA, file = "results/APS_alternative.GSVA.RData")
@@ -702,100 +748,110 @@ all(ISG_IFNG$GeneSymbol %in% rna_VanAllen$symbol)
 ```
 
 ```{r}
-sigList = ISG_IFNG %>% 
-  rename(Signature = Type, 
-         Genes = GeneSymbol) %>% # make consistent
-  dplyr::filter(Genes %in% purrr::reduce(list(rna_hugo$Gene, rna_Snyder$gene_name, rna_VanAllen$symbol), intersect)) %>%  # 3 genes removed in this operation
+sigList <- ISG_IFNG %>%
+  rename(
+    Signature = Type,
+    Genes = GeneSymbol
+  ) %>% # make consistent
+  dplyr::filter(Genes %in% purrr::reduce(list(rna_hugo$Gene, rna_Snyder$gene_name, rna_VanAllen$symbol), intersect)) %>% # 3 genes removed in this operation
   dplyr::bind_rows(sigList)
-  
 ```
 
 
 Next we retrieve all gene expression values and then calculate average.
 
 ```{r}
-rna_hugo_df = rna_hugo %>% 
-    dplyr::filter(Gene %in% sigList$Genes)
+rna_hugo_df <- rna_hugo %>%
+  dplyr::filter(Gene %in% sigList$Genes)
 
-rna_VanAllen_df = rna_VanAllen %>% 
-    dplyr::filter(symbol %in% sigList$Genes) %>% 
-    rename(Gene = symbol)
+rna_VanAllen_df <- rna_VanAllen %>%
+  dplyr::filter(symbol %in% sigList$Genes) %>%
+  rename(Gene = symbol)
 
-rna_Snyder_df = rna_Snyder %>% 
-    dplyr::filter(gene_name %in% sigList$Genes) %>% 
-    rename(Gene = gene_name)
+rna_Snyder_df <- rna_Snyder %>%
+  dplyr::filter(gene_name %in% sigList$Genes) %>%
+  rename(Gene = gene_name)
 ```
 
 Combine them with `sigList`, then transform these `data.frame` to long format, calculate mean gene expression and transform back to wide format.
 
 ```{r}
-rna_hugo_sigExpr = rna_hugo_df %>% 
-    dplyr::right_join(sigList, by=c("Gene"="Genes")) %>% 
-    tidyr::gather(key = "sample", value = "expression", -Gene, -Signature) %>% 
-    dplyr::group_by(sample, Signature) %>% 
-    dplyr::summarise(expression = mean(expression)) %>% 
-    tidyr::spread(key=Signature, value=expression) %>% 
-    dplyr::mutate(study = "Hugo2016") %>% 
-    dplyr::ungroup()
+rna_hugo_sigExpr <- rna_hugo_df %>%
+  dplyr::right_join(sigList, by = c("Gene" = "Genes")) %>%
+  tidyr::gather(key = "sample", value = "expression", -Gene, -Signature) %>%
+  dplyr::group_by(sample, Signature) %>%
+  dplyr::summarise(expression = mean(expression)) %>%
+  tidyr::spread(key = Signature, value = expression) %>%
+  dplyr::mutate(study = "Hugo2016") %>%
+  dplyr::ungroup()
 
-rna_VanAllen_sigExpr = rna_VanAllen_df %>% 
-    dplyr::right_join(sigList, by=c("Gene"="Genes")) %>% 
-    tidyr::gather(key = "sample", value = "expression", -Gene, -Signature) %>% 
-    dplyr::group_by(sample, Signature) %>% 
-    dplyr::summarise(expression = mean(expression)) %>% 
-    tidyr::spread(key=Signature, value=expression) %>% 
-    dplyr::mutate(study = "VanAllen2015") %>% 
-    dplyr::ungroup()
+rna_VanAllen_sigExpr <- rna_VanAllen_df %>%
+  dplyr::right_join(sigList, by = c("Gene" = "Genes")) %>%
+  tidyr::gather(key = "sample", value = "expression", -Gene, -Signature) %>%
+  dplyr::group_by(sample, Signature) %>%
+  dplyr::summarise(expression = mean(expression)) %>%
+  tidyr::spread(key = Signature, value = expression) %>%
+  dplyr::mutate(study = "VanAllen2015") %>%
+  dplyr::ungroup()
 
-rna_Snyder_sigExpr = rna_Snyder_df %>% 
-    dplyr::right_join(sigList, by=c("Gene"="Genes")) %>% 
-    tidyr::gather(key = "sample", value = "expression", -Gene, -Signature) %>% 
-    dplyr::group_by(sample, Signature) %>% 
-    dplyr::summarise(expression = mean(expression)) %>% 
-    tidyr::spread(key=Signature, value=expression) %>% 
-    dplyr::mutate(study = "Snyder2017") %>% 
-    dplyr::ungroup()
+rna_Snyder_sigExpr <- rna_Snyder_df %>%
+  dplyr::right_join(sigList, by = c("Gene" = "Genes")) %>%
+  tidyr::gather(key = "sample", value = "expression", -Gene, -Signature) %>%
+  dplyr::group_by(sample, Signature) %>%
+  dplyr::summarise(expression = mean(expression)) %>%
+  tidyr::spread(key = Signature, value = expression) %>%
+  dplyr::mutate(study = "Snyder2017") %>%
+  dplyr::ungroup()
 ```
 
 
 Scale "IFNG.GS", "ISG.RS" signature expression as origin paper said.
 
 ```{r}
-rna_hugo_sigExpr = rna_hugo_sigExpr %>% 
-  dplyr::mutate(IFNG.GS = scale(IFNG.GS) %>% as.numeric(), 
-                ISG.RS = scale(ISG.RS) %>% as.numeric())
-rna_VanAllen_sigExpr = rna_VanAllen_sigExpr %>% 
-  dplyr::mutate(IFNG.GS = scale(IFNG.GS), 
-                ISG.RS = scale(ISG.RS))
-rna_Snyder_sigExpr = rna_Snyder_sigExpr %>% 
-  dplyr::mutate(IFNG.GS = scale(IFNG.GS), 
-                ISG.RS = scale(ISG.RS))
+rna_hugo_sigExpr <- rna_hugo_sigExpr %>%
+  dplyr::mutate(
+    IFNG.GS = scale(IFNG.GS) %>% as.numeric(),
+    ISG.RS = scale(ISG.RS) %>% as.numeric()
+  )
+rna_VanAllen_sigExpr <- rna_VanAllen_sigExpr %>%
+  dplyr::mutate(
+    IFNG.GS = scale(IFNG.GS),
+    ISG.RS = scale(ISG.RS)
+  )
+rna_Snyder_sigExpr <- rna_Snyder_sigExpr %>%
+  dplyr::mutate(
+    IFNG.GS = scale(IFNG.GS),
+    ISG.RS = scale(ISG.RS)
+  )
 ```
 
 
 Show results as tables.
 
 ```{r}
-DT::datatable(rna_hugo_sigExpr, 
-              options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE, 
-              caption = "gene signature expression in Hugo 2016 dataset")
+DT::datatable(rna_hugo_sigExpr,
+  options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE,
+  caption = "gene signature expression in Hugo 2016 dataset"
+)
 
-DT::datatable(rna_VanAllen_sigExpr, 
-              options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE, 
-              caption = "gene signature expression in VanAllen 2015 dataset")
+DT::datatable(rna_VanAllen_sigExpr,
+  options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE,
+  caption = "gene signature expression in VanAllen 2015 dataset"
+)
 
-DT::datatable(rna_Snyder_sigExpr, 
-              options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE, 
-              caption = "gene signature expression in Snyder 2017 dataset")
+DT::datatable(rna_Snyder_sigExpr,
+  options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE,
+  caption = "gene signature expression in Snyder 2017 dataset"
+)
 ```
 
 Lastly, merge the three result datasets for downstream analysis.
 
 ```{r}
-GEBiomarker = dplyr::bind_rows(rna_hugo_sigExpr, rna_VanAllen_sigExpr, rna_Snyder_sigExpr)
+GEBiomarker <- dplyr::bind_rows(rna_hugo_sigExpr, rna_VanAllen_sigExpr, rna_Snyder_sigExpr)
 
-if (!file.exists("results/GEBiomarker.RData")){
-    save(GEBiomarker, file = "results/GEBiomarker.RData")
+if (!file.exists("results/GEBiomarker.RData")) {
+  save(GEBiomarker, file = "results/GEBiomarker.RData")
 }
 ```
 
@@ -807,31 +863,31 @@ TIDE is developed by Shirley Liu lab, software website is available at (<http://
 Following suggestions provided at TIDE website, we firstly generate input files for three immunotherapy datasets .
 
 ```{r}
-rna_Snyder = rna_Snyder %>% 
+rna_Snyder <- rna_Snyder %>%
   rename(Gene = gene_name)
 
-rna_VanAllen = rna_VanAllen %>% 
+rna_VanAllen <- rna_VanAllen %>%
   rename(Gene = symbol)
 
 # normalized expression substract mean expression
-generateInput = function(df) {
+generateInput <- function(df) {
   df %>%
-    mutate(Ref = rowMeans(.[, -1])) %>% 
-    mutate_at(vars(-Gene, -Ref), `-`, quote(Ref)) %>%  #f <- function(num, ref) num - !!ref
-    select(-Ref) %>% 
-    column_to_rownames(var = "Gene") %>% 
+    mutate(Ref = rowMeans(.[, -1])) %>%
+    mutate_at(vars(-Gene, -Ref), `-`, quote(Ref)) %>% # f <- function(num, ref) num - !!ref
+    select(-Ref) %>%
+    column_to_rownames(var = "Gene") %>%
     as.data.frame()
 }
 
-TIDE_hugo = generateInput(rna_hugo)
-TIDE_VanAllen = generateInput(rna_VanAllen)
-TIDE_Snyder = generateInput(rna_Snyder)
+TIDE_hugo <- generateInput(rna_hugo)
+TIDE_VanAllen <- generateInput(rna_VanAllen)
+TIDE_Snyder <- generateInput(rna_Snyder)
 
 
-if (!file.exists("results/TIDE_input_hugo.tsv")){
-  write.table(TIDE_hugo, file="results/TIDE_input_hugo.tsv", quote = FALSE, sep = "\t", row.names = TRUE, col.names = TRUE)
-  write.table(TIDE_VanAllen, file="results/TIDE_input_VanAllen.tsv", quote = FALSE, sep = "\t", row.names = TRUE, col.names = TRUE)
-  write.table(TIDE_Snyder, file="results/TIDE_input_Snyder.tsv", quote = FALSE, sep = "\t", row.names = TRUE, col.names = TRUE)
+if (!file.exists("results/TIDE_input_hugo.tsv")) {
+  write.table(TIDE_hugo, file = "results/TIDE_input_hugo.tsv", quote = FALSE, sep = "\t", row.names = TRUE, col.names = TRUE)
+  write.table(TIDE_VanAllen, file = "results/TIDE_input_VanAllen.tsv", quote = FALSE, sep = "\t", row.names = TRUE, col.names = TRUE)
+  write.table(TIDE_Snyder, file = "results/TIDE_input_Snyder.tsv", quote = FALSE, sep = "\t", row.names = TRUE, col.names = TRUE)
 }
 
 rm(list = ls())
@@ -847,8 +903,8 @@ This section we compare ROC (AUC value) of biomarkers for response prediction.
 ```{r roc_comparison}
 library(pROC)
 library(tidyverse)
-#theme_set(theme_bw())
-#library(cowplot)
+# theme_set(theme_bw())
+# library(cowplot)
 
 #------------------------------------------
 # Load data
@@ -861,70 +917,71 @@ load("results/GEBiomarker.RData")
 
 # Of note, output csv from TIDE website has extra "" in last line
 #          please remove it before load data
-TIDE_hugo = read_csv("results/TIDE_output_hugo.csv", col_types = cols())
-TIDE_Snyder = read_csv("results/TIDE_output_Snyder.csv", col_types = cols())
-TIDE_VanAllen = read_csv("results/TIDE_output_VanAllen.csv", col_types = cols())
+TIDE_hugo <- read_csv("results/TIDE_output_hugo.csv", col_types = cols())
+TIDE_Snyder <- read_csv("results/TIDE_output_Snyder.csv", col_types = cols())
+TIDE_VanAllen <- read_csv("results/TIDE_output_VanAllen.csv", col_types = cols())
 
 #-----------------------------------------
 # Merge datasets
-info_hugo = info_hugo %>% 
-  dplyr::left_join(dplyr::filter(GEBiomarker, study=="Hugo2016") %>% 
-                      dplyr::select(-study), by=c("PatientID" = "sample")) %>% 
+info_hugo <- info_hugo %>%
+  dplyr::left_join(dplyr::filter(GEBiomarker, study == "Hugo2016") %>%
+    dplyr::select(-study), by = c("PatientID" = "sample")) %>%
   dplyr::left_join(TIDE_hugo %>% dplyr::select(Patient, TIDE), by = c("PatientID" = "Patient"))
 
 # combine random data
-gsva.hugo2016.random %>% 
-  rownames_to_column(var = "PatientID") %>% 
+gsva.hugo2016.random %>%
+  rownames_to_column(var = "PatientID") %>%
   full_join(info_hugo, by = "PatientID") -> info_hugo
 
 #------------------------------------------
 # Hugo 2016
-hugo2016_roc_TMB = roc(info_hugo$Response, info_hugo$nTMB, direction = "<")
-hugo2016_roc_APS = roc(info_hugo$Response, info_hugo$APS, direction = "<")
-hugo2016_roc_TIGS = roc(info_hugo$Response, info_hugo$TIGS, direction = "<")
-hugo2016_roc_IIS = roc(info_hugo$Response, info_hugo$IIS, direction = "<")
-hugo2016_roc_CD8 = roc(info_hugo$Response, info_hugo$CD8, direction = "<")
-hugo2016_roc_IFNG = roc(info_hugo$Response, info_hugo$IFNG, direction = "<")
-hugo2016_roc_PDL1 = roc(info_hugo$Response, info_hugo$PDL1, direction = "<")
-hugo2016_roc_TIDE = roc(info_hugo$Response, info_hugo$TIDE, direction = ">") # less TIDE, better outcome
+hugo2016_roc_TMB <- roc(info_hugo$Response, info_hugo$nTMB, direction = "<")
+hugo2016_roc_APS <- roc(info_hugo$Response, info_hugo$APS, direction = "<")
+hugo2016_roc_TIGS <- roc(info_hugo$Response, info_hugo$TIGS, direction = "<")
+hugo2016_roc_IIS <- roc(info_hugo$Response, info_hugo$IIS, direction = "<")
+hugo2016_roc_CD8 <- roc(info_hugo$Response, info_hugo$CD8, direction = "<")
+hugo2016_roc_IFNG <- roc(info_hugo$Response, info_hugo$IFNG, direction = "<")
+hugo2016_roc_PDL1 <- roc(info_hugo$Response, info_hugo$PDL1, direction = "<")
+hugo2016_roc_TIDE <- roc(info_hugo$Response, info_hugo$TIDE, direction = ">") # less TIDE, better outcome
 
-ggroc(list(TMB=hugo2016_roc_TMB, TIGS=hugo2016_roc_TIGS, TIDE=hugo2016_roc_TIDE), legacy.axes = TRUE) + 
-    labs(color = "Predictor") + ggpubr::theme_classic2(base_size = 12, base_family = "Arial")
+ggroc(list(TMB = hugo2016_roc_TMB, TIGS = hugo2016_roc_TIGS, TIDE = hugo2016_roc_TIDE), legacy.axes = TRUE) +
+  labs(color = "Predictor") + ggpubr::theme_classic2(base_size = 12, base_family = "Arial")
 
 # AUC of predictors
-auc(hugo2016_roc_TMB)   # AUC of TMB
-auc(hugo2016_roc_APS)   # AUC of APS
-auc(hugo2016_roc_TIGS)  # AUC of TIGS
-auc(hugo2016_roc_IIS)   # AUC of IIS
-auc(hugo2016_roc_CD8)   # AUC of CD8
-auc(hugo2016_roc_IFNG)  # AUC of IFNG
-auc(hugo2016_roc_PDL1)  # AUC of PDL1
-auc(hugo2016_roc_TIDE)  # AUC of TIDE
+auc(hugo2016_roc_TMB) # AUC of TMB
+auc(hugo2016_roc_APS) # AUC of APS
+auc(hugo2016_roc_TIGS) # AUC of TIGS
+auc(hugo2016_roc_IIS) # AUC of IIS
+auc(hugo2016_roc_CD8) # AUC of CD8
+auc(hugo2016_roc_IFNG) # AUC of IFNG
+auc(hugo2016_roc_PDL1) # AUC of PDL1
+auc(hugo2016_roc_TIDE) # AUC of TIDE
 
 # AUC of random APS genes
-auc_random_hugo = c()
-for (i in 1:100){
-  t = as.numeric(auc(roc(info_hugo$Response, info_hugo[[paste0("APS",i)]], direction = "<")))
-  auc_random_hugo = c(auc_random_hugo, t)
+auc_random_hugo <- c()
+for (i in 1:100) {
+  t <- as.numeric(auc(roc(info_hugo$Response, info_hugo[[paste0("APS", i)]], direction = "<")))
+  auc_random_hugo <- c(auc_random_hugo, t)
 }
 
 auc_random_hugo
-auc_random_hugo_mean = mean(auc_random_hugo)
+auc_random_hugo_mean <- mean(auc_random_hugo)
 
 #---------------------------
 # VanAllen 2015
 
-info_VanAllen = info_VanAllen %>% 
-  dplyr::left_join(dplyr::filter(GEBiomarker, study=="VanAllen2015") %>% 
-                      dplyr::select(-study), by=c("patient" = "sample")) %>% 
+info_VanAllen <- info_VanAllen %>%
+  dplyr::left_join(dplyr::filter(GEBiomarker, study == "VanAllen2015") %>%
+    dplyr::select(-study), by = c("patient" = "sample")) %>%
   dplyr::left_join(TIDE_VanAllen %>% dplyr::select(Patient, TIDE), by = c("patient" = "Patient"))
 
-info_VanAllen2 = info_VanAllen %>%
-    mutate(Response = case_when(
-        group == "response" ~ "R",
-        group == "nonresponse" ~"NR",
-        TRUE ~ NA_character_
-    )) %>% filter(!is.na(Response))
+info_VanAllen2 <- info_VanAllen %>%
+  mutate(Response = case_when(
+    group == "response" ~ "R",
+    group == "nonresponse" ~ "NR",
+    TRUE ~ NA_character_
+  )) %>%
+  filter(!is.na(Response))
 
 
 ## -- using following command if only compare patients with TIGS availble
@@ -937,95 +994,95 @@ info_VanAllen2 = info_VanAllen %>%
 #     )) %>% filter(!is.na(Response), !is.na(TIGS))
 
 # combine random data
-gsva.VanAllen2015.random %>% 
-  rownames_to_column(var = "patient") %>% 
+gsva.VanAllen2015.random %>%
+  rownames_to_column(var = "patient") %>%
   full_join(info_VanAllen2, by = "patient") -> info_VanAllen2
 
 
-VanAllen2015_roc_TMB = roc(info_VanAllen2$Response, info_VanAllen2$nTMB, direction = "<")
-VanAllen2015_roc_APS = roc(info_VanAllen2$Response, info_VanAllen2$APS, direction = "<")
-VanAllen2015_roc_TIGS = roc(info_VanAllen2$Response, info_VanAllen2$TIGS, direction = "<")
-VanAllen2015_roc_IIS = roc(info_VanAllen2$Response, info_VanAllen2$IIS, direction = "<")
-VanAllen2015_roc_CD8 = roc(info_VanAllen2$Response, info_VanAllen2$CD8, direction = "<")
-VanAllen2015_roc_IFNG = roc(info_VanAllen2$Response, info_VanAllen2$IFNG, direction = "<")
-VanAllen2015_roc_PDL1 = roc(info_VanAllen2$Response, info_VanAllen2$PDL1, direction = "<")
-VanAllen2015_roc_TIDE = roc(info_VanAllen2$Response, info_VanAllen2$TIDE, direction = ">")
+VanAllen2015_roc_TMB <- roc(info_VanAllen2$Response, info_VanAllen2$nTMB, direction = "<")
+VanAllen2015_roc_APS <- roc(info_VanAllen2$Response, info_VanAllen2$APS, direction = "<")
+VanAllen2015_roc_TIGS <- roc(info_VanAllen2$Response, info_VanAllen2$TIGS, direction = "<")
+VanAllen2015_roc_IIS <- roc(info_VanAllen2$Response, info_VanAllen2$IIS, direction = "<")
+VanAllen2015_roc_CD8 <- roc(info_VanAllen2$Response, info_VanAllen2$CD8, direction = "<")
+VanAllen2015_roc_IFNG <- roc(info_VanAllen2$Response, info_VanAllen2$IFNG, direction = "<")
+VanAllen2015_roc_PDL1 <- roc(info_VanAllen2$Response, info_VanAllen2$PDL1, direction = "<")
+VanAllen2015_roc_TIDE <- roc(info_VanAllen2$Response, info_VanAllen2$TIDE, direction = ">")
 
-ggroc(list(TMB=VanAllen2015_roc_TMB,TIGS=VanAllen2015_roc_TIGS, TIDE=VanAllen2015_roc_TIDE),
-      legacy.axes = TRUE) + 
-    labs(color = "Predictor") + 
-    ggpubr::theme_classic2(base_size = 12, base_family = "Arial")
+ggroc(list(TMB = VanAllen2015_roc_TMB, TIGS = VanAllen2015_roc_TIGS, TIDE = VanAllen2015_roc_TIDE),
+  legacy.axes = TRUE
+) +
+  labs(color = "Predictor") +
+  ggpubr::theme_classic2(base_size = 12, base_family = "Arial")
 
 # AUC of predictors
-auc(VanAllen2015_roc_TMB)   # AUC of TMB
-auc(VanAllen2015_roc_APS)   # AUC of APS
-auc(VanAllen2015_roc_TIGS)  # AUC of TIGS
-auc(VanAllen2015_roc_IIS)   # AUC of IIS
-auc(VanAllen2015_roc_CD8)   # AUC of CD8
-auc(VanAllen2015_roc_PDL1)  # AUC of PDL1
-auc(VanAllen2015_roc_IFNG)  # AUC of IFNG
-auc(VanAllen2015_roc_TIDE)  # AUC of TIDE
+auc(VanAllen2015_roc_TMB) # AUC of TMB
+auc(VanAllen2015_roc_APS) # AUC of APS
+auc(VanAllen2015_roc_TIGS) # AUC of TIGS
+auc(VanAllen2015_roc_IIS) # AUC of IIS
+auc(VanAllen2015_roc_CD8) # AUC of CD8
+auc(VanAllen2015_roc_PDL1) # AUC of PDL1
+auc(VanAllen2015_roc_IFNG) # AUC of IFNG
+auc(VanAllen2015_roc_TIDE) # AUC of TIDE
 
 # AUC of random APS genes
-auc_random_VanAllen = c()
-for (i in 1:100){
-  t = as.numeric(auc(roc(info_VanAllen2$Response, info_VanAllen2[[paste0("APS",i)]], didirection =  "<")))
-  auc_random_VanAllen = c(auc_random_VanAllen, t)
+auc_random_VanAllen <- c()
+for (i in 1:100) {
+  t <- as.numeric(auc(roc(info_VanAllen2$Response, info_VanAllen2[[paste0("APS", i)]], didirection = "<")))
+  auc_random_VanAllen <- c(auc_random_VanAllen, t)
 }
 
 auc_random_VanAllen
-auc_random_VanAllen_mean = mean(auc_random_VanAllen)
+auc_random_VanAllen_mean <- mean(auc_random_VanAllen)
 
 
 #---------------------------------------
 # Snyder 2017
 
-info_Snyder = info_Snyder %>% 
-  dplyr::left_join(dplyr::filter(GEBiomarker, study=="Snyder2017") %>% 
-                      dplyr::select(-study), by=c("patient_id" = "sample")) %>% 
+info_Snyder <- info_Snyder %>%
+  dplyr::left_join(dplyr::filter(GEBiomarker, study == "Snyder2017") %>%
+    dplyr::select(-study), by = c("patient_id" = "sample")) %>%
   dplyr::left_join(TIDE_Snyder %>% dplyr::select(Patient, TIDE), by = c("patient_id" = "Patient"))
 
 # combine random data
-gsva.Snyder.random %>% 
-  rownames_to_column(var = "patient_id") %>% 
+gsva.Snyder.random %>%
+  rownames_to_column(var = "patient_id") %>%
   full_join(info_Snyder, by = "patient_id") -> info_Snyder
 
-Snyder2017_roc_TMB = roc(info_Snyder$is_benefit, info_Snyder$nTMB, direction = "<")
-Snyder2017_roc_APS = roc(info_Snyder$is_benefit, info_Snyder$APS, direction = "<")
-Snyder2017_roc_TIGS = roc(info_Snyder$is_benefit, info_Snyder$TIGS, direction = "<")
-Snyder2017_roc_IIS = roc(info_Snyder$is_benefit, info_Snyder$IIS, direction = "<")
-Snyder2017_roc_CD8 = roc(info_Snyder$is_benefit, info_Snyder$CD8, direction = "<")
-Snyder2017_roc_PDL1 = roc(info_Snyder$is_benefit, info_Snyder$PDL1, direction = "<")
-Snyder2017_roc_IFNG = roc(info_Snyder$is_benefit, info_Snyder$IFNG, direction = "<")
-Snyder2017_roc_TIDE = roc(info_Snyder$is_benefit, info_Snyder$TIDE, direction = ">")
+Snyder2017_roc_TMB <- roc(info_Snyder$is_benefit, info_Snyder$nTMB, direction = "<")
+Snyder2017_roc_APS <- roc(info_Snyder$is_benefit, info_Snyder$APS, direction = "<")
+Snyder2017_roc_TIGS <- roc(info_Snyder$is_benefit, info_Snyder$TIGS, direction = "<")
+Snyder2017_roc_IIS <- roc(info_Snyder$is_benefit, info_Snyder$IIS, direction = "<")
+Snyder2017_roc_CD8 <- roc(info_Snyder$is_benefit, info_Snyder$CD8, direction = "<")
+Snyder2017_roc_PDL1 <- roc(info_Snyder$is_benefit, info_Snyder$PDL1, direction = "<")
+Snyder2017_roc_IFNG <- roc(info_Snyder$is_benefit, info_Snyder$IFNG, direction = "<")
+Snyder2017_roc_TIDE <- roc(info_Snyder$is_benefit, info_Snyder$TIDE, direction = ">")
 
 
 
-ggroc(list(TMB=Snyder2017_roc_TMB, TIGS=Snyder2017_roc_TIGS, TIDE=Snyder2017_roc_TIDE),
-      legacy.axes = TRUE) + 
-    labs(color = "Predictor") + ggpubr::theme_classic2(base_size = 12, base_family = "Arial")
+ggroc(list(TMB = Snyder2017_roc_TMB, TIGS = Snyder2017_roc_TIGS, TIDE = Snyder2017_roc_TIDE),
+  legacy.axes = TRUE
+) +
+  labs(color = "Predictor") + ggpubr::theme_classic2(base_size = 12, base_family = "Arial")
 
 # AUC of predictors
-auc(Snyder2017_roc_TMB)   # AUC of TMB
-auc(Snyder2017_roc_APS)   # AUC of APS
-auc(Snyder2017_roc_TIGS)  # AUC of TIGS
-auc(Snyder2017_roc_IIS)   # AUC of IIS
-auc(Snyder2017_roc_CD8)   # AUC of CD8
-auc(Snyder2017_roc_PDL1)  # AUC of PDL1
-auc(Snyder2017_roc_IFNG)  # AUC of IFNG
-auc(Snyder2017_roc_TIDE)  # AUC of TIDE
+auc(Snyder2017_roc_TMB) # AUC of TMB
+auc(Snyder2017_roc_APS) # AUC of APS
+auc(Snyder2017_roc_TIGS) # AUC of TIGS
+auc(Snyder2017_roc_IIS) # AUC of IIS
+auc(Snyder2017_roc_CD8) # AUC of CD8
+auc(Snyder2017_roc_PDL1) # AUC of PDL1
+auc(Snyder2017_roc_IFNG) # AUC of IFNG
+auc(Snyder2017_roc_TIDE) # AUC of TIDE
 
 # AUC of random APS genes
-auc_random_Snyder = c()
-for (i in 1:100){
-  t = as.numeric(auc(roc(info_Snyder$is_benefit, info_Snyder[[paste0("APS",i)]], direction = "<")))
-  auc_random_Snyder = c(auc_random_Snyder, t)
+auc_random_Snyder <- c()
+for (i in 1:100) {
+  t <- as.numeric(auc(roc(info_Snyder$is_benefit, info_Snyder[[paste0("APS", i)]], direction = "<")))
+  auc_random_Snyder <- c(auc_random_Snyder, t)
 }
 
 auc_random_Snyder
-auc_random_Snyder_mean = mean(auc_random_Snyder)
-
-
+auc_random_Snyder_mean <- mean(auc_random_Snyder)
 ```
 
 From comparison of AUC value above, we can conclude that:
@@ -1039,72 +1096,106 @@ Next, we summary results above for final visualization.
 
 ```{r}
 # summary AUC
-auc_df = tibble(
+auc_df <- tibble(
   Group = c("Hugo2016", "VanAllen2015", "Snyder2017"),
-  TIGS = c(as.numeric(auc(hugo2016_roc_TIGS)), 
-           as.numeric(auc(VanAllen2015_roc_TIGS)),
-           as.numeric(auc(Snyder2017_roc_TIGS))), 
-  TIDE = c(as.numeric(auc(hugo2016_roc_TIDE)),
-           as.numeric(auc(VanAllen2015_roc_TIDE)), 
-           as.numeric(auc(Snyder2017_roc_TIDE))),
-  TMB = c(as.numeric(auc(hugo2016_roc_TMB)), 
-          as.numeric(auc(VanAllen2015_roc_TMB)),
-          as.numeric(auc(Snyder2017_roc_TMB))), 
-  APS = c(as.numeric(auc(hugo2016_roc_APS)),
-          as.numeric(auc(VanAllen2015_roc_APS)),
-          as.numeric(auc(Snyder2017_roc_APS))), 
-  IIS = c(as.numeric(auc(hugo2016_roc_IIS)),
-          as.numeric(auc(VanAllen2015_roc_IIS)), 
-          as.numeric(auc(Snyder2017_roc_IIS))),
-  IFNG = c(as.numeric(auc(hugo2016_roc_IFNG)),
-           as.numeric(auc(VanAllen2015_roc_IFNG)),
-           as.numeric(auc(Snyder2017_roc_IFNG))),
-  PDL1 = c(as.numeric(auc(hugo2016_roc_PDL1)), 
-           as.numeric(auc(VanAllen2015_roc_PDL1)),
-           as.numeric(auc(Snyder2017_roc_PDL1))),
-  CD8 = c(as.numeric(auc(hugo2016_roc_CD8)),
-          as.numeric(auc(VanAllen2015_roc_CD8)),
-          as.numeric(auc(Snyder2017_roc_CD8))),
-  APSr = c(auc_random_hugo_mean,
-           auc_random_VanAllen_mean,
-           auc_random_Snyder_mean)
+  TIGS = c(
+    as.numeric(auc(hugo2016_roc_TIGS)),
+    as.numeric(auc(VanAllen2015_roc_TIGS)),
+    as.numeric(auc(Snyder2017_roc_TIGS))
+  ),
+  TIDE = c(
+    as.numeric(auc(hugo2016_roc_TIDE)),
+    as.numeric(auc(VanAllen2015_roc_TIDE)),
+    as.numeric(auc(Snyder2017_roc_TIDE))
+  ),
+  TMB = c(
+    as.numeric(auc(hugo2016_roc_TMB)),
+    as.numeric(auc(VanAllen2015_roc_TMB)),
+    as.numeric(auc(Snyder2017_roc_TMB))
+  ),
+  APS = c(
+    as.numeric(auc(hugo2016_roc_APS)),
+    as.numeric(auc(VanAllen2015_roc_APS)),
+    as.numeric(auc(Snyder2017_roc_APS))
+  ),
+  IIS = c(
+    as.numeric(auc(hugo2016_roc_IIS)),
+    as.numeric(auc(VanAllen2015_roc_IIS)),
+    as.numeric(auc(Snyder2017_roc_IIS))
+  ),
+  IFNG = c(
+    as.numeric(auc(hugo2016_roc_IFNG)),
+    as.numeric(auc(VanAllen2015_roc_IFNG)),
+    as.numeric(auc(Snyder2017_roc_IFNG))
+  ),
+  PDL1 = c(
+    as.numeric(auc(hugo2016_roc_PDL1)),
+    as.numeric(auc(VanAllen2015_roc_PDL1)),
+    as.numeric(auc(Snyder2017_roc_PDL1))
+  ),
+  CD8 = c(
+    as.numeric(auc(hugo2016_roc_CD8)),
+    as.numeric(auc(VanAllen2015_roc_CD8)),
+    as.numeric(auc(Snyder2017_roc_CD8))
+  ),
+  APSr = c(
+    auc_random_hugo_mean,
+    auc_random_VanAllen_mean,
+    auc_random_Snyder_mean
+  )
 )
 
 # Show AUC table
-DT::datatable(auc_df, 
-              options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE, 
-              caption = "AUC of biomarkers for response prediction in three ICB datasets")
-
+DT::datatable(auc_df,
+  options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE,
+  caption = "AUC of biomarkers for response prediction in three ICB datasets"
+)
 ```
 
 ```{r}
 # summary ROC object
-roc_df = tibble(
+roc_df <- tibble(
   Group = c("Hugo2016", "VanAllen2015", "Snyder2017"),
-  TIGS = c(list(hugo2016_roc_TIGS), 
-           list(VanAllen2015_roc_TIGS),
-           list(Snyder2017_roc_TIGS)), 
-  TIDE = c(list(hugo2016_roc_TIDE),
-           list(VanAllen2015_roc_TIDE), 
-           list(Snyder2017_roc_TIDE)),
-  TMB = c(list(hugo2016_roc_TMB), 
-          list(VanAllen2015_roc_TMB),
-          list(Snyder2017_roc_TMB)), 
-  APS = c(list(hugo2016_roc_APS),
-          list(VanAllen2015_roc_APS),
-          list(Snyder2017_roc_APS)), 
-  IIS = c(list(hugo2016_roc_IIS),
-          list(VanAllen2015_roc_IIS), 
-          list(Snyder2017_roc_IIS)),
-  IFNG = c(list(hugo2016_roc_IFNG),
-           list(VanAllen2015_roc_IFNG),
-           list(Snyder2017_roc_IFNG)),
-  PDL1 = c(list(hugo2016_roc_PDL1), 
-           list(VanAllen2015_roc_PDL1),
-           list(Snyder2017_roc_PDL1)),
-  CD8 = c(list(hugo2016_roc_CD8),
-          list(VanAllen2015_roc_CD8),
-          list(Snyder2017_roc_CD8))
+  TIGS = c(
+    list(hugo2016_roc_TIGS),
+    list(VanAllen2015_roc_TIGS),
+    list(Snyder2017_roc_TIGS)
+  ),
+  TIDE = c(
+    list(hugo2016_roc_TIDE),
+    list(VanAllen2015_roc_TIDE),
+    list(Snyder2017_roc_TIDE)
+  ),
+  TMB = c(
+    list(hugo2016_roc_TMB),
+    list(VanAllen2015_roc_TMB),
+    list(Snyder2017_roc_TMB)
+  ),
+  APS = c(
+    list(hugo2016_roc_APS),
+    list(VanAllen2015_roc_APS),
+    list(Snyder2017_roc_APS)
+  ),
+  IIS = c(
+    list(hugo2016_roc_IIS),
+    list(VanAllen2015_roc_IIS),
+    list(Snyder2017_roc_IIS)
+  ),
+  IFNG = c(
+    list(hugo2016_roc_IFNG),
+    list(VanAllen2015_roc_IFNG),
+    list(Snyder2017_roc_IFNG)
+  ),
+  PDL1 = c(
+    list(hugo2016_roc_PDL1),
+    list(VanAllen2015_roc_PDL1),
+    list(Snyder2017_roc_PDL1)
+  ),
+  CD8 = c(
+    list(hugo2016_roc_CD8),
+    list(VanAllen2015_roc_CD8),
+    list(Snyder2017_roc_CD8)
+  )
 )
 
 if (!file.exists("results/roc_comparison_result.RData")) {
@@ -1124,8 +1215,8 @@ library(survminer)
 
 #----------------------
 # Hugo 2016
-hugo_os = read_csv("../data/cell2016_OS.csv", col_types = cols())
-info_hugo = full_join(info_hugo, hugo_os, by="PatientID")
+hugo_os <- read_csv("../data/cell2016_OS.csv", col_types = cols())
+info_hugo <- full_join(info_hugo, hugo_os, by = "PatientID")
 
 # Cox model
 
@@ -1143,33 +1234,42 @@ coxph(Surv(OverallSurvival, VitalStatus == "Dead") ~ TIDE, data = info_hugo)
 
 
 # K-M fit
-info_hugo %>%  # take care of NA values
-  mutate(APS_Status = ifelse(APS>median(APS, na.rm = TRUE), "High", 
-                        ifelse(is.na(APS), NA, "Low")),
-    TIDE_Status = ifelse(TIDE>median(TIDE, na.rm = TRUE), "High",
-                         ifelse(is.na(TIDE), NA, "Low")),
-    TMB_Status = ifelse(nTMB>median(nTMB), "High", "Low"),
-    TIGS_Status = ifelse(TIGS>median(TIGS, na.rm = TRUE), "High",
-                         ifelse(is.na(TIGS), NA, "Low"))) -> info_hugo2
+info_hugo %>% # take care of NA values
+  mutate(
+    APS_Status = ifelse(APS > median(APS, na.rm = TRUE), "High",
+      ifelse(is.na(APS), NA, "Low")
+    ),
+    TIDE_Status = ifelse(TIDE > median(TIDE, na.rm = TRUE), "High",
+      ifelse(is.na(TIDE), NA, "Low")
+    ),
+    TMB_Status = ifelse(nTMB > median(nTMB), "High", "Low"),
+    TIGS_Status = ifelse(TIGS > median(TIGS, na.rm = TRUE), "High",
+      ifelse(is.na(TIGS), NA, "Low")
+    )
+  ) -> info_hugo2
 
-# effect of TMB status on survival 
-fit1 = survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ TMB_Status, data = info_hugo2)
-ggsurvplot(fit1, data = info_hugo2, pval = TRUE, fun = "pct", 
-           xlab = "Time (in days)")
+# effect of TMB status on survival
+fit1 <- survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ TMB_Status, data = info_hugo2)
+ggsurvplot(fit1,
+  data = info_hugo2, pval = TRUE, fun = "pct",
+  xlab = "Time (in days)"
+)
 
-# effect of TIGS status on survival 
-fit2 = survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ TIGS_Status, data = info_hugo2)
-ggsurvplot(fit2, data = info_hugo2, pval = TRUE, fun="pct", xlab = "Time (in days)")
+# effect of TIGS status on survival
+fit2 <- survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ TIGS_Status, data = info_hugo2)
+ggsurvplot(fit2, data = info_hugo2, pval = TRUE, fun = "pct", xlab = "Time (in days)")
 
 
-# effect of APS status on survival 
-fit3 = survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ APS_Status, data = info_hugo2)
-ggsurvplot(fit3, data = info_hugo2, pval = TRUE, fun = "pct", 
-           xlab = "Time (in days)")
+# effect of APS status on survival
+fit3 <- survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ APS_Status, data = info_hugo2)
+ggsurvplot(fit3,
+  data = info_hugo2, pval = TRUE, fun = "pct",
+  xlab = "Time (in days)"
+)
 
-# effect of TIDE status on survival 
-fit4 = survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ TIDE_Status, data = info_hugo2)
-ggsurvplot(fit4, data = info_hugo2, pval = TRUE, fun="pct", xlab = "Time (in days)")
+# effect of TIDE status on survival
+fit4 <- survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ TIDE_Status, data = info_hugo2)
+ggsurvplot(fit4, data = info_hugo2, pval = TRUE, fun = "pct", xlab = "Time (in days)")
 
 #----------------------
 # Van Allen 2015
@@ -1177,46 +1277,56 @@ ggsurvplot(fit4, data = info_hugo2, pval = TRUE, fun="pct", xlab = "Time (in day
 # Cox model
 
 # Cox result of TMB
-coxph(Surv(overall_survival, dead== 1) ~ nTMB, data = info_VanAllen)
+coxph(Surv(overall_survival, dead == 1) ~ nTMB, data = info_VanAllen)
 
 # Cox result of APS
-coxph(Surv(overall_survival, dead== 1) ~ APS, data = info_VanAllen)
+coxph(Surv(overall_survival, dead == 1) ~ APS, data = info_VanAllen)
 
 # Cox result of TIGS
-coxph(Surv(overall_survival, dead== 1) ~ TIGS, data = info_VanAllen)
+coxph(Surv(overall_survival, dead == 1) ~ TIGS, data = info_VanAllen)
 
 # Cox result of TIDE
-coxph(Surv(overall_survival, dead== 1) ~ TIDE, data = info_VanAllen)
+coxph(Surv(overall_survival, dead == 1) ~ TIDE, data = info_VanAllen)
 
-info_VanAllen %>% 
-  filter(group != "long-survival") %>% 
-  mutate(APS_Status = ifelse(APS>median(APS, na.rm = TRUE), "High", 
-                             ifelse(is.na(APS), NA, "Low")),
-         TIDE_Status = ifelse(TIDE>median(TIDE, na.rm = TRUE), "High", 
-                              ifelse(is.na(TIDE), NA, "Low")),
-         TMB_Status = ifelse(nTMB>median(nTMB, na.rm = TRUE), "High",
-                              ifelse(is.na(nTMB), NA, "Low")),
-         TIGS_Status = ifelse(TIGS>median(TIGS, na.rm = TRUE), "High",
-                              ifelse(is.na(TIGS), NA, "Low")))  -> info_VanAllen3
+info_VanAllen %>%
+  filter(group != "long-survival") %>%
+  mutate(
+    APS_Status = ifelse(APS > median(APS, na.rm = TRUE), "High",
+      ifelse(is.na(APS), NA, "Low")
+    ),
+    TIDE_Status = ifelse(TIDE > median(TIDE, na.rm = TRUE), "High",
+      ifelse(is.na(TIDE), NA, "Low")
+    ),
+    TMB_Status = ifelse(nTMB > median(nTMB, na.rm = TRUE), "High",
+      ifelse(is.na(nTMB), NA, "Low")
+    ),
+    TIGS_Status = ifelse(TIGS > median(TIGS, na.rm = TRUE), "High",
+      ifelse(is.na(TIGS), NA, "Low")
+    )
+  ) -> info_VanAllen3
 
-# effect of TMB status on survival 
-fit1 = survfit(Surv(overall_survival, dead== 1) ~ TMB_Status, data = info_VanAllen3)
-ggsurvplot(fit1, data = info_VanAllen3, pval = TRUE, fun = "pct", 
-           xlab = "Time (in days)")
+# effect of TMB status on survival
+fit1 <- survfit(Surv(overall_survival, dead == 1) ~ TMB_Status, data = info_VanAllen3)
+ggsurvplot(fit1,
+  data = info_VanAllen3, pval = TRUE, fun = "pct",
+  xlab = "Time (in days)"
+)
 
-# effect of TIGS status on survival 
-fit2 = survfit(Surv(overall_survival, dead== 1) ~ TIGS_Status, data = info_VanAllen3)
-ggsurvplot(fit2, data = info_VanAllen3, pval = TRUE, fun="pct", xlab = "Time (in days)")
+# effect of TIGS status on survival
+fit2 <- survfit(Surv(overall_survival, dead == 1) ~ TIGS_Status, data = info_VanAllen3)
+ggsurvplot(fit2, data = info_VanAllen3, pval = TRUE, fun = "pct", xlab = "Time (in days)")
 
 
-# effect of APS status on survival 
-fit3 = survfit(Surv(overall_survival, dead== 1) ~ APS_Status, data = info_VanAllen3)
-ggsurvplot(fit3, data = info_VanAllen3, pval = TRUE, fun = "pct", 
-           xlab = "Time (in days)")
+# effect of APS status on survival
+fit3 <- survfit(Surv(overall_survival, dead == 1) ~ APS_Status, data = info_VanAllen3)
+ggsurvplot(fit3,
+  data = info_VanAllen3, pval = TRUE, fun = "pct",
+  xlab = "Time (in days)"
+)
 
-# effect of TIDE status on survival 
-fit4 = survfit(Surv(overall_survival, dead== 1) ~ TIDE_Status, data = info_VanAllen3)
-ggsurvplot(fit4, data = info_VanAllen3, pval = TRUE, fun="pct", xlab = "Time (in days)")
+# effect of TIDE status on survival
+fit4 <- survfit(Surv(overall_survival, dead == 1) ~ TIDE_Status, data = info_VanAllen3)
+ggsurvplot(fit4, data = info_VanAllen3, pval = TRUE, fun = "pct", xlab = "Time (in days)")
 
 #----------------------
 # Snyder 2017
@@ -1236,35 +1346,44 @@ coxph(Surv(os, event) ~ TIGS, data = info_Snyder)
 coxph(Surv(os, event) ~ TIDE, data = info_Snyder)
 
 
-info_Snyder %>% 
-  mutate(APS_Status = ifelse(APS>median(APS, na.rm = TRUE), "High", 
-                             ifelse(is.na(APS), NA, "Low")),
-         TIDE_Status = ifelse(TIDE>median(TIDE, na.rm = TRUE), "High", 
-                              ifelse(is.na(TIDE), NA, "Low")),
-         TMB_Status = ifelse(nTMB>median(nTMB, na.rm = TRUE), "High",
-                              ifelse(is.na(nTMB), NA, "Low")),
-         TIGS_Status = ifelse(TIGS>median(TIGS, na.rm = TRUE), "High",
-                              ifelse(is.na(TIGS), NA, "Low")))  -> info_Snyder2
+info_Snyder %>%
+  mutate(
+    APS_Status = ifelse(APS > median(APS, na.rm = TRUE), "High",
+      ifelse(is.na(APS), NA, "Low")
+    ),
+    TIDE_Status = ifelse(TIDE > median(TIDE, na.rm = TRUE), "High",
+      ifelse(is.na(TIDE), NA, "Low")
+    ),
+    TMB_Status = ifelse(nTMB > median(nTMB, na.rm = TRUE), "High",
+      ifelse(is.na(nTMB), NA, "Low")
+    ),
+    TIGS_Status = ifelse(TIGS > median(TIGS, na.rm = TRUE), "High",
+      ifelse(is.na(TIGS), NA, "Low")
+    )
+  ) -> info_Snyder2
 
-# effect of TMB status on survival 
-fit1 = survfit(Surv(os, event) ~ TMB_Status, data = info_Snyder2)
-ggsurvplot(fit1, data = info_Snyder2, pval = TRUE, fun = "pct", 
-           xlab = "Time (in days)")
+# effect of TMB status on survival
+fit1 <- survfit(Surv(os, event) ~ TMB_Status, data = info_Snyder2)
+ggsurvplot(fit1,
+  data = info_Snyder2, pval = TRUE, fun = "pct",
+  xlab = "Time (in days)"
+)
 
-# effect of TIGS status on survival 
-fit2 = survfit(Surv(os, event) ~ TIGS_Status, data = info_Snyder2)
-ggsurvplot(fit2, data = info_Snyder2, pval = TRUE, fun="pct", xlab = "Time (in days)")
+# effect of TIGS status on survival
+fit2 <- survfit(Surv(os, event) ~ TIGS_Status, data = info_Snyder2)
+ggsurvplot(fit2, data = info_Snyder2, pval = TRUE, fun = "pct", xlab = "Time (in days)")
 
 
-# effect of APS status on survival 
-fit3 = survfit(Surv(os, event) ~ APS_Status, data = info_Snyder2)
-ggsurvplot(fit3, data = info_Snyder2, pval = TRUE, fun = "pct", 
-           xlab = "Time (in days)")
+# effect of APS status on survival
+fit3 <- survfit(Surv(os, event) ~ APS_Status, data = info_Snyder2)
+ggsurvplot(fit3,
+  data = info_Snyder2, pval = TRUE, fun = "pct",
+  xlab = "Time (in days)"
+)
 
-# effect of TIDE status on survival 
-fit4 = survfit(Surv(os, event) ~ TIDE_Status, data = info_Snyder2)
-ggsurvplot(fit4, data = info_Snyder2, pval = TRUE, fun="pct", xlab = "Time (in days)")
-
+# effect of TIDE status on survival
+fit4 <- survfit(Surv(os, event) ~ TIDE_Status, data = info_Snyder2)
+ggsurvplot(fit4, data = info_Snyder2, pval = TRUE, fun = "pct", xlab = "Time (in days)")
 ```
 
 From comparison of cox results and K-M plots above, we can conclude that:
@@ -1278,28 +1397,28 @@ Next, we summary results (cox HR value and K-M fit) above for final visualizatio
 
 ```{r summary_cox_km}
 # summary cox result
-cox_TMB = list()
-cox_APS = list()
-cox_TIGS = list()
-cox_TIDE = list()
+cox_TMB <- list()
+cox_APS <- list()
+cox_TIGS <- list()
+cox_TIDE <- list()
 
 summary(coxph(Surv(OverallSurvival, VitalStatus == "Dead") ~ nTMB, data = info_hugo)) -> cox_TMB[[1]]
 summary(coxph(Surv(OverallSurvival, VitalStatus == "Dead") ~ APS, data = info_hugo)) -> cox_APS[[1]]
 summary(coxph(Surv(OverallSurvival, VitalStatus == "Dead") ~ TIGS, data = info_hugo)) -> cox_TIGS[[1]]
 summary(coxph(Surv(OverallSurvival, VitalStatus == "Dead") ~ TIDE, data = info_hugo)) -> cox_TIDE[[1]]
 
-summary(coxph(Surv(overall_survival, dead== 1) ~ nTMB, data = info_VanAllen)) -> cox_TMB[[2]]
-summary(coxph(Surv(overall_survival, dead== 1) ~ APS, data = info_VanAllen)) -> cox_APS[[2]]
-summary(coxph(Surv(overall_survival, dead== 1) ~ TIGS, data = info_VanAllen)) -> cox_TIGS[[2]]
-summary(coxph(Surv(overall_survival, dead== 1) ~ TIDE, data = info_VanAllen)) -> cox_TIDE[[2]]
+summary(coxph(Surv(overall_survival, dead == 1) ~ nTMB, data = info_VanAllen)) -> cox_TMB[[2]]
+summary(coxph(Surv(overall_survival, dead == 1) ~ APS, data = info_VanAllen)) -> cox_APS[[2]]
+summary(coxph(Surv(overall_survival, dead == 1) ~ TIGS, data = info_VanAllen)) -> cox_TIGS[[2]]
+summary(coxph(Surv(overall_survival, dead == 1) ~ TIDE, data = info_VanAllen)) -> cox_TIDE[[2]]
 
 summary(coxph(Surv(os, event) ~ nTMB, data = info_Snyder)) -> cox_TMB[[3]]
-summary(coxph(Surv(os, event) ~ APS, data = info_Snyder))  -> cox_APS[[3]]
+summary(coxph(Surv(os, event) ~ APS, data = info_Snyder)) -> cox_APS[[3]]
 summary(coxph(Surv(os, event) ~ TIGS, data = info_Snyder)) -> cox_TIGS[[3]]
 summary(coxph(Surv(os, event) ~ TIDE, data = info_Snyder)) -> cox_TIDE[[3]]
 
-cox_df = tibble(
-  Group = c(rep("Hugo2016",4), rep("VanAllen2015",4), rep("Snyder2017",4)),
+cox_df <- tibble(
+  Group = c(rep("Hugo2016", 4), rep("VanAllen2015", 4), rep("Snyder2017", 4)),
   Biomarker = rep(c("TMB", "APS", "TIGS", "TIDE"), 3),
   HR = c(
     as.numeric(cox_TMB[[1]]$conf.int[1]),
@@ -1332,36 +1451,37 @@ cox_df = tibble(
 )
 
 # show summary data as table
-DT::datatable(cox_df, 
-              options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE, 
-              caption = "HR of biomarkers for response prediction in three ICB datasets")
+DT::datatable(cox_df,
+  options = list(scrollX = TRUE, keys = TRUE), rownames = FALSE,
+  caption = "HR of biomarkers for response prediction in three ICB datasets"
+)
 
 
 # summary K-M fit
-km_TMB = list()
-km_APS = list()
-km_TIGS = list()
-km_TIDE = list()
+km_TMB <- list()
+km_APS <- list()
+km_TIGS <- list()
+km_TIDE <- list()
 
 
-km_TMB[["Hugo"]] = survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ TMB_Status, data = info_hugo2)
-km_TIGS[["Hugo"]] = survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ TIGS_Status, data = info_hugo2)
-km_APS[["Hugo"]] = survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ APS_Status, data = info_hugo2)
-km_TIDE[["Hugo"]] = survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ TIDE_Status, data = info_hugo2)
+km_TMB[["Hugo"]] <- survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ TMB_Status, data = info_hugo2)
+km_TIGS[["Hugo"]] <- survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ TIGS_Status, data = info_hugo2)
+km_APS[["Hugo"]] <- survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ APS_Status, data = info_hugo2)
+km_TIDE[["Hugo"]] <- survfit(Surv(OverallSurvival, VitalStatus == "Dead") ~ TIDE_Status, data = info_hugo2)
 
-km_TMB[["VanAllen"]] = survfit(Surv(overall_survival, dead== 1) ~ TMB_Status, data = info_VanAllen3)
-km_TIGS[["VanAllen"]] = survfit(Surv(overall_survival, dead== 1) ~ TIGS_Status, data = info_VanAllen3)
-km_APS[["VanAllen"]] = survfit(Surv(overall_survival, dead== 1) ~ APS_Status, data = info_VanAllen3)
-km_TIDE[["VanAllen"]] = survfit(Surv(overall_survival, dead== 1) ~ TIDE_Status, data = info_VanAllen3)
-
- 
-km_TMB[["Snyder"]] = survfit(Surv(os, event) ~ TMB_Status, data = info_Snyder2)
-km_TIGS[["Snyder"]] = survfit(Surv(os, event) ~ TIGS_Status, data = info_Snyder2)
-km_APS[["Snyder"]] = survfit(Surv(os, event) ~ APS_Status, data = info_Snyder2)
-km_TIDE[["Snyder"]] = survfit(Surv(os, event) ~ TIDE_Status, data = info_Snyder2)
+km_TMB[["VanAllen"]] <- survfit(Surv(overall_survival, dead == 1) ~ TMB_Status, data = info_VanAllen3)
+km_TIGS[["VanAllen"]] <- survfit(Surv(overall_survival, dead == 1) ~ TIGS_Status, data = info_VanAllen3)
+km_APS[["VanAllen"]] <- survfit(Surv(overall_survival, dead == 1) ~ APS_Status, data = info_VanAllen3)
+km_TIDE[["VanAllen"]] <- survfit(Surv(overall_survival, dead == 1) ~ TIDE_Status, data = info_VanAllen3)
 
 
-km_fit = list(TMB=km_TMB, APS=km_APS, TIGS=km_TIGS, TIDE=km_TIDE)
+km_TMB[["Snyder"]] <- survfit(Surv(os, event) ~ TMB_Status, data = info_Snyder2)
+km_TIGS[["Snyder"]] <- survfit(Surv(os, event) ~ TIGS_Status, data = info_Snyder2)
+km_APS[["Snyder"]] <- survfit(Surv(os, event) ~ APS_Status, data = info_Snyder2)
+km_TIDE[["Snyder"]] <- survfit(Surv(os, event) ~ TIDE_Status, data = info_Snyder2)
+
+
+km_fit <- list(TMB = km_TMB, APS = km_APS, TIGS = km_TIGS, TIDE = km_TIDE)
 
 if (!file.exists("results/cox_km_result.RData")) {
   save(cox_df, km_fit, file = "results/cox_km_result.RData")
@@ -1374,12 +1494,11 @@ if (!file.exists("results/cox_km_result.RData")) {
 This section we visualize comparsion profile, integrate analysis results of 3 immunotherapy datasets into a big figure.
 
 ```{r}
-# make sure these package are loaded 
+# make sure these package are loaded
 library(pROC)
-#library(ggsci)
+# library(ggsci)
 library(ggplot2)
 suppressPackageStartupMessages(library(cowplot))
-
 ```
 
 Integrate ROC curve.
@@ -1387,133 +1506,161 @@ Integrate ROC curve.
 ```{r, fig.height=10}
 theme_set(cowplot::theme_cowplot())
 
-##-------- ROC
+## -------- ROC
 
-# Van Allen 
-p_roc_1 = ggroc(list(TMB=roc_df$TMB[[2]], TIGS=roc_df$TIGS[[2]], TIDE=roc_df$TIDE[[2]]), legacy.axes = TRUE) + 
-  labs(color = "") + scale_color_manual(values = c("blue", "red", "black")) +  
-  theme(legend.position = c(0.8,0.4)) 
-# Hugo      
-p_roc_2 = ggroc(list(TMB=roc_df$TMB[[1]], TIGS=roc_df$TIGS[[1]], TIDE=roc_df$TIDE[[1]]), legacy.axes = TRUE) + 
-  labs(color = "") + scale_color_manual(values = c("blue", "red", "black")) +  
-  theme(legend.position = c(0.8,0.4)) 
+# Van Allen
+p_roc_1 <- ggroc(list(TMB = roc_df$TMB[[2]], TIGS = roc_df$TIGS[[2]], TIDE = roc_df$TIDE[[2]]), legacy.axes = TRUE) +
+  labs(color = "") + scale_color_manual(values = c("blue", "red", "black")) +
+  theme(legend.position = c(0.8, 0.4))
+# Hugo
+p_roc_2 <- ggroc(list(TMB = roc_df$TMB[[1]], TIGS = roc_df$TIGS[[1]], TIDE = roc_df$TIDE[[1]]), legacy.axes = TRUE) +
+  labs(color = "") + scale_color_manual(values = c("blue", "red", "black")) +
+  theme(legend.position = c(0.8, 0.4))
 # Snyder
-p_roc_3 = ggroc(list(TMB=roc_df$TMB[[3]], TIGS=roc_df$TIGS[[3]], TIDE=roc_df$TIDE[[3]]), legacy.axes = TRUE) + 
-  labs(color = "") + scale_color_manual(values = c("blue", "red", "black")) +  
-  theme(legend.position = c(0.8,0.4)) 
+p_roc_3 <- ggroc(list(TMB = roc_df$TMB[[3]], TIGS = roc_df$TIGS[[3]], TIDE = roc_df$TIDE[[3]]), legacy.axes = TRUE) +
+  labs(color = "") + scale_color_manual(values = c("blue", "red", "black")) +
+  theme(legend.position = c(0.8, 0.4))
 
-p_roc_4 = ggroc(list(TIGS=roc_df$TIGS[[2]], APS=roc_df$APS[[2]], PDL1=roc_df$PDL1[[2]],
-                     CD8=roc_df$CD8[[2]], IFNG=roc_df$IFNG[[2]], IIS=roc_df$IIS[[2]]), legacy.axes = TRUE) + 
-  labs(color = "")  +  
-  theme(legend.position = c(0.8,0.4)) 
-p_roc_5 = ggroc(list(TIGS=roc_df$TIGS[[1]], APS=roc_df$APS[[1]], PDL1=roc_df$PDL1[[1]],
-                     CD8=roc_df$CD8[[1]], IFNG=roc_df$IFNG[[1]], IIS=roc_df$IIS[[1]]), legacy.axes = TRUE) + 
-  labs(color = "")  +  
-  theme(legend.position = c(0.8,0.4)) 
-p_roc_6 = ggroc(list(TIGS=roc_df$TIGS[[3]], APS=roc_df$APS[[3]], PDL1=roc_df$PDL1[[3]],
-                     CD8=roc_df$CD8[[3]], IFNG=roc_df$IFNG[[3]], IIS=roc_df$IIS[[3]]), legacy.axes = TRUE) + 
-  labs(color = "")  +  
-  theme(legend.position = c(0.8,0.4)) 
+p_roc_4 <- ggroc(list(
+  TIGS = roc_df$TIGS[[2]], APS = roc_df$APS[[2]], PDL1 = roc_df$PDL1[[2]],
+  CD8 = roc_df$CD8[[2]], IFNG = roc_df$IFNG[[2]], IIS = roc_df$IIS[[2]]
+), legacy.axes = TRUE) +
+  labs(color = "") +
+  theme(legend.position = c(0.8, 0.4))
+p_roc_5 <- ggroc(list(
+  TIGS = roc_df$TIGS[[1]], APS = roc_df$APS[[1]], PDL1 = roc_df$PDL1[[1]],
+  CD8 = roc_df$CD8[[1]], IFNG = roc_df$IFNG[[1]], IIS = roc_df$IIS[[1]]
+), legacy.axes = TRUE) +
+  labs(color = "") +
+  theme(legend.position = c(0.8, 0.4))
+p_roc_6 <- ggroc(list(
+  TIGS = roc_df$TIGS[[3]], APS = roc_df$APS[[3]], PDL1 = roc_df$PDL1[[3]],
+  CD8 = roc_df$CD8[[3]], IFNG = roc_df$IFNG[[3]], IIS = roc_df$IIS[[3]]
+), legacy.axes = TRUE) +
+  labs(color = "") +
+  theme(legend.position = c(0.8, 0.4))
 
 
-p_extra=plot_grid(p_roc_4, p_roc_5, p_roc_6, nrow = 1)
+p_extra <- plot_grid(p_roc_4, p_roc_5, p_roc_6, nrow = 1)
 save_plot(filename = "extra_roc_comparison.pdf", plot = p_extra, nrow = 1, ncol = 3, base_aspect_ratio = 1.2)
 ```
 
 ```{r}
-##-------- AUC values
-auc_df_long = auc_df %>% 
+## -------- AUC values
+auc_df_long <- auc_df %>%
   tidyr::gather(key = "biomarker", value = "auc", -Group)
 
-#p_auc_1 = 
-auc_df_long$auc = round(auc_df_long$auc, digits = 3)
-  
-auc_df_long %>% 
-  filter(Group == "VanAllen2015") %>% 
-  ggplot(aes(x=biomarker, y=auc)) +  
-  geom_bar(stat = "identity", fill="lightblue") + 
-  geom_text(aes(label=auc), hjust=1) +
-  geom_hline(yintercept = 0.5, linetype=2) + 
+# p_auc_1 =
+auc_df_long$auc <- round(auc_df_long$auc, digits = 3)
+
+auc_df_long %>%
+  filter(Group == "VanAllen2015") %>%
+  ggplot(aes(x = biomarker, y = auc)) +
+  geom_bar(stat = "identity", fill = "lightblue") +
+  geom_text(aes(label = auc), hjust = 1) +
+  geom_hline(yintercept = 0.5, linetype = 2) +
   ylim(0, 0.8) + ylab("AUC") + theme(axis.title.y = element_blank()) +
   coord_flip() -> p_auc_1
 
-auc_df_long %>% 
-  filter(Group == "Hugo2016") %>% 
-  ggplot(aes(x=biomarker, y=auc)) +  
-  geom_bar(stat = "identity", fill="lightblue") + 
-  geom_text(aes(label=auc), hjust=1) +
-  geom_hline(yintercept = 0.5, linetype=2) + 
+auc_df_long %>%
+  filter(Group == "Hugo2016") %>%
+  ggplot(aes(x = biomarker, y = auc)) +
+  geom_bar(stat = "identity", fill = "lightblue") +
+  geom_text(aes(label = auc), hjust = 1) +
+  geom_hline(yintercept = 0.5, linetype = 2) +
   ylim(0, 0.8) + ylab("AUC") + theme(axis.title.y = element_blank()) +
   coord_flip() -> p_auc_2
 
-auc_df_long %>% 
-  filter(Group == "Snyder2017") %>% 
-  ggplot(aes(x=biomarker, y=auc)) +  
-  geom_bar(stat = "identity", fill="lightblue") + 
-  geom_text(aes(label=auc), hjust=1) +
-  geom_hline(yintercept = 0.5, linetype=2) + 
+auc_df_long %>%
+  filter(Group == "Snyder2017") %>%
+  ggplot(aes(x = biomarker, y = auc)) +
+  geom_bar(stat = "identity", fill = "lightblue") +
+  geom_text(aes(label = auc), hjust = 1) +
+  geom_hline(yintercept = 0.5, linetype = 2) +
   ylim(0, 0.8) + ylab("AUC") + theme(axis.title.y = element_blank()) +
   coord_flip() -> p_auc_3
-
-
 ```
 
 ```{r}
 #--- KM-plots
-p_surv_APS = list()
-p_surv_TMB = list()
-p_surv_TIGS = list()
-p_surv_TIDE = list()
+p_surv_APS <- list()
+p_surv_TMB <- list()
+p_surv_TIGS <- list()
+p_surv_TIDE <- list()
 
-p_surv_APS[[1]] = ggsurvplot(km_APS$VanAllen, pval = TRUE, fun = "pct", 
-           xlab = "Time (in days)", palette = c("red", "blue"), 
-           legend = c(0.8, 0.9), legend.title=element_blank(),legend.labs = c("APS High", "APS Low"))
-p_surv_APS[[2]] = ggsurvplot(km_APS$Hugo, pval = TRUE, fun = "pct", 
-           xlab = "Time (in days)", palette = c("red", "blue"), 
-           legend = c(0.8, 0.9), legend.title=element_blank(),legend.labs = c("APS High", "APS Low"))
-p_surv_APS[[3]] = ggsurvplot(km_APS$Snyder, pval = TRUE, fun = "pct", 
-           xlab = "Time (in days)", palette = c("red", "blue"), 
-           legend = c(0.8, 0.9), legend.title=element_blank(),legend.labs = c("APS High", "APS Low"))
+p_surv_APS[[1]] <- ggsurvplot(km_APS$VanAllen,
+  pval = TRUE, fun = "pct",
+  xlab = "Time (in days)", palette = c("red", "blue"),
+  legend = c(0.8, 0.9), legend.title = element_blank(), legend.labs = c("APS High", "APS Low")
+)
+p_surv_APS[[2]] <- ggsurvplot(km_APS$Hugo,
+  pval = TRUE, fun = "pct",
+  xlab = "Time (in days)", palette = c("red", "blue"),
+  legend = c(0.8, 0.9), legend.title = element_blank(), legend.labs = c("APS High", "APS Low")
+)
+p_surv_APS[[3]] <- ggsurvplot(km_APS$Snyder,
+  pval = TRUE, fun = "pct",
+  xlab = "Time (in days)", palette = c("red", "blue"),
+  legend = c(0.8, 0.9), legend.title = element_blank(), legend.labs = c("APS High", "APS Low")
+)
 
-p_surv_TMB[[1]] = ggsurvplot(km_TMB$VanAllen, pval = TRUE, fun = "pct", 
-           xlab = "Time (in days)", palette = c("red", "blue"), 
-           legend = c(0.8, 0.9), legend.title=element_blank(),legend.labs = c("TMB High", "TMB Low"))
-p_surv_TMB[[2]] = ggsurvplot(km_TMB$Hugo, pval = TRUE, fun = "pct", 
-           xlab = "Time (in days)", palette = c("red", "blue"), 
-           legend = c(0.8, 0.9), legend.title=element_blank(),legend.labs = c("TMB High", "TMB Low"))
-p_surv_TMB[[3]] = ggsurvplot(km_TMB$Snyder, pval = TRUE, fun = "pct", 
-           xlab = "Time (in days)", palette = c("red", "blue"), 
-           legend = c(0.8, 0.9), legend.title=element_blank(),legend.labs = c("TMB High", "TMB Low"))
+p_surv_TMB[[1]] <- ggsurvplot(km_TMB$VanAllen,
+  pval = TRUE, fun = "pct",
+  xlab = "Time (in days)", palette = c("red", "blue"),
+  legend = c(0.8, 0.9), legend.title = element_blank(), legend.labs = c("TMB High", "TMB Low")
+)
+p_surv_TMB[[2]] <- ggsurvplot(km_TMB$Hugo,
+  pval = TRUE, fun = "pct",
+  xlab = "Time (in days)", palette = c("red", "blue"),
+  legend = c(0.8, 0.9), legend.title = element_blank(), legend.labs = c("TMB High", "TMB Low")
+)
+p_surv_TMB[[3]] <- ggsurvplot(km_TMB$Snyder,
+  pval = TRUE, fun = "pct",
+  xlab = "Time (in days)", palette = c("red", "blue"),
+  legend = c(0.8, 0.9), legend.title = element_blank(), legend.labs = c("TMB High", "TMB Low")
+)
 
-p_surv_TIGS[[1]] = ggsurvplot(km_TIGS$VanAllen, pval = TRUE, fun = "pct", 
-           xlab = "Time (in days)", palette = c("red", "blue"), 
-           legend = c(0.8, 0.9), legend.title=element_blank(),legend.labs = c("TIGS High", "TIGS Low"))
-p_surv_TIGS[[2]] = ggsurvplot(km_TIGS$Hugo, pval = TRUE, fun = "pct", 
-           xlab = "Time (in days)", palette = c("red", "blue"), 
-           legend = c(0.8, 0.4), legend.title=element_blank(),legend.labs = c("TIGS High", "TIGS Low"))
-p_surv_TIGS[[3]] = ggsurvplot(km_TIGS$Snyder, pval = TRUE, fun = "pct", 
-           xlab = "Time (in days)", palette = c("red", "blue"), 
-           legend = c(0.8, 0.9), legend.title=element_blank(),legend.labs = c("TIGS High", "TIGS Low"))
+p_surv_TIGS[[1]] <- ggsurvplot(km_TIGS$VanAllen,
+  pval = TRUE, fun = "pct",
+  xlab = "Time (in days)", palette = c("red", "blue"),
+  legend = c(0.8, 0.9), legend.title = element_blank(), legend.labs = c("TIGS High", "TIGS Low")
+)
+p_surv_TIGS[[2]] <- ggsurvplot(km_TIGS$Hugo,
+  pval = TRUE, fun = "pct",
+  xlab = "Time (in days)", palette = c("red", "blue"),
+  legend = c(0.8, 0.4), legend.title = element_blank(), legend.labs = c("TIGS High", "TIGS Low")
+)
+p_surv_TIGS[[3]] <- ggsurvplot(km_TIGS$Snyder,
+  pval = TRUE, fun = "pct",
+  xlab = "Time (in days)", palette = c("red", "blue"),
+  legend = c(0.8, 0.9), legend.title = element_blank(), legend.labs = c("TIGS High", "TIGS Low")
+)
 
-p_surv_TIDE[[1]] = ggsurvplot(km_TIDE$VanAllen, pval = TRUE, fun = "pct", 
-           xlab = "Time (in days)", palette = c("red", "blue"), 
-           legend = c(0.8, 0.9), legend.title=element_blank(),legend.labs = c("TIDE High", "TIDE Low"))
-p_surv_TIDE[[2]] = ggsurvplot(km_TIDE$Hugo, pval = TRUE, fun = "pct", 
-           xlab = "Time (in days)", palette = c("red", "blue"), 
-           legend = c(0.8, 0.9), legend.title=element_blank(),legend.labs = c("TIDE High", "TIDE Low"))
-p_surv_TIDE[[3]] = ggsurvplot(km_TIDE$Snyder, pval = TRUE, fun = "pct", 
-           xlab = "Time (in days)", palette = c("red", "blue"), 
-           legend = c(0.8, 0.9), legend.title=element_blank(),legend.labs = c("TIDE High", "TIDE Low"))
-  
+p_surv_TIDE[[1]] <- ggsurvplot(km_TIDE$VanAllen,
+  pval = TRUE, fun = "pct",
+  xlab = "Time (in days)", palette = c("red", "blue"),
+  legend = c(0.8, 0.9), legend.title = element_blank(), legend.labs = c("TIDE High", "TIDE Low")
+)
+p_surv_TIDE[[2]] <- ggsurvplot(km_TIDE$Hugo,
+  pval = TRUE, fun = "pct",
+  xlab = "Time (in days)", palette = c("red", "blue"),
+  legend = c(0.8, 0.9), legend.title = element_blank(), legend.labs = c("TIDE High", "TIDE Low")
+)
+p_surv_TIDE[[3]] <- ggsurvplot(km_TIDE$Snyder,
+  pval = TRUE, fun = "pct",
+  xlab = "Time (in days)", palette = c("red", "blue"),
+  legend = c(0.8, 0.9), legend.title = element_blank(), legend.labs = c("TIDE High", "TIDE Low")
+)
 
-p_aps = plot_grid(plotlist = lapply(p_surv_APS, function(x)x$plot), ncol = 3)
-save_plot(filename = "aps_kmplot.pdf", plot = p_aps, ncol=3, base_aspect_ratio = 1.3)
-#ggpar(p , font.legend = c(12, "bold", "black"))
+
+p_aps <- plot_grid(plotlist = lapply(p_surv_APS, function(x) x$plot), ncol = 3)
+save_plot(filename = "aps_kmplot.pdf", plot = p_aps, ncol = 3, base_aspect_ratio = 1.3)
+# ggpar(p , font.legend = c(12, "bold", "black"))
 ```
 
 
 ```{r}
-plot_list = list(
+plot_list <- list(
   p_roc_1, p_auc_1, p_surv_TMB[[1]]$plot, p_surv_TIGS[[1]]$plot, p_surv_TIDE[[1]]$plot,
   p_roc_2, p_auc_2, p_surv_TMB[[2]]$plot, p_surv_TIGS[[2]]$plot, p_surv_TIDE[[2]]$plot,
   p_roc_3, p_auc_3, p_surv_TMB[[3]]$plot, p_surv_TIGS[[3]]$plot, p_surv_TIDE[[3]]$plot
@@ -1522,24 +1669,25 @@ plot_list = list(
 #           p_auc_1, p_auc_2, p_auc_3,
 #           p_surv_TMB[[1]]$plot, p_surv_TMB[[2]]$plot, p_surv_TMB[[3]]$plot,
 #           p_surv_TIGS[[1]]$plot, p_surv_TIGS[[2]]$plot, p_surv_TIGS[[3]]$plot,
-#           p_surv_TIDE[[1]]$plot, p_surv_TIDE[[2]]$plot, p_surv_TIDE[[3]]$plot, nrow = 3, ncol=5, 
+#           p_surv_TIDE[[1]]$plot, p_surv_TIDE[[2]]$plot, p_surv_TIDE[[3]]$plot, nrow = 3, ncol=5,
 #           align = "vh")
-plot_res = plot_grid(plotlist = plot_list, nrow=3, ncol=5, 
-                     labels = c(
-                       "a", "d", "g", "j", "m",
-                       "b", "e", "h", "k", "n",
-                       "c", "f", "i", "l", "o"
-                     ))
-save_plot("comp_profile.png", plot_res, nrow=3, ncol=5)
+plot_res <- plot_grid(
+  plotlist = plot_list, nrow = 3, ncol = 5,
+  labels = c(
+    "a", "d", "g", "j", "m",
+    "b", "e", "h", "k", "n",
+    "c", "f", "i", "l", "o"
+  )
+)
+save_plot("comp_profile.png", plot_res, nrow = 3, ncol = 5)
 
 knitr::include_graphics("comp_profile.png")
-
 ```
 
 Save as pdf for publication.
 
 ```{r}
-save_plot("comp_profile.pdf", plot_res, nrow=3, ncol=5)
+save_plot("comp_profile.pdf", plot_res, nrow = 3, ncol = 5)
 ```
 
 ### Session info
