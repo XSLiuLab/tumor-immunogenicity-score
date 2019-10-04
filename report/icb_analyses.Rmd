@@ -1064,6 +1064,8 @@ ggroc(list(TMB = snyder2017_roc$nTMB, TIGS = snyder2017_roc$TIGS, TIDE = snyder2
   labs(color = "Predictor") + 
   ggpubr::theme_classic2(base_size = 12)
 
+
+save(info_VanAllen2, info_hugo, info_Snyder, file = "results/data_for_ICB_ROC.RData")
 save(van2015_roc, hugo2016_roc, snyder2017_roc, file = "results/ROC_ObjList.RData")
 ```
 
@@ -1084,7 +1086,8 @@ snyder2017_auc = lapply(snyder2017_roc, function(x) as.numeric(auc(x)))
 auc_df = list(van2015_auc, hugo2016_auc, snyder2017_auc) %>% 
   dplyr::bind_rows() %>% 
   dplyr::mutate(Group = c("VanAllen2015", "Hugo2016", "Snyder2017"), 
-                APSr = rowMeans(select(., paste0("APS", 1:100))))
+                APSr = rowMeans(select(., paste0("APS", 1:100)))) %>% 
+  dplyr::rename(TMB = nTMB)
 
 # Show AUC table
 DT::datatable(auc_df,

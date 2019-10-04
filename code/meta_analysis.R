@@ -123,5 +123,5 @@ ggplot(plot_df %>% filter(HR < 10), aes(x = Median, y = HR)) +
     facet_wrap(~type, scales = "free") +
     stat_cor(method = "pearson") + 
     geom_hline(yintercept = 1, linetype = 2) + 
-    cowplot::theme_cowplot() + ylab("Hazard ratio") + xlab(label = NULL) -> p
+    cowplot::theme_cowplot() + ylab("Hazard ratio per unit increase") + xlab(label = "Tumor type APS/TMB/TIGS median") -> p
 ggsave("HR_vs_median_APS_TMB_TIGS.pdf", plot = p, width = 8, height = 3)
