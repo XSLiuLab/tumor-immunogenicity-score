@@ -778,6 +778,22 @@ forestplot(
   xlab = "log Hazard Ratio"
 )
 
+#pdf("forestplot_APS.pdf", onefile = F)
+forestplot(
+  fn.ci_norm = fpDrawCircleCI,
+  forest_APM[, c("Project", "N", "HR", "Pvalue")],
+  mean = c(NA, log(cox_APM$Coef)), lower = c(NA, log(cox_APM$Lower)), upper = c(NA, log(cox_APM$Upper)),
+  is.summary = c(TRUE, rep(FALSE, 32)),
+  clip = c(-4, 4), zero = 0,
+  col = fpColors(box = "royalblue", line = "black", summary = "royalblue", hrz_lines = "black"),
+  vertices = TRUE,
+  xticks = c(-4, -2, -1, 0, 1, 2, 4),
+  hrzl_lines = list("2" = gpar(lty = 1, col = "black")),
+  boxsize = 0.5,
+  # graph.pos = 3,
+  xlab = "log Hazard Ratio"
+)
+#dev.off()
 
 #----- TMB
 forest_TMB <- rbind(
@@ -788,6 +804,7 @@ forest_TMB$HR <- c("HR", format(as.numeric(forest_TMB$Coef[-1]), digits = 2))
 forest_TMB$Pvalue <- c("fdr", format(as.numeric(forest_TMB$Pvalue[-1]), digits = 2))
 
 
+#pdf("forestplot_TMB.pdf", onefile = F)
 forestplot(
   fn.ci_norm = fpDrawCircleCI,
   forest_TMB[, c("Project", "N", "HR", "Pvalue")],
@@ -802,7 +819,7 @@ forestplot(
   # graph.pos = 3,
   xlab = "log Hazard Ratio"
 )
-
+#dev.off()
 
 #---------- TIGS
 forest_TIGS <- rbind(
@@ -813,6 +830,7 @@ forest_TIGS$HR <- c("HR", format(as.numeric(forest_TIGS$Coef[-1]), digits = 2))
 forest_TIGS$Pvalue <- c("fdr", format(as.numeric(forest_TIGS$Pvalue[-1]), digits = 2))
 
 
+#pdf("forestplot_TIGS.pdf", onefile = F)
 forestplot(
   fn.ci_norm = fpDrawCircleCI,
   forest_TIGS[, c("Project", "N", "HR", "Pvalue")],
@@ -827,6 +845,7 @@ forestplot(
   # graph.pos = 3,
   xlab = "log Hazard Ratio"
 )
+#dev.off()
 ```
 
 ## APS, TIGS and B2M mutation

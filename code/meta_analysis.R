@@ -64,9 +64,9 @@ APS_df %>%
     forestmodel::forest_rma(., 
                             panels = metawho:::deft_panel(., 
                                                           headings = list(study = "Project", 
-                                                                          n = "N", measure = "log Hazard Ratio", ci = "HR (95% CI)")),
+                                                                          n = "N", measure = "log Hazard Ratio", ci = "log HR (95% CI)")),
                             study_labels = APS_df$Project, 
-                            limits = c(-4, 5))
+                            limits = c(-4, 5)) -> p_aps
     
 TMB_df = cox_TMB %>% 
     rename(hr = Coef,
@@ -82,9 +82,9 @@ TMB_df %>%
     forestmodel::forest_rma(., 
                             panels = metawho:::deft_panel(., 
                                                           headings = list(study = "Project", 
-                                                                          n = "N", measure = "log Hazard Ratio", ci = "HR (95% CI)")),
+                                                                          n = "N", measure = "log Hazard Ratio", ci = "log HR (95% CI)")),
                             study_labels = TMB_df$Project, 
-                            limits = c(-2, 3))
+                            limits = c(-2, 3)) -> p_tmb
 
 TIGS_df = cox_TIGS %>% 
     rename(hr = Coef,
@@ -100,9 +100,13 @@ TIGS_df %>%
     forestmodel::forest_rma(., 
                             panels = metawho:::deft_panel(., 
                                                           headings = list(study = "Project", 
-                                                                          n = "N", measure = "log Hazard Ratio", ci = "HR (95% CI)")),
+                                                                          n = "N", measure = "log Hazard Ratio", ci = "log HR (95% CI)")),
                             study_labels = TIGS_df$Project, 
-                            limits = c(-4, 5))
+                            limits = c(-4, 7)) -> p_tigs
+
+ggsave("Meta_APS.pdf", plot = p_aps, width = 7, height = 7)
+ggsave("Meta_TMB.pdf", plot = p_tmb, width = 7, height = 7)
+ggsave("Meta_TIGS.pdf", plot = p_tigs, width = 7, height = 7)
 
 # Plot correlation between median value and HR
 plot_df = dplyr::bind_rows(
