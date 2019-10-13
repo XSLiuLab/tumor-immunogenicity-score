@@ -2,6 +2,7 @@
 # and metawho from https://github.com/ShixiangWang/metawho
 load("report/results/unicox.RData")
 library(metawho)
+library(forestmodel)
 library(tidyverse)
 
 df_summary = df_summary %>% 
@@ -24,32 +25,48 @@ cox_TIGS = cox_TIGS %>%
     rename(status = medianTIGS_status) %>% 
     arrange(medianTIGS)
 
-# cox_APM %>% 
-#     rename(hr = Coef,
-#            ci.lb = Lower,
-#            ci.ub = Upper,
-#            ni = N,
-#            subgroup = status) %>% 
-#     mutate(trial = Project,
-#         entry = paste(trial, subgroup, sep = "-")) %>% 
-#     deft_prepare() -> tt
-# 
-# model = rma(yi = yi, sei = sei, ni = ni,  data = tt %>% filter(subgroup == "Low"))
-# forestmodel::forest_rma(model, 
-#                         panels = metawho:::deft_panel(model, 
-#                                                       headings = list(study = "Study", 
-#                                                            n = "N", measure = "log Hazard Ratio", ci = NULL)),
-#                         study_labels = tt$Project[tt$subgroup == "Low"], 
-#                         limits = c(-4, 5))
-# 
-# model = rma(yi = yi, sei = sei, ni = ni,  data = tt %>% filter(subgroup == "High"))
-# forestmodel::forest_rma(model, 
-#                         panels = metawho:::deft_panel(model, 
-#                                                       headings = list(study = "Study", 
-#                                                                       n = "N", measure = "log Hazard Ratio", ci = NULL)),
-#                         study_labels = tt$Project[tt$subgroup == "High"], 
-#                         limits = c(-4, 5))
-
+# Set custom forest panels
+custom_panel = function(model = NULL, factor_separate_line = FALSE,
+                        headings = list(study = "Study", n = "N", measure = "HR", ci = NULL, p = "Pvalue"),
+                        pvalue=NULL) {
+    if (inherits(model, "rma")) {
+        
+        panels <- list(
+            forest_panel(width = 0.01),
+            forest_panel(
+                width = 0.01, display = study, fontface = "bold", heading = headings$study,
+                width_group = 1
+            ),
+            forest_panel(
+                width = 0.18, display = stat, parse = TRUE,
+                width_group = 1
+            ),
+            forest_panel(width = 0.03, display = n, hjust = 1, heading = headings$n),
+            forest_panel(width = 0.03, item = "vline", hjust = 0.5),
+            forest_panel(
+                width = 0.45, item = "forest", hjust = 0.5, heading = headings$measure,
+                linetype = "dashed", line_x = 0
+            ),
+            forest_panel(width = 0.03, item = "vline", hjust = 0.5),
+            forest_panel(
+                width = 0.20,
+                display = sprintf("%0.2f (%0.2f, %0.2f)", exp(estimate), exp(conf.low), exp(conf.high)),
+                heading = headings$ci,
+                display_na = NA
+            ),
+            forest_panel(width = 0.01, item = "vline", hjust = 0.5),
+            forest_panel(
+                width = 0.1, display = round(pvalue, digits = 3),
+                heading = headings$p,
+                display_na = NA
+            )
+        )
+    } else {
+        stop("This function only support rma object.")
+    }
+    panels
+}
+    
 APS_df = cox_APM %>% 
     rename(hr = Coef,
            ci.lb = Lower,
@@ -59,12 +76,14 @@ APS_df = cox_APM %>%
     mutate(trial = Project,
            entry = paste(trial, subgroup, sep = "-")) %>% 
     deft_prepare() 
-APS_df %>% 
-    rma(yi = yi, sei = sei, ni = ni,  data = .) %>% 
-    forestmodel::forest_rma(., 
-                            panels = metawho:::deft_panel(., 
-                                                          headings = list(study = "Project", 
-                                                                          n = "N", measure = "log Hazard Ratio", ci = "log HR (95% CI)")),
+model_APS = APS_df %>% 
+    rma(yi = yi, sei = sei, ni = ni,  data = .)
+
+model_APS %>% forestmodel::forest_rma(., 
+                            panels = custom_panel(., headings = list(study = "Project", p = "P.value",
+                                                                          n = "N", measure = "log Hazard Ratio",
+                                                                          ci = "HR (95% CI)"), 
+                                                  pvalue = c(p.adjust(APS_df$Pvalue, method = "fdr"), model_APS$pval)),
                             study_labels = APS_df$Project, 
                             limits = c(-4, 5)) -> p_aps
     
@@ -77,12 +96,14 @@ TMB_df = cox_TMB %>%
     mutate(trial = Project,
            entry = paste(trial, subgroup, sep = "-")) %>% 
     deft_prepare() 
-TMB_df %>% 
-    rma(yi = yi, sei = sei, ni = ni,  data = .) %>% 
+model_TMB = TMB_df %>% 
+    rma(yi = yi, sei = sei, ni = ni,  data = .)
+model_TMB %>% 
     forestmodel::forest_rma(., 
-                            panels = metawho:::deft_panel(., 
-                                                          headings = list(study = "Project", 
-                                                                          n = "N", measure = "log Hazard Ratio", ci = "log HR (95% CI)")),
+                            panels = custom_panel(., headings = list(study = "Project", p = "P.value",
+                                                                     n = "N", measure = "log Hazard Ratio",
+                                                                     ci = "HR (95% CI)"), 
+                                                  pvalue = c(p.adjust(TMB_df$Pvalue, method = "fdr"), model_TMB$pval)),
                             study_labels = TMB_df$Project, 
                             limits = c(-2, 3)) -> p_tmb
 
@@ -95,12 +116,14 @@ TIGS_df = cox_TIGS %>%
     mutate(trial = Project,
            entry = paste(trial, subgroup, sep = "-")) %>% 
     deft_prepare() 
-TIGS_df %>% 
-    rma(yi = yi, sei = sei, ni = ni,  data = .) %>% 
+model_TIGS = TIGS_df %>% 
+    rma(yi = yi, sei = sei, ni = ni,  data = .)
+model_TIGS %>% 
     forestmodel::forest_rma(., 
-                            panels = metawho:::deft_panel(., 
-                                                          headings = list(study = "Project", 
-                                                                          n = "N", measure = "log Hazard Ratio", ci = "log HR (95% CI)")),
+                            panels = custom_panel(., headings = list(study = "Project", p = "P.value",
+                                                                     n = "N", measure = "log Hazard Ratio",
+                                                                     ci = "HR (95% CI)"), 
+                                                  pvalue = c(p.adjust(TIGS_df$Pvalue, method = "fdr"), model_TIGS$pval)),
                             study_labels = TIGS_df$Project, 
                             limits = c(-4, 7)) -> p_tigs
 
