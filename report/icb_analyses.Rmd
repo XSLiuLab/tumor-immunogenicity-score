@@ -1404,47 +1404,68 @@ theme_set(cowplot::theme_cowplot())
 # Van Allen
 p_roc_1 <- ggroc(list(TMB = van2015_roc$nTMB,
                       TIGS = van2015_roc$TIGS,
-                      TIDE = van2015_roc$TIDE), legacy.axes = TRUE) +
-  labs(color = "") + scale_color_manual(values = c("blue", "red", "black")) +
-  theme(legend.position = c(0.8, 0.4))
+                      TIDE = van2015_roc$TIDE), legacy.axes = TRUE, aes = c("color", "linetype")) +
+  scale_color_manual("", values = c("blue", "red", "black")) +
+  scale_linetype_discrete("") + 
+  theme(legend.position = c(0.8, 0.4)) + 
+  geom_segment(aes(x=0, xend=1, y =0, yend=1), color = "grey", linetype = "dashed")
 # Hugo
 p_roc_2 <- ggroc(list(TMB = hugo2016_roc$nTMB,
                       TIGS = hugo2016_roc$TIGS,
-                      TIDE = hugo2016_roc$TIDE), legacy.axes = TRUE) +
-  labs(color = "") + scale_color_manual(values = c("blue", "red", "black")) +
-  theme(legend.position = c(0.8, 0.4))
+                      TIDE = hugo2016_roc$TIDE), legacy.axes = TRUE, aes = c("color", "linetype")) +
+  scale_color_manual("", values = c("blue", "red", "black")) +
+  scale_linetype_discrete("") + 
+  theme(legend.position = c(0.8, 0.4)) +
+  geom_segment(aes(x=0, xend=1, y =0, yend=1), color = "grey", linetype = "dashed")
 # Snyder
 p_roc_3 <- ggroc(list(TMB = snyder2017_roc$nTMB,
                       TIGS = snyder2017_roc$TIGS,
-                      TIDE = snyder2017_roc$TIDE), legacy.axes = TRUE) +
-  labs(color = "") + scale_color_manual(values = c("blue", "red", "black")) +
-  theme(legend.position = c(0.8, 0.4))
+                      TIDE = snyder2017_roc$TIDE), legacy.axes = TRUE, aes = c("color", "linetype")) +
+  scale_color_manual("", values = c("blue", "red", "black")) +
+  scale_linetype_discrete("") + 
+  theme(legend.position = c(0.8, 0.4)) +
+  geom_segment(aes(x=0, xend=1, y =0, yend=1), color = "grey", linetype = "dashed")
 
 p_roc_4 <- ggroc(list(
   TIGS = van2015_roc$TIGS, APS = van2015_roc$APS, PDL1 = van2015_roc$PDL1,
-  CD8 = van2015_roc$CD8, IFNG = van2015_roc$IFNG, IIS = van2015_roc$IIS),
+  CD8 = van2015_roc$CD8, IFNG = van2015_roc$IFNG, IIS = van2015_roc$IIS, 
+  ISG.RS = van2015_roc$ISG.RS, IFNG.GS = van2015_roc$IFNG.GS), aes = c("color", "linetype"),
   legacy.axes = TRUE) +
-  labs(color = "") +
-  theme(legend.position = c(0.8, 0.4))
+  scale_color_discrete("") +
+  scale_linetype_discrete("") + 
+  theme(legend.position = c(0.8, 0.4)) + 
+  geom_segment(aes(x=0, xend=1, y =0, yend=1), color = "grey", linetype = "dashed")
+
 p_roc_5 <- ggroc(list(
   TIGS = hugo2016_roc$TIGS, APS = hugo2016_roc$APS, PDL1 = hugo2016_roc$PDL1,
-  CD8 = hugo2016_roc$CD8, IFNG = hugo2016_roc$IFNG, IIS = hugo2016_roc$IIS),
+  CD8 = hugo2016_roc$CD8, IFNG = hugo2016_roc$IFNG, IIS = hugo2016_roc$IIS,
+  ISG.RS = hugo2016_roc$ISG.RS, IFNG.GS = hugo2016_roc$IFNG.GS), aes = c("color", "linetype"),
   legacy.axes = TRUE) +
-  labs(color = "") +
-  theme(legend.position = c(0.8, 0.4))
+  scale_color_discrete("") +
+  scale_linetype_discrete("") + 
+  theme(legend.position = c(0.8, 0.4)) + 
+  geom_segment(aes(x=0, xend=1, y =0, yend=1), color = "grey", linetype = "dashed")
+
 p_roc_6 <- ggroc(list(
   TIGS = snyder2017_roc$TIGS, APS = snyder2017_roc$APS, PDL1 = snyder2017_roc$PDL1,
-  CD8 = snyder2017_roc$CD8, IFNG = snyder2017_roc$IFNG, IIS = snyder2017_roc$IIS),
+  CD8 = snyder2017_roc$CD8, IFNG = snyder2017_roc$IFNG, IIS = snyder2017_roc$IIS,
+  ISG.RS = snyder2017_roc$ISG.RS, IFNG.GS = snyder2017_roc$IFNG.GS), aes = c("color", "linetype"),
   legacy.axes = TRUE) +
-  labs(color = "") +
-  theme(legend.position = c(0.8, 0.4))
+  scale_color_discrete("") +
+  scale_linetype_discrete("") + 
+  theme(legend.position = c(0.8, 0.4)) +
+  geom_segment(aes(x=0, xend=1, y =0, yend=1), color = "grey", linetype = "dashed")
 
 
 p_extra <- plot_grid(p_roc_4, p_roc_5, p_roc_6, nrow = 1)
-save_plot(filename = "extra_roc_comparison.pdf", plot = p_extra, nrow = 1, ncol = 3, base_aspect_ratio = 1.2)
+save_plot(filename = "extra_roc_comparison.pdf", plot = p_extra, nrow = 1, 
+          ncol = 3, base_aspect_ratio = 1.5)
 ```
 
 ```{r}
+show_cols = c("APS", "APSr", "IIS", "TMB", "TIGS", "TIDE", "CD8", "PDL1", "IFNG", "IFNG.GS", "ISG.RS")
+show_extcols = c("TIDE_comb_TMB", "APS7_Sig", "APS7_Sig_comb_TMB", "APS_MHC_II", "APS_MHC_II_comb_TMB")
+
 ## -------- AUC values
 auc_df_long <- auc_df %>%
   dplyr::select(c(colnames(auc_df)[1:20], "APSr", "Group")) %>% 
@@ -1454,7 +1475,7 @@ auc_df_long <- auc_df %>%
 auc_df_long$auc <- round(auc_df_long$auc, digits = 3)
 
 auc_df_long %>%
-  filter(Group == "VanAllen2015") %>%
+  filter(Group == "VanAllen2015", biomarker %in% show_cols) %>%
   ggplot(aes(x = biomarker, y = auc)) +
   geom_bar(stat = "identity", fill = "lightblue") +
   geom_text(aes(label = auc), hjust = 1) +
@@ -1463,7 +1484,7 @@ auc_df_long %>%
   coord_flip() -> p_auc_1
 
 auc_df_long %>%
-  filter(Group == "Hugo2016") %>%
+  filter(Group == "Hugo2016", biomarker %in% show_cols) %>%
   ggplot(aes(x = biomarker, y = auc)) +
   geom_bar(stat = "identity", fill = "lightblue") +
   geom_text(aes(label = auc), hjust = 1) +
@@ -1472,14 +1493,48 @@ auc_df_long %>%
   coord_flip() -> p_auc_2
 
 auc_df_long %>%
-  filter(Group == "Snyder2017") %>%
+  filter(Group == "Snyder2017", biomarker %in% show_cols) %>%
   ggplot(aes(x = biomarker, y = auc)) +
   geom_bar(stat = "identity", fill = "lightblue") +
   geom_text(aes(label = auc), hjust = 1) +
   geom_hline(yintercept = 0.5, linetype = 2) +
   ylim(0, 0.8) + ylab("AUC") + theme(axis.title.y = element_blank()) +
   coord_flip() -> p_auc_3
+
+auc_df_long %>%
+  filter(Group == "VanAllen2015", biomarker %in% show_extcols) %>%
+  ggplot(aes(x = biomarker, y = auc)) +
+  geom_bar(stat = "identity", fill = "lightblue") +
+  geom_text(aes(label = auc), hjust = 1) +
+  geom_hline(yintercept = 0.5, linetype = 2) +
+  ylim(0, 0.85) + ylab("AUC") + theme(axis.title.y = element_blank()) +
+  coord_flip() -> p_auc_ext1
+
+auc_df_long %>%
+  filter(Group == "Hugo2016", biomarker %in% show_extcols) %>%
+  ggplot(aes(x = biomarker, y = auc)) +
+  geom_bar(stat = "identity", fill = "lightblue") +
+  geom_text(aes(label = auc), hjust = 1) +
+  geom_hline(yintercept = 0.5, linetype = 2) +
+  ylim(0, 0.8) + ylab("AUC") + theme(axis.title.y = element_blank()) +
+  coord_flip() -> p_auc_ext2
+
+auc_df_long %>%
+  filter(Group == "Snyder2017", biomarker %in% show_extcols) %>%
+  ggplot(aes(x = biomarker, y = auc)) +
+  geom_bar(stat = "identity", fill = "lightblue") +
+  geom_text(aes(label = auc), hjust = 1) +
+  geom_hline(yintercept = 0.5, linetype = 2) +
+  ylim(0, 0.8) + ylab("AUC") + theme(axis.title.y = element_blank()) +
+  coord_flip() -> p_auc_ext3
 ```
+
+
+```{r}
+auc_ext = cowplot::plot_grid(p_auc_ext1, p_auc_ext2, p_auc_ext3, align = "h", nrow = 1) 
+ggsave2("extra_auc.pdf", auc_ext, width = 8, height = 2.5)
+```
+
 
 ```{r}
 #--- KM-plots
@@ -1560,11 +1615,20 @@ save_plot(filename = "aps_kmplot.pdf", plot = p_aps, ncol = 3, base_aspect_ratio
 
 
 ```{r}
-plot_list <- list(
-  p_roc_1, p_auc_1, p_surv_TMB[[1]]$plot, p_surv_TIGS[[1]]$plot, p_surv_TIDE[[1]]$plot,
-  p_roc_2, p_auc_2, p_surv_TMB[[2]]$plot, p_surv_TIGS[[2]]$plot, p_surv_TIDE[[2]]$plot,
-  p_roc_3, p_auc_3, p_surv_TMB[[3]]$plot, p_surv_TIGS[[3]]$plot, p_surv_TIDE[[3]]$plot
+plot_list = list(
+  p_roc_1, p_roc_2, p_roc_3,
+  p_auc_1, p_auc_2, p_auc_3,
+  p_surv_TMB[[1]]$plot, p_surv_TMB[[2]]$plot, p_surv_TMB[[3]]$plot,
+  p_surv_TIGS[[1]]$plot, p_surv_TIGS[[2]]$plot, p_surv_TIGS[[3]]$plot,
+  p_surv_TIDE[[1]]$plot, p_surv_TIDE[[2]]$plot, p_surv_TIDE[[1]]$plot
 )
+
+# plot_list <- list(
+#   p_roc_1, p_auc_1, p_surv_TMB[[1]]$plot, p_surv_TIGS[[1]]$plot, p_surv_TIDE[[1]]$plot,
+#   p_roc_2, p_auc_2, p_surv_TMB[[2]]$plot, p_surv_TIGS[[2]]$plot, p_surv_TIDE[[2]]$plot,
+#   p_roc_3, p_auc_3, p_surv_TMB[[3]]$plot, p_surv_TIGS[[3]]$plot, p_surv_TIDE[[3]]$plot
+# )
+
 # plot_grid(p_roc_1, p_roc_2, p_roc_3,
 #           p_auc_1, p_auc_2, p_auc_3,
 #           p_surv_TMB[[1]]$plot, p_surv_TMB[[2]]$plot, p_surv_TMB[[3]]$plot,
@@ -1572,12 +1636,7 @@ plot_list <- list(
 #           p_surv_TIDE[[1]]$plot, p_surv_TIDE[[2]]$plot, p_surv_TIDE[[3]]$plot, nrow = 3, ncol=5,
 #           align = "vh")
 plot_res <- plot_grid(
-  plotlist = plot_list, nrow = 3, ncol = 5,
-  labels = c(
-    "a", "d", "g", "j", "m",
-    "b", "e", "h", "k", "n",
-    "c", "f", "i", "l", "o"
-  )
+  plotlist = plot_list, nrow = 5, ncol = 3
 )
 save_plot("comp_profile.png", plot_res, nrow = 3, ncol = 5)
 
@@ -1587,7 +1646,7 @@ knitr::include_graphics("comp_profile.png")
 Save as pdf for publication.
 
 ```{r}
-save_plot("comp_profile.pdf", plot_res, nrow = 3, ncol = 5)
+save_plot("comp_profile.pdf", plot_res, nrow = 5, ncol = 3)
 ```
 
 ### Session info
