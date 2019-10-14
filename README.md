@@ -55,7 +55,7 @@ For readers who want to reproduce analysis shown in manuscript, please [install 
 
 * System: __MacOS__
 
-* Software: __R v3.5.2__
+* Software: __R v3.6.0__
 
 * R packages:
 
@@ -64,12 +64,14 @@ For readers who want to reproduce analysis shown in manuscript, please [install 
   * [tidyverse](https://www.tidyverse.org/) - operate data, plot
   * data.table - operate data
   * survival - built in R, used to do survival analysis 
+  * metafor, metawho - meta-analysis
+  * forestmodel - generate forestplot for meta-analysis model
   * forestplot - plot forestplot
   * survminer - plot survival fit
   * pROC - ROC analysis and visualization
   * [TCGAmutations](https://github.com/PoisonAlien/TCGAmutations) - download TCGA mutation data
   * [DT](https://cran.r-project.org/web/packages/DT/index.html) - show data table as a table in html
-  * [GSVA](https://github.com/rcastelo/GSVA) [v1.28.0](https://www.bioconductor.org/packages/3.7/bioc/html/GSVA.html) - GSVA algorithm implementation
+  * [GSVA](https://github.com/rcastelo/GSVA) - GSVA algorithm implementation
   * [ggstatsplot](https://github.com/IndrajeetPatil/ggstatsplot) - plot scatter with linear fit
   * [corrplot](https://cran.r-project.org/web/packages/corrplot/) - plot correlation 
   * knitr, rmdformats - used to compile this file

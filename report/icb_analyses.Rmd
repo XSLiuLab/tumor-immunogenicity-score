@@ -1638,11 +1638,7 @@ plot_list = list(
 plot_res <- plot_grid(
   plotlist = plot_list, nrow = 5, ncol = 3
 )
-<<<<<<< HEAD
 save_plot("comp_profile.png", plot_res, nrow = 5, ncol = 3)
-=======
-save_plot("comp_profile.png", plot_res, nrow = 3, ncol = 5)
->>>>>>> 30c35b02d0a404d3a1ab9ad4f2f53620ca083e28
 
 knitr::include_graphics("comp_profile.png")
 ```
