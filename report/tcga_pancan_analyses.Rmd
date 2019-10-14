@@ -93,7 +93,7 @@ Here we explore association across APS, APS7, APS_MHC_II, PHBR_I, PHBR_II.
 
 ```{r relationship_between_scores}
 score_df <- df.gsva.tumor %>%
-  select(Project, APM, APS7, APS_MHC_II, TIS, IIS, PHBR_I, PHBR_II)
+  select(Project, APM, APS7, IIS, PHBR_I, PHBR_II)
 ```
 
 First we check pan-cancer level association.
