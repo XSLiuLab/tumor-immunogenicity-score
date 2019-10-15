@@ -77,7 +77,7 @@ For readers who want to reproduce analysis shown in manuscript, please [install 
   * knitr, rmdformats - used to compile this file
   * readxl - read xlsx data
 
-  > __These R packages are easily searched by internet and have no strict version requirements to reproduce the analyses.__
+These R packages are easily searched by internet and have no strict version requirements to reproduce the analyses.
 
 ## Citation
 
@@ -91,4 +91,10 @@ We thank all the reviewers for providing valuable comments to promote the qualit
 
 ## LICENSE
 
-Please note this work under __Apache License v2__ license, copyright belongs to Shixiang Wang and Xue-Song Liu, more detail please see [description of license](LICENSE).
+Code and documents of this work are made available for non commercial research purposes only under __Apache License v2__ license, more detail please see [description of license](LICENSE). However, the study has been applied for a national patent in China, notwithstanding any provision of the __Apache License v2__ License, the code/idea currently may not be used for commercial purposes without explicit written permission after contacting Xue-Song Liu <liuxs@shanghaitech.edu.cn> or Shixiang Wang <wangshx@shanghaitech.edu.cn>.
+
+***
+
+**Cancer Biology Group @ShanghaiTech**
+
+**Research group led by Xue-Song Liu in ShanghaiTech. University**
