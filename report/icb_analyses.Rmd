@@ -688,7 +688,7 @@ load("results/Snyder2017_RNA.RData")
 ISG_IFNG <- read_csv("../data/ISG.RS_and_IFNG.GS.csv", comment = "#")
 ```
 
-### Add APS7 and APS_MHC_II
+### Add APS7 and ~~APS_MHC_II~~
 
 
 ```{r, eval=FALSE}

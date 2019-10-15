@@ -45,20 +45,15 @@ Totally, 9095 tumor samples have APS value.
 
 We know that genes used for APS calculation does not overlap with genes of immune cell type, but we don't know if there are association between APS and them. Besides, we also don't know if there are association between APS and two aggregate scores: TIS and IIS.
 
-**UPDATE**: Also, we also want to compare them with APS7, APS calculated with MHC II (substitute MHC I genes with classic MHC II genes), and PHBR scores from *MHC-I Genotype Restricts the Oncogenic Mutational Landscape* and *Evolutionary Pressure against MHC Class II Binding Cancer Mutations*. Therefore, we integrate them all before analyzing.
+**UPDATE**: Also, we also want to compare them with APS7 and PHBR scores from *MHC-I Genotype Restricts the Oncogenic Mutational Landscape* and *Evolutionary Pressure against MHC Class II Binding Cancer Mutations*. Therefore, we integrate them all before analyzing.
 
 
 ```{r}
 load("results/res_APS7.GSVA.RData")
-load("results/res_APS_MHC_II.GSVA.RData")
 
 res_APS7.GSVA <- res_APS7.GSVA %>%
   rownames_to_column(var = "Tumor_Sample_Barcode") %>%
   rename(APS7 = APM)
-
-res_MHCII.GSVA <- res_MHCII.GSVA %>%
-  rownames_to_column(var = "Tumor_Sample_Barcode") %>%
-  rename(APS_MHC_II = APM_MHC_II)
 ```
 
 ```{r}
@@ -81,7 +76,7 @@ Combine them.
 
 ```{r}
 df.gsva.tumor <- purrr::reduce(
-  list(df.gsva.tumor, res_APS7.GSVA, res_MHCII.GSVA, PHBR_I.score, PHBR_II.score),
+  list(df.gsva.tumor, res_APS7.GSVA, PHBR_I.score, PHBR_II.score),
   left_join
 )
 ```
@@ -89,7 +84,7 @@ df.gsva.tumor <- purrr::reduce(
 
 ### Association between GSVA scores and other presentation scores
 
-Here we explore association across APS, APS7, APS_MHC_II, PHBR_I, PHBR_II.
+Here we explore association across APS, APS7, IIS, PHBR_I, PHBR_II.
 
 ```{r relationship_between_scores}
 score_df <- df.gsva.tumor %>%
@@ -163,7 +158,7 @@ The first step is to calculate correlation using  __spearman__ method.
 
 ```{r relationship_APS_others}
 df.gsva.heat <- df.gsva.tumor %>%
-  select(-c(Tumor_Sample_Barcode:Tumor_stage, APS7, APS_MHC_II, IIS, TIS, PHBR_I, PHBR_II)) %>%
+  select(-c(Tumor_Sample_Barcode:Tumor_stage, APS7, IIS, TIS, PHBR_I, PHBR_II)) %>%
   filter(!is.na(APM)) %>%
   select(Project, APM, everything())
 heat_mat <- sapply(unique(df.gsva.heat$Project), function(x) {
@@ -323,7 +318,7 @@ __TIMER__ is another method that can accurately resolve relative fractions of di
 ```{r cmp_timer}
 load("results/timer.RData")
 
-df <- dplyr::select(df.gsva.tumor, Project, APM, IIS, APS7, APS_MHC_II, PHBR_I, PHBR_II, Gender, Age, Tumor_stage, OS.time, OS, Tumor_Sample_Barcode)
+df <- dplyr::select(df.gsva.tumor, Project, APM, IIS, APS7, PHBR_I, PHBR_II, Gender, Age, Tumor_stage, OS.time, OS, Tumor_Sample_Barcode)
 
 df_timer <- dplyr::left_join(x = df, y = timer_clean, by = c("Tumor_Sample_Barcode" = "sample"))
 ```
@@ -333,7 +328,7 @@ df_timer <- dplyr::left_join(x = df, y = timer_clean, by = c("Tumor_Sample_Barco
 library(corrplot)
 
 mat_timer_IIS <- df_timer %>%
-  select(-c(APM, APS7, APS_MHC_II, PHBR_I, PHBR_II, Gender:Tumor_Sample_Barcode)) %>%
+  select(-c(APM, APS7, PHBR_I, PHBR_II, Gender:Tumor_Sample_Barcode)) %>%
   filter(!is.na(IIS) & !is.na(T_cell.CD8)) %>%
   filter(T_cell.CD8 != 0)
 mat_timer_IIS.heat <- sapply(unique(mat_timer_IIS$Project), function(x) {
