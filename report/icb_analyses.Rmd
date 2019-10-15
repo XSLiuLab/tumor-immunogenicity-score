@@ -935,7 +935,7 @@ info_hugo = info_hugo %>%
                      "PDL1", "TIDE", "APS7_Sig", "APS_MHC_II"), scales::rescale) %>% 
   dplyr::mutate_at(c("CD8", "IFNG", "IFNG.GS", "ISG.RS", 
                      "PDL1", "TIDE", "APS7_Sig", "APS_MHC_II"),
-                   list(comb_TMB= ~ . * log(nTMB)))
+                   list(comb_TMB= ~ . * log(nTMB+1)))
 
 genROC = function(info, markers, response="Response", direction="<", APSrandom=1:100) {
   ROC_LIST = list()
@@ -1000,7 +1000,7 @@ info_VanAllen2 = info_VanAllen2 %>%
                      "PDL1", "TIDE", "APS7_Sig", "APS_MHC_II"), scales::rescale) %>% 
   dplyr::mutate_at(c("CD8", "IFNG", "IFNG.GS", "ISG.RS", 
                      "PDL1", "TIDE", "APS7_Sig", "APS_MHC_II"),
-                   list(comb_TMB= ~ . * log(nTMB)))
+                   list(comb_TMB= ~ . * log(nTMB+1)))
 
 
 suppressMessages(
@@ -1038,7 +1038,7 @@ info_Snyder = info_Snyder %>%
                      "PDL1", "TIDE", "APS7_Sig", "APS_MHC_II"), scales::rescale) %>% 
   dplyr::mutate_at(c("CD8", "IFNG", "IFNG.GS", "ISG.RS", 
                      "PDL1", "TIDE", "APS7_Sig", "APS_MHC_II"),
-                   list(comb_TMB= ~ . * log(nTMB)))
+                   list(comb_TMB= ~ . * log(nTMB+1)))
 
 suppressMessages(
   snyder2017_roc <- genROC(info_Snyder, 
@@ -1464,7 +1464,7 @@ save_plot(filename = "extra_roc_comparison.pdf", plot = p_extra, nrow = 1,
 
 ```{r}
 show_cols = c("APS", "APSr", "IIS", "TMB", "TIGS", "TIDE", "CD8", "PDL1", "IFNG", "IFNG.GS", "ISG.RS")
-show_extcols = c("TIDE_comb_TMB", "APS7_Sig", "APS7_Sig_comb_TMB", "APS_MHC_II", "APS_MHC_II_comb_TMB")
+show_extcols = c("TIDE_comb_TMB", "APS7_Sig", "APS7_Sig_comb_TMB")
 
 ## -------- AUC values
 auc_df_long <- auc_df %>%
@@ -1473,6 +1473,8 @@ auc_df_long <- auc_df %>%
 
 # p_auc_1 =
 auc_df_long$auc <- round(auc_df_long$auc, digits = 3)
+
+# AUC for PHBR comes from result of code/PHBR_comparison_*.R
 
 auc_df_long %>%
   filter(Group == "VanAllen2015", biomarker %in% show_cols) %>%
@@ -1503,6 +1505,7 @@ auc_df_long %>%
 
 auc_df_long %>%
   filter(Group == "VanAllen2015", biomarker %in% show_extcols) %>%
+  add_row(Group="VanAllen2015", biomarker=c("PHBR_I", "PHBR_I_comb_TMB"), auc=c(0.57, 0.71)) %>%  
   ggplot(aes(x = biomarker, y = auc)) +
   geom_bar(stat = "identity", fill = "lightblue") +
   geom_text(aes(label = auc), hjust = 1) +
@@ -1521,6 +1524,7 @@ auc_df_long %>%
 
 auc_df_long %>%
   filter(Group == "Snyder2017", biomarker %in% show_extcols) %>%
+  add_row(Group="Snyder2017", biomarker=c("PHBR_I", "PHBR_I_comb_TMB"), auc=c(0.68, 0.52)) %>%  
   ggplot(aes(x = biomarker, y = auc)) +
   geom_bar(stat = "identity", fill = "lightblue") +
   geom_text(aes(label = auc), hjust = 1) +
@@ -1531,8 +1535,10 @@ auc_df_long %>%
 
 
 ```{r}
-auc_ext = cowplot::plot_grid(p_auc_ext1, p_auc_ext2, p_auc_ext3, align = "h", nrow = 1) 
-ggsave2("extra_auc.pdf", auc_ext, width = 8, height = 2.5)
+auc_ext = cowplot::plot_grid(p_auc_ext1 + ggtitle("Van Allen et al 2015"), 
+                             p_auc_ext2 + ggtitle("Hugo et al 2016"), 
+                             p_auc_ext3 + ggtitle("Snyder et al 2017"), nrow = 1) 
+ggsave("extra_auc.pdf", auc_ext, width = 12, height = 2.5)
 ```
 
 

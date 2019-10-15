@@ -3,6 +3,9 @@
 #
 # According to info from TCIA database,
 # there are 7 classic genes
+# NOTE: there are problems about APS_MHC_II gene list
+# please don't use related results
+
 library(tidyverse)
 source("code/functions.R")
 

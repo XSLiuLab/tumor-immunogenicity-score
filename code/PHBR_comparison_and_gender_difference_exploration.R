@@ -57,21 +57,47 @@ tidy_df = dplyr::bind_rows(
 # Compare PHBR_I score in two available datasets --------------------------
 
 table(tidy_df$Study, !is.na(tidy_df$PHBR_I))
+summary(tidy_df$PHBR_I)
+
+tidy_df$PHBR_I_comb_TMB = tidy_df$PHBR_I * log(tidy_df$nTMB)
+
 PHBRI = list()
-PHBRI$Van2015 = roc(Response ~ PHBR_I, data = tidy_df, subset = (Study == "Van2015"))
-PHBRI$Snyder2017 = roc(Response ~ PHBR_I, data = tidy_df, subset = (Study == "Snyder2017"))
+PHBRI$Van2015 = list()
+PHBRI$Snyder2017 = list()
 
-sapply(PHBRI, auc)
+PHBRI$Van2015$PHBRI = roc(Response ~ PHBR_I, data = tidy_df, subset = (Study == "Van2015"))
+PHBRI$Van2015$COMB = roc(Response ~ PHBR_I_comb_TMB, data = tidy_df, subset = (Study == "Van2015"))
+PHBRI$Snyder2017$PHBRI = roc(Response ~ PHBR_I, data = tidy_df, subset = (Study == "Snyder2017"))
+PHBRI$Snyder2017$COMB = roc(Response ~ PHBR_I_comb_TMB, data = tidy_df, subset = (Study == "Snyder2017"))
 
-p = ggroc(list(VanAllen2015=PHBRI$Van2015, Snyder2017=PHBRI$Snyder2017),
+sapply(PHBRI$Van2015, auc)
+sapply(PHBRI$Snyder2017, auc)
+
+p1 = ggroc(list(PHBRI=PHBRI$Van2015$PHBRI, COMB=PHBRI$Van2015$COMB),
       legacy.axes = TRUE
 ) +
     labs(color = NULL) + 
     cowplot::theme_cowplot() + 
-    theme(legend.position = c(0.6, 0.3)) + 
-    scale_color_manual(labels = paste(c("VanAllen", "Snyder"), "AUC =", round(sapply(PHBRI, auc), 2)), values = c("blue", "red"))
+    theme(legend.position = c(0.4, 0.2)) + 
+    scale_color_manual(labels = paste(c("PHBR_I", "COMB"), "AUC =", 
+                                      round(sapply(PHBRI$Van2015, auc), 2)), values = c("blue", "red")) +
+  geom_segment(aes(x=0, xend=1, y=0, yend=1), color="grey", linetype="dashed") + 
+  ggtitle("Van Allen et al 2015")
 
-ggsave(filename = "PHBR_ROCs.pdf", p)
+p2 = ggroc(list(PHBRI=PHBRI$Snyder2017$PHBRI, COMB=PHBRI$Snyder2017$COMB),
+           legacy.axes = TRUE
+) +
+  labs(color = NULL) + 
+  cowplot::theme_cowplot() + 
+  theme(legend.position = c(0.4, 0.2)) + 
+  scale_color_manual(labels = paste(c("PHBR_I", "COMB"), "AUC =", 
+                                    round(sapply(PHBRI$Snyder2017, auc), 2)), values = c("blue", "red")) +
+  geom_segment(aes(x=0, xend=1, y=0, yend=1), color="grey", linetype="dashed") + 
+  ggtitle("Snyder et al 2017")
+
+p = cowplot::plot_grid(p1, p2)
+
+ggsave(filename = "PHBR_ROCs.pdf", p, width = 9, height = 4.5)
 
 
 # Do biomarkers have gender difference? -----------------------------------

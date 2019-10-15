@@ -29,6 +29,8 @@ Sys.setenv("LANGUAGE"="EN")
 
 This document is compiled from an Rmarkdown file which contains all code or description necessary to reproduce the analysis for the accompanying project. Each section below describes a different component of the analysis and all numbers and figures are generated directly from the underlying data on compilation.
 
+> **We found there are problems about MHC II genes, plase ignore all results for MHC II genes**
+
 # Dependencies
 
 The preprocessing step is dependent on R software and some R packages, if you have not used R yet or R is not installed, please see <https://cran.r-project.org/>.
@@ -38,10 +40,10 @@ R packages:
 * [UCSCXenaTools](https://github.com/ShixiangWang/UCSCXenaTools) - download data from UCSC Xena
 * GEOquery - download data from NCBI GEO database
 * [tidyverse](https://www.tidyverse.org/) - operate data, plot
-* data.table - read and operate data
+* data.table - operate data
 * survival - built in R, used to do survival analysis 
-* pheatmap - create pheatmap
-* corrplot - create correlation plot
+* metafor, metawho - meta-analysis
+* forestmodel - generate forestplot for meta-analysis model
 * forestplot - plot forestplot
 * survminer - plot survival fit
 * pROC - ROC analysis and visualization
