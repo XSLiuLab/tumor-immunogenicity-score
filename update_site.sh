@@ -1,5 +1,6 @@
 #!/bin/sh
 
+rm -rf docs/report_main_files/
 mv -f report/comp_profile.png docs/
 mv -f report/report_main_files/ docs/
 mv -f report/report_main.html docs/

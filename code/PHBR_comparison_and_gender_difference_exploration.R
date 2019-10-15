@@ -59,7 +59,7 @@ tidy_df = dplyr::bind_rows(
 table(tidy_df$Study, !is.na(tidy_df$PHBR_I))
 summary(tidy_df$PHBR_I)
 
-tidy_df$PHBR_I_comb_TMB = tidy_df$PHBR_I * log(tidy_df$nTMB)
+tidy_df$PHBR_I_comb_TMB = tidy_df$PHBR_I * log(tidy_df$nTMB + 1)
 
 PHBRI = list()
 PHBRI$Van2015 = list()
