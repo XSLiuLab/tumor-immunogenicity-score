@@ -688,7 +688,7 @@ load("results/Snyder2017_RNA.RData")
 ISG_IFNG <- read_csv("../data/ISG.RS_and_IFNG.GS.csv", comment = "#")
 ```
 
-### Add APS7 and ~~APS_MHC_II~~
+### Add APS7
 
 
 ```{r, eval=FALSE}
@@ -700,12 +700,7 @@ APS7.genes <- c(
 APS7 <- merged_geneList %>%
   dplyr::filter(Symbol %in% APS7.genes)
 
-load(file = "../data/APS_MHC_II_genes.RData")
-
 APS7.GSVA <- applyGSVA(APS7, group_col = "Cell_type", gene_col = "Symbol", ExprMatList = list(rna_hugo, rna_Snyder, rna_VanAllen), method = "gsva")
-
-APS_MHC_II.GSVA <- applyGSVA(APM_MHC_II, group_col = "Cell_type", gene_col = "Symbol", ExprMatList = list(rna_hugo, rna_Snyder, rna_VanAllen), method = "gsva")
-
 
 APS7.GSVA <- APS7.GSVA %>%
   setNames(c("Hugo2016", "Snyder2017", "VanAllen2015")) %>%
@@ -717,6 +712,16 @@ APS7.GSVA <- APS7.GSVA %>%
       )
   }, .id = "Study") %>%
   dplyr::rename(APS7 = APM)
+```
+
+
+```{r, eval=FALSE, include=FALSE}
+# MHC II  gene list has problems, so the result should not be used
+# This note is also written in source coude: MHC_II_GSVA
+
+load(file = "../data/APS_MHC_II_genes.RData")
+
+APS_MHC_II.GSVA <- applyGSVA(APM_MHC_II, group_col = "Cell_type", gene_col = "Symbol", ExprMatList = list(rna_hugo, rna_Snyder, rna_VanAllen), method = "gsva")
 
 APS_MHC_II.GSVA <- APS_MHC_II.GSVA %>%
   setNames(c("Hugo2016", "Snyder2017", "VanAllen2015")) %>%
@@ -731,6 +736,7 @@ APS_MHC_II.GSVA <- APS_MHC_II.GSVA %>%
 
 save(APS7.GSVA, APS_MHC_II.GSVA, file = "results/APS_alternative.GSVA.RData")
 ```
+
 
 
 ### Gene expression biomarkers for response to immune checkpoint blockade
