@@ -90,12 +90,12 @@ genTibbleList = function(gsetList){
             
             # stop("Something wrong with your fData of input List, please check it")
         }
-        if(length(symbol_col) > 1) {
-            warning("Multiple columns of fData matach gene symbol, only use the first one")
-            symbol_col = symbol_col[1]
-            rownames(eset) = fdata[, symbol_col]
-        }else{
-            rownames(eset) = fdata[, symbol_col]
+        if (length(symbol_col) > 1) {
+            warning("Multiple columns of fData match gene symbol, only use the first one")
+            symbol_col <- symbol_col[1]
+            rownames(eset) <- fdata[, symbol_col]
+        } else if (length(symbol_col) == 1){
+            rownames(eset) <- fdata[, symbol_col]
         }
         
         
