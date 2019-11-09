@@ -13,3 +13,4 @@ report/report_main_files/
 data/patient_affinities.cancer.PHBR.csv.gz
 data/1-s2.0-*
 report/results/GSEA_results_rm_notEnriched.RData
+data/GEOdata/*

@@ -83,7 +83,7 @@ These R packages are easily searched by internet and have no strict version requ
 
 If you use data, results or conclusion from this work, please cite:
 
-*Antigen presentation and tumor immunogenicity in cancer immunotherapy response prediction*
+*Antigen presentation and tumor immunogenicity in cancer immunotherapy response prediction, __eLife__*
 
 ## Acknowledgement
 
