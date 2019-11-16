@@ -1138,7 +1138,9 @@ info_hugo %>% # take care of NA values
     APS_Status = ifelse(APS > median(APS, na.rm = TRUE), "High",
       ifelse(is.na(APS), NA, "Low")
     ),
-    TIDE_Status = ifelse(TIDE > median(TIDE, na.rm = TRUE), "High",
+    # We reverse TIDE (do TIDE=-TIDE) in previous step
+    # so here, we need to change the order
+    TIDE_Status = ifelse(TIDE < median(TIDE, na.rm = TRUE), "High",
       ifelse(is.na(TIDE), NA, "Low")
     ),
     TMB_Status = ifelse(nTMB > median(nTMB), "High", "Low"),
@@ -1187,13 +1189,15 @@ coxph(Surv(overall_survival, dead == 1) ~ TIGS, data = info_VanAllen)
 # Cox result of TIDE
 coxph(Surv(overall_survival, dead == 1) ~ TIDE, data = info_VanAllen)
 
-info_VanAllen %>%
-  filter(group != "long-survival") %>%
+info_VanAllen2 %>%
+  #filter(group != "long-survival") %>%
   mutate(
     APS_Status = ifelse(APS > median(APS, na.rm = TRUE), "High",
       ifelse(is.na(APS), NA, "Low")
     ),
-    TIDE_Status = ifelse(TIDE > median(TIDE, na.rm = TRUE), "High",
+    # We reverse TIDE (do TIDE=-TIDE) in previous step
+    # so here, we need to change the order
+    TIDE_Status = ifelse(TIDE < median(TIDE, na.rm = TRUE), "High",
       ifelse(is.na(TIDE), NA, "Low")
     ),
     TMB_Status = ifelse(nTMB > median(nTMB, na.rm = TRUE), "High",
@@ -1250,7 +1254,9 @@ info_Snyder %>%
     APS_Status = ifelse(APS > median(APS, na.rm = TRUE), "High",
       ifelse(is.na(APS), NA, "Low")
     ),
-    TIDE_Status = ifelse(TIDE > median(TIDE, na.rm = TRUE), "High",
+    # We reverse TIDE (do TIDE=-TIDE) in previous step
+    # so here, we need to change the order
+    TIDE_Status = ifelse(TIDE < median(TIDE, na.rm = TRUE), "High",
       ifelse(is.na(TIDE), NA, "Low")
     ),
     TMB_Status = ifelse(nTMB > median(nTMB, na.rm = TRUE), "High",
@@ -1632,7 +1638,7 @@ plot_list = list(
   p_auc_1, p_auc_2, p_auc_3,
   p_surv_TMB[[1]]$plot, p_surv_TMB[[2]]$plot, p_surv_TMB[[3]]$plot,
   p_surv_TIGS[[1]]$plot, p_surv_TIGS[[2]]$plot, p_surv_TIGS[[3]]$plot,
-  p_surv_TIDE[[1]]$plot, p_surv_TIDE[[2]]$plot, p_surv_TIDE[[1]]$plot
+  p_surv_TIDE[[1]]$plot, p_surv_TIDE[[2]]$plot, p_surv_TIDE[[3]]$plot
 )
 
 # plot_list <- list(
