@@ -1,5 +1,9 @@
 # Tumor Immunogenicity Score (TIGS)
 
+[![HitCount](http://hits.dwyl.io/XSLiuLab/tumor-immunogenicity-score.svg)](http://hits.dwyl.io/XSLiuLab/tumor-immunogenicity-score)
+[![Lifecycle:
+maturing](https://img.shields.io/badge/lifecycle-stable-blue.svg)](https://www.tidyverse.org/lifecycle/#stable)
+
 ## Contents
 
 * [Overview](#overview)
