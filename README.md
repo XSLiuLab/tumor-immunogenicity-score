@@ -21,6 +21,9 @@ maturing](https://img.shields.io/badge/lifecycle-stable-blue.svg)](https://www.t
 
 Purpose of this repository is to share analysis procedure, data and help readers or reviewers to know more detail of this work, reproduce or make use of results they are interested in.
 
+**NOTE:** recently, we notice that the clinical data updates from UCSC Xena (thanks to @danshu, see https://github.com/ropensci/UCSCXenaTools/issues/22), readers should use the tidy data processed by me or do some clean
+work by yourself.
+
 ## Repo Contents
 
 * [code](./code): tidy R functions and R script for  GSVA score calculation with randomly selected APS/IIS genes.
