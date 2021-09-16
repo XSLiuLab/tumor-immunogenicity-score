@@ -1,3 +1,5 @@
+# NOTION: group_df only accepts tibble instead of data.frame as input
+
 applyGSVA = function(group_df, group_col, gene_col, ExprMatList, 
                      method=c("ssgsea", "gsva", "zscore", "plage"),
                      kcdf=c("Gaussian", "Poisson")){
