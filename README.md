@@ -1,6 +1,6 @@
 # Tumor Immunogenicity Score (TIGS)
 
-[![HitCount](http://hits.dwyl.io/XSLiuLab/tumor-immunogenicity-score.svg)](http://hits.dwyl.io/XSLiuLab/tumor-immunogenicity-score)
+[![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FXSLiuLab%2Ftumor-immunogenicity-score&count_bg=%2379C83D&title_bg=%23555555&icon=fandom.svg&icon_color=%23E7E7E7&title=hits&edge_flat=false)](https://hits.seeyoufarm.com)
 [![Lifecycle:
 maturing](https://img.shields.io/badge/lifecycle-stable-blue.svg)](https://www.tidyverse.org/lifecycle/#stable)
 
@@ -57,6 +57,8 @@ Or you can download whole respository with one of following ways:
 ### Reproduce analysis
 
 For readers who want to reproduce analysis shown in manuscript, please [install R](https://cran.r-project.org) in your computer, then install required R packages described at __Dependencies__ part of our [analysis report](https://xsliulab.github.io/tumor-immunogenicity-score/), followed by rendering `report_main.Rmd` file using [knitr package](https://github.com/yihui/knitr).
+
+The GSVA related code has been independently deployed to [GSVAutils](https://github.com/XSLiuLab/GSVAutils) for interested readers.
 
 ## Test Environment
 
